@@ -1,0 +1,1 @@
+export const COMMAND_HANDLERS = Symbol('COMMAND_HANDLERS');
