@@ -27,6 +27,7 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
       authStrategy: new LocalAuth({
         clientId: this.config.get('WHATSAPP_CLIENT_ID'),
         dataPath: this.config.get('WHATSAPP_DATA_PATH'),
+        rmMaxRetries: this.config.get('WHATSAPP_SESSION_RM_MAX_RETRIES'),
       }),
       puppeteer: {
         headless: this.config.get('WHATSAPP_HEADLESS'),

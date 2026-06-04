@@ -18,6 +18,22 @@ enum MessageDirection {
   outbound
 }
 
+enum RoleplayMemoryKind {
+  user_fact
+  relationship
+  episode
+  preference
+}
+
+enum RoleplayMood {
+  neutral
+  happy
+  sad
+  annoyed
+  warm
+  playful
+}
+
 model ContactSetting {
   id        String   @id @default(cuid())
   chatId    String   @unique
@@ -29,6 +45,9 @@ model ContactSetting {
   updatedAt DateTime @updatedAt
 
   notes Note[]
+
+  roleplayState RoleplayState?
+  roleplayMemories RoleplayMemory[]
 }
 
 model ConversationMessage {
@@ -51,4 +70,34 @@ model Note {
   contactSetting ContactSetting @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
 
   @@index([chatId, createdAt])
+}
+
+model RoleplayState {
+  id                String       @id @default(cuid())
+  chatId            String       @unique
+  mood              RoleplayMood @default(neutral)
+  affection         Int          @default(50)
+  trust             Int          @default(50)
+  energy            Int          @default(70)
+  tension           Int          @default(0)
+  summary           String?
+  lastInteractionAt DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  contactSetting ContactSetting @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+}
+
+model RoleplayMemory {
+  id         String             @id @default(cuid())
+  chatId     String
+  kind       RoleplayMemoryKind
+  content    String
+  importance Int                @default(50)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  contactSetting ContactSetting @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
+
+  @@index([chatId, importance, updatedAt])
 }

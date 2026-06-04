@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConversationMessage } from '@prisma/client';
 import { PrismaService } from '../infra/prisma/prisma.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
 
@@ -44,5 +45,15 @@ export class ConversationsService {
         body: text,
       },
     });
+  }
+
+  async getRecentMessages(chatId: string, limit: number): Promise<ConversationMessage[]> {
+    const messages = await this.prisma.conversationMessage.findMany({
+      where: { chatId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    return messages.reverse();
   }
 }

@@ -3,6 +3,7 @@ import { ContactsModule } from '../contacts/contacts.module';
 import { ConversationsModule } from '../conversations/conversations.module';
 import { LlmModule } from '../llm/llm.module';
 import { MessagesModule } from '../messages/messages.module';
+import { RoleplayModule } from '../roleplay/roleplay.module';
 import { BotOrchestratorService } from './bot-orchestrator.service';
 import { CommandRegistryService } from './command-registry.service';
 import { AiCommand } from './commands/ai.command';
@@ -14,6 +15,7 @@ import { NotesCommand } from './commands/notes.command';
 import { PersonaCommand } from './commands/persona.command';
 import { PingCommand } from './commands/ping.command';
 import { ProviderCommand } from './commands/provider.command';
+import { RoleplayResetCommand } from './commands/roleplay-reset.command';
 import { CommandHandler } from './domain/command-handler';
 import { TemporaryGreetingReplyService } from './temporary-greeting-reply.service';
 import { COMMAND_HANDLERS } from './tokens';
@@ -27,11 +29,12 @@ const commandProviders = [
   AiCommand,
   ProviderCommand,
   ModelCommand,
+  RoleplayResetCommand,
   HelpCommand,
 ];
 
 @Module({
-  imports: [ContactsModule, ConversationsModule, MessagesModule, LlmModule],
+  imports: [ContactsModule, ConversationsModule, MessagesModule, LlmModule, RoleplayModule],
   providers: [
     ...commandProviders,
     {

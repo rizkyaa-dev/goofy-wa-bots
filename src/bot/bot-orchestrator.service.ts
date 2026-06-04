@@ -5,6 +5,7 @@ import { ContactSettingsRepository } from '../contacts/contact-settings.reposito
 import { ConversationsService } from '../conversations/conversations.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
 import { MessageDeduplicatorService } from '../messages/message-deduplicator.service';
+import { RoleplayChatService } from '../roleplay/roleplay-chat.service';
 import { BotReply } from './domain/bot-reply';
 import { CommandRegistryService } from './command-registry.service';
 import { TemporaryGreetingReplyService } from './temporary-greeting-reply.service';
@@ -20,6 +21,7 @@ export class BotOrchestratorService {
     private readonly deduplicator: MessageDeduplicatorService,
     private readonly commandRegistry: CommandRegistryService,
     private readonly temporaryGreetingReply: TemporaryGreetingReplyService,
+    private readonly roleplayChat: RoleplayChatService,
   ) {}
 
   async handle(message: IncomingMessage): Promise<BotReply | null> {
@@ -59,17 +61,11 @@ export class BotOrchestratorService {
       return null;
     }
 
-    const reply = this.createAutoReply(settings.persona);
+    const reply = {
+      text: await this.roleplayChat.generateReply(message, settings),
+    };
     await this.recordReply(message, reply);
     return reply;
-  }
-
-  private createAutoReply(persona: string | null): BotReply {
-    const personaLine = persona ? ` Persona aktif: ${persona}` : '';
-
-    return {
-      text: `Pesan diterima.${personaLine} Untuk fitur khusus, ketik /help.`,
-    };
   }
 
   private async recordReply(message: IncomingMessage, reply: BotReply | null): Promise<void> {

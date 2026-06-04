@@ -15,7 +15,7 @@ export class HelpCommand implements CommandHandler {
         '/ping - Cek bot aktif.',
         '/mode - Lihat mode chat.',
         '/mode command_only - Hanya balas command.',
-        '/mode auto_reply - Balas pesan biasa.',
+        '/mode auto_reply - Balas pesan biasa memakai runtime roleplay.',
         '/mode silent - Diam kecuali command.',
         '/catat isi catatan - Simpan catatan.',
         '/notes - Tampilkan 5 catatan terakhir.',
@@ -24,6 +24,7 @@ export class HelpCommand implements CommandHandler {
         '/ai pertanyaan - Tanya AI.',
         '/provider - Lihat/set provider AI.',
         '/model - Lihat/set model AI.',
+        '/rp_reset - Reset roleplay untuk testing.',
       ].join('\n'),
     };
   }
