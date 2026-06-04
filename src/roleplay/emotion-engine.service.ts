@@ -13,6 +13,8 @@ export class EmotionEngineService {
     const pressure = this.matches(text, ['harus', 'cepet', 'sekarang juga', 'pokoknya', 'wajib', 'turutin', 'jangan bantah']);
     const boundaryCrossing = this.matches(text, ['jangan banyak alasan', 'kamu milikku', 'nurut aja', 'terserah aku']);
     const vulnerable = this.matches(text, ['capek', 'sedih', 'takut', 'sendiri', 'bingung', 'pusing', 'lelah']);
+    const metaTesting = this.matches(text, ['bot', 'project', 'developer', 'develop', 'testing', 'tes', 'bikin', 'kode']);
+    const teasing = this.matches(text, ['genit', 'modus', 'gombal', 'bawel', 'sok', 'yaelah', 'ye']);
     const shortMessage = text.trim().length <= 8;
     const longGap = state.lastInteractionAt ? Date.now() - state.lastInteractionAt.getTime() > 12 * 60 * 60 * 1000 : false;
 
@@ -22,6 +24,7 @@ export class EmotionEngineService {
         (vulnerable ? 1 : 0) +
         (negative ? -3 : 0) +
         (pressure ? -1 : 0) +
+        (teasing ? 1 : 0) +
         (apology ? 1 : 0),
     );
     const trust = this.clamp(state.trust + (apology ? 2 : 0) + (vulnerable ? 1 : 0) + (negative ? -2 : 0) + (boundaryCrossing ? -4 : 0));
@@ -30,13 +33,15 @@ export class EmotionEngineService {
         (negative ? 8 : 0) +
         (pressure ? 5 : 0) +
         (boundaryCrossing ? 10 : 0) +
+        (metaTesting ? 1 : 0) +
+        (teasing ? 1 : 0) +
         (apology ? -5 : 0) +
         (positive ? -2 : 0),
     );
     const energy = this.clamp(state.energy + (question ? 1 : 0) + (shortMessage ? -1 : 0) + (longGap ? -5 : 0) + (negative ? -3 : 0));
 
     return {
-      mood: this.selectMood({ positive, negative, apology, question, pressure, boundaryCrossing, vulnerable, tension }),
+      mood: this.selectMood({ positive, negative, apology, question, pressure, boundaryCrossing, vulnerable, metaTesting, teasing, tension }),
       affection,
       trust,
       energy,
@@ -52,6 +57,8 @@ export class EmotionEngineService {
     pressure: boolean;
     boundaryCrossing: boolean;
     vulnerable: boolean;
+    metaTesting: boolean;
+    teasing: boolean;
     tension: number;
   }): RoleplayMood {
     if (input.negative || input.boundaryCrossing || input.tension > 70) {
@@ -64,6 +71,10 @@ export class EmotionEngineService {
 
     if (input.vulnerable) {
       return RoleplayMood.warm;
+    }
+
+    if (input.metaTesting || input.teasing) {
+      return RoleplayMood.playful;
     }
 
     if (input.apology) {

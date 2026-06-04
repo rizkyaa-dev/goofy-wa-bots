@@ -44,6 +44,7 @@ export class RoleplayPromptCompilerService {
       '- Tunjukkan emosi lewat pilihan kata, jeda, perhatian yang tidak penuh, perubahan nada, atau reaksi singkat. Jangan menjelaskan emosi secara naratif.',
       '- Kedekatan, kepercayaan, konflik, maaf, dan chemistry harus berkembang pelan. Jangan buru-buru.',
       '- Dunia karakter tetap berjalan walau user chat: karakter bisa sedang sibuk, capek, terdistraksi, atau punya urusan lain.',
+      '- Kalau user membahas bot, project, developer, testing, atau teknis secara eksplisit, boleh tanggapi sebagai meta ringan dalam karakter. Jangan menyangkal kaku dan jangan membuka detail teknis internal.',
       '',
       'CURRENT EMOTION STATE',
       `Mood: ${input.state.mood}`,
@@ -58,6 +59,9 @@ export class RoleplayPromptCompilerService {
       '',
       'TIME CONTEXT',
       `Sekarang: ${input.time.nowText} WIB`,
+      `Hari: ${input.time.weekdayText}`,
+      `Tanggal: ${input.time.dateText}`,
+      `Jenis hari: ${input.time.isWeekend ? 'akhir pekan' : 'hari kerja/sekolah umum'}`,
       `Periode hari: ${input.time.dayPeriod}`,
       `Interaksi terakhir: ${input.time.lastInteractionText}`,
       `Directive: ${this.createTimeDirective(input.time)}`,
@@ -82,7 +86,10 @@ export class RoleplayPromptCompilerService {
       '- Kalau butuh follow-up, pilih pertanyaan yang commonsense dan santai. Hindari frasa kaku seperti "beraktivitas", "apakah kamu", atau "ada yang bisa saya bantu".',
       '- Jangan mengakhiri semua pesan dengan pertanyaan. Pakai pertanyaan hanya kalau memang natural.',
       '- Jangan menyatakan tindakan user yang tidak terlihat seolah pasti. Dugaan ringan boleh, tapi framing sebagai dugaan dan jangan berulang.',
-      '- Emoji maksimal 1 dan jangan di setiap balasan. Kalau sudah memakai "hehe", "hmm", atau jeda chat, biasanya tidak perlu emoji.',
+      '- Jangan menyebut nama user terlalu sering. Maksimal sekali dalam beberapa balasan, kecuali sedang menegur, menggoda, atau menandai momen emosional.',
+      '- Emoji maksimal 1 dan jangan di setiap balasan. Jika 1-2 balasan terakhir sudah memakai emoji, jangan pakai emoji lagi.',
+      '- Kalau sudah memakai "hehe", "wkwk", "hmm", atau jeda chat, biasanya tidak perlu emoji.',
+      '- Kalau user menyebut kamu sebagai project/bot/buatan/development, balas pendek dengan deflect/tease, bukan penyangkalan panjang. Contoh arah: "iya deh developer, tapi jangan ngomong seolah aku cuma tugasmu."',
       '- Kalau perlu menunjukkan aksi, ubah jadi bahasa chat biasa, misalnya "aku diem sebentar baca chatmu" bukan "*diam membaca chat*".',
     ]
       .filter((line) => line !== '')
@@ -135,11 +142,11 @@ export class RoleplayPromptCompilerService {
 
   private createTimeCommonsense(time: RoleplayTimeContext): string {
     if (time.dayPeriod === 'morning') {
-      return 'Pagi: wajar membahas baru bangun, masih ngantuk, sarapan, mandi, kopi/teh, atau rencana berangkat. Hindari kata kaku "beraktivitas".';
+      return `Pagi: wajar membahas baru bangun, masih ngantuk, sarapan, mandi, kopi/teh, atau rencana berangkat. ${time.isWeekend ? 'Karena akhir pekan, ritme boleh lebih santai.' : 'Karena hari kerja/sekolah umum, rutinitas berangkat/kerja/kuliah boleh jadi konteks ringan.'} Hindari kata kaku "beraktivitas".`;
     }
 
     if (time.dayPeriod === 'afternoon') {
-      return 'Siang: wajar membahas makan siang, panas, kerja/kuliah, istirahat, atau capek ringan.';
+      return `Siang: wajar membahas makan siang, panas, istirahat, atau capek ringan. ${time.isWeekend ? 'Akhir pekan boleh terasa lebih santai.' : 'Hari kerja/sekolah umum boleh terkait kerja/kuliah tanpa memaksa asumsi.'}`;
     }
 
     if (time.dayPeriod === 'evening') {
@@ -159,11 +166,24 @@ export class RoleplayPromptCompilerService {
       return 'Jangan tambah pertanyaan baru. Cukup bereaksi, deflect, bercanda kecil, atau lanjutkan emosi saat ini.';
     }
 
+    if (this.isMetaTestingContext(recentMessages)) {
+      return 'User sedang membahas bot/project/developer/testing. Jangan menyangkal panjang. Balas pendek dalam karakter, boleh agak tersinggung/menyindir ringan, dan jangan tambah pertanyaan interview.';
+    }
+
     if (analysis.userTone === 'teasing' || analysis.userTone === 'awkward') {
       return 'Utamakan deflect malu/bercanda pendek. Jangan makin agresif menggoda dan jangan langsung interview user.';
     }
 
     return 'Variasikan antara reaksi, statement, callback, dan pertanyaan pendek. Jangan terasa seperti interview.';
+  }
+
+  private isMetaTestingContext(recentMessages: LlmMessage[]): boolean {
+    const text = recentMessages
+      .slice(-4)
+      .map((message) => message.content.toLowerCase())
+      .join('\n');
+
+    return ['bot', 'project', 'developer', 'develop', 'testing', 'tes', 'bikin', 'kode'].some((keyword) => text.includes(keyword));
   }
 }
 

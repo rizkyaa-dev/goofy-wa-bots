@@ -54,7 +54,7 @@ export class RoleplayChatService {
         messages: prompt,
       });
 
-      return this.cleanReply(result.text);
+      return this.cleanReply(result.text, recentMessages);
     } catch (error) {
       if (error instanceof LlmProviderError) {
         return `Aku lagi agak susah jawab sekarang. (${error.provider}: ${error.message})`;
@@ -64,7 +64,7 @@ export class RoleplayChatService {
     }
   }
 
-  private cleanReply(text: string): string {
+  private cleanReply(text: string, recentMessages: Array<{ role: string; content: string }>): string {
     const cleaned = text
       .trim()
       .replace(/^["']|["']$/g, '')
@@ -75,7 +75,7 @@ export class RoleplayChatService {
       .replace(/\s{2,}/g, ' ')
       .trim();
 
-    return this.limitEmoji(cleaned);
+    return this.limitEmoji(cleaned, recentMessages);
   }
 
   private applyAnalysis<T extends StatePatch>(statePatch: T, analysis: RoleplayEmotionAnalysis): T {
@@ -99,7 +99,11 @@ export class RoleplayChatService {
     return Math.max(0, Math.min(100, value));
   }
 
-  private limitEmoji(text: string): string {
+  private limitEmoji(text: string, recentMessages: Array<{ role: string; content: string }>): string {
+    if (this.recentAssistantUsedEmoji(recentMessages)) {
+      return text.replace(/\p{Extended_Pictographic}/gu, '').replace(/\s{2,}/g, ' ').trim();
+    }
+
     let emojiSeen = false;
 
     return text
@@ -113,6 +117,13 @@ export class RoleplayChatService {
       })
       .replace(/\s{2,}/g, ' ')
       .trim();
+  }
+
+  private recentAssistantUsedEmoji(recentMessages: Array<{ role: string; content: string }>): boolean {
+    return recentMessages
+      .filter((message) => message.role === 'assistant')
+      .slice(-2)
+      .some((message) => /\p{Extended_Pictographic}/u.test(message.content));
   }
 }
 

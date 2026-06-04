@@ -8,6 +8,7 @@ export class TimeContextService {
     const minutesSinceLastInteraction = state.lastInteractionAt
       ? Math.max(0, Math.floor((now.getTime() - state.lastInteractionAt.getTime()) / 60000))
       : undefined;
+    const weekdayText = this.formatWeekday(now);
 
     return {
       nowText: new Intl.DateTimeFormat('id-ID', {
@@ -15,10 +16,23 @@ export class TimeContextService {
         timeStyle: 'short',
         timeZone: 'Asia/Jakarta',
       }).format(now),
+      dateText: new Intl.DateTimeFormat('id-ID', {
+        dateStyle: 'long',
+        timeZone: 'Asia/Jakarta',
+      }).format(now),
+      weekdayText,
+      isWeekend: weekdayText === 'Sabtu' || weekdayText === 'Minggu',
       dayPeriod: this.getDayPeriod(now),
       lastInteractionText: this.formatLastInteraction(minutesSinceLastInteraction),
       minutesSinceLastInteraction,
     };
+  }
+
+  private formatWeekday(now: Date): string {
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      timeZone: 'Asia/Jakarta',
+    }).format(now);
   }
 
   private getDayPeriod(now: Date): RoleplayTimeContext['dayPeriod'] {
