@@ -121,6 +121,22 @@ const envSchema = z.object({
     .transform((value) => value.toLowerCase() !== 'false'),
   ROLEPLAY_EMOTION_CLASSIFIER_PROVIDER: z.string().min(1).default('gemini'),
   ROLEPLAY_EMOTION_CLASSIFIER_MODEL: z.string().optional().default(''),
+  ROLEPLAY_MEMORY_EXTRACTOR_ENABLED: z
+    .string()
+    .default('true')
+    .transform((value) => value.toLowerCase() !== 'false'),
+  ROLEPLAY_MEMORY_EXTRACTOR_PROVIDER: z.string().min(1).default('deepseek'),
+  ROLEPLAY_MEMORY_EXTRACTOR_MODEL: z.string().optional().default('deepseek-v4-flash'),
+  ROLEPLAY_MEMORY_EXTRACTOR_MIN_CONFIDENCE: z
+    .string()
+    .default('0.65')
+    .transform((value) => Number(value))
+    .pipe(z.number().min(0).max(1)),
+  ROLEPLAY_MEMORY_EXTRACTOR_MAX_MEMORIES: z
+    .string()
+    .default('3')
+    .transform((value) => Number(value))
+    .pipe(z.number().int().positive()),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

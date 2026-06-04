@@ -97,6 +97,7 @@ Aturan allowlist:
 - `/model`: lihat model AI chat ini.
 - `/model nama-model`: set model AI chat ini.
 - `/model default`: reset ke model default provider.
+- `/rp_memory`: lihat memory roleplay chat ini.
 - `/rp_reset`: reset state, memory, dan history roleplay chat ini.
 - `/rp_reset state`: reset emosi/state roleplay.
 - `/rp_reset memory`: reset memori roleplay.
@@ -176,6 +177,11 @@ ROLEPLAY_MEMORY_LIMIT=8
 ROLEPLAY_EMOTION_CLASSIFIER_ENABLED=true
 ROLEPLAY_EMOTION_CLASSIFIER_PROVIDER=gemini
 ROLEPLAY_EMOTION_CLASSIFIER_MODEL=
+ROLEPLAY_MEMORY_EXTRACTOR_ENABLED=true
+ROLEPLAY_MEMORY_EXTRACTOR_PROVIDER=deepseek
+ROLEPLAY_MEMORY_EXTRACTOR_MODEL=deepseek-v4-flash
+ROLEPLAY_MEMORY_EXTRACTOR_MIN_CONFIDENCE=0.65
+ROLEPLAY_MEMORY_EXTRACTOR_MAX_MEMORIES=3
 ```
 
 Runtime menyusun konteks dari:
@@ -187,6 +193,8 @@ Runtime menyusun konteks dari:
 - ringkasan percakapan bila ada
 - memori relevan
 - pesan terbaru
+
+Memory extractor memakai LLM terpisah dari reply generator. Extractor hanya berjalan kalau pesan punya sinyal memory seperti nama/panggilan, preferensi, boundary, project/goal, atau "ingat/jangan lupa". Kalau extractor gagal atau dimatikan, rule-based fallback tetap berjalan.
 
 ## Temporary Reply
 

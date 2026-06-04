@@ -36,7 +36,7 @@ export class RoleplayChatService {
     const nextStatePatch = this.applyAnalysis(this.emotionEngine.evaluateInbound(previousState, message), analysis);
     const state = await this.states.updateAfterInbound(message.chatId, nextStatePatch);
 
-    await this.memories.captureFromInbound(message);
+    await this.memories.captureFromInbound(message, this.formatRecentContext(recentMessages));
 
     const prompt = this.promptCompiler.compile({
       profile: this.characterProfile.getProfile(settings.persona),

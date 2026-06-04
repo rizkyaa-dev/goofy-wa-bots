@@ -15,6 +15,7 @@ import { NotesCommand } from './commands/notes.command';
 import { PersonaCommand } from './commands/persona.command';
 import { PingCommand } from './commands/ping.command';
 import { ProviderCommand } from './commands/provider.command';
+import { RoleplayMemoryCommand } from './commands/roleplay-memory.command';
 import { RoleplayResetCommand } from './commands/roleplay-reset.command';
 import { CommandHandler } from './domain/command-handler';
 import { TemporaryGreetingReplyService } from './temporary-greeting-reply.service';
@@ -29,6 +30,7 @@ const commandProviders = [
   AiCommand,
   ProviderCommand,
   ModelCommand,
+  RoleplayMemoryCommand,
   RoleplayResetCommand,
   HelpCommand,
 ];

@@ -23,6 +23,8 @@ enum RoleplayMemoryKind {
   relationship
   episode
   preference
+  boundary
+  goal
 }
 
 enum RoleplayMood {
@@ -94,10 +96,14 @@ model RoleplayMemory {
   kind       RoleplayMemoryKind
   content    String
   importance Int                @default(50)
+  confidence Float              @default(1.0)
+  sourceText String?
+  expiresAt  DateTime?
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
 
   contactSetting ContactSetting @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
 
   @@index([chatId, importance, updatedAt])
+  @@index([chatId, kind, updatedAt])
 }

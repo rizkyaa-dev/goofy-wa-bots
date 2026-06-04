@@ -24,6 +24,7 @@ export class HelpCommand implements CommandHandler {
         '/ai pertanyaan - Tanya AI.',
         '/provider - Lihat/set provider AI.',
         '/model - Lihat/set model AI.',
+        '/rp_memory - Lihat memory roleplay chat ini.',
         '/rp_reset - Reset roleplay untuk testing.',
       ].join('\n'),
     };
