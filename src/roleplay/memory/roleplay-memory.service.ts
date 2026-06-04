@@ -55,15 +55,18 @@ export class RoleplayMemoryService {
   }
 
   private async extractCandidates(message: IncomingMessage, recentContext: string): Promise<ExtractedRoleplayMemory[]> {
+    const fallbackCandidates = this.extractFallbackCandidates(message.body);
+
     if (this.config.get('ROLEPLAY_MEMORY_EXTRACTOR_ENABLED') && this.trigger.shouldExtract(message)) {
       try {
-        return await this.extractor.extract(message, recentContext);
+        const extractedCandidates = await this.extractor.extract(message, recentContext);
+        return this.mergeCandidates(fallbackCandidates, extractedCandidates);
       } catch {
-        return this.extractFallbackCandidates(message.body);
+        return fallbackCandidates;
       }
     }
 
-    return this.extractFallbackCandidates(message.body);
+    return fallbackCandidates;
   }
 
   private async upsertMemory(chatId: string, candidate: ExtractedRoleplayMemory): Promise<void> {
@@ -123,6 +126,12 @@ export class RoleplayMemoryService {
     }
 
     if (this.hasNameOrNicknameSignal(lower)) {
+      const identityMemories = this.extractIdentityMemories(normalized);
+
+      if (identityMemories.length > 0) {
+        return identityMemories;
+      }
+
       return [this.createFallbackMemory(RoleplayMemoryKind.user_fact, normalized, 85)];
     }
 
@@ -154,6 +163,88 @@ export class RoleplayMemoryService {
       sourceText: content,
       ttl: kind === RoleplayMemoryKind.episode ? 'short_term' : 'long_term',
     };
+  }
+
+  private extractIdentityMemories(text: string): ExtractedRoleplayMemory[] {
+    const sourceText = text.trim();
+    const name = this.extractName(sourceText);
+    const nickname = this.extractNickname(sourceText);
+    const memories: ExtractedRoleplayMemory[] = [];
+
+    if (name) {
+      memories.push(this.createFallbackMemory(RoleplayMemoryKind.user_fact, `Nama pengguna adalah ${name}.`, 95));
+    }
+
+    if (nickname) {
+      memories.push(this.createFallbackMemory(RoleplayMemoryKind.user_fact, `Pengguna ingin dipanggil ${nickname}.`, 92));
+    }
+
+    return memories.map((memory) => ({
+      ...memory,
+      confidence: 0.95,
+      sourceText,
+    }));
+  }
+
+  private extractName(text: string): string | null {
+    const match = /\bnama\s*(?:ku|aku|saya)\s+(.+?)(?=\s+panggil\b|[,.!?;]|$)/iu.exec(text);
+    return match ? this.normalizeIdentityValue(match[1]) : null;
+  }
+
+  private extractNickname(text: string): string | null {
+    const patterns = [
+      /\bpanggil\s+(?:aku|saya)\s+(?:aja|saja\s+)?(.+?)(?=[,.!?;]|$)/iu,
+      /\bpanggil\s+(?:aja|saja)\s+(.+?)(?=[,.!?;]|$)/iu,
+      /\bpanggilnya\s+(.+?)(?=[,.!?;]|$)/iu,
+    ];
+
+    for (const pattern of patterns) {
+      const match = pattern.exec(text);
+
+      if (match) {
+        return this.normalizeIdentityValue(match[1]);
+      }
+    }
+
+    return null;
+  }
+
+  private normalizeIdentityValue(value: string): string | null {
+    const normalized = value
+      .replace(/["'`]/g, '')
+      .replace(/\b(?:ya|dong|nih|sih|deh|aja|saja)\b\s*$/iu, '')
+      .trim()
+      .split(/\s+/)
+      .slice(0, 3)
+      .join(' ');
+
+    if (normalized.length < 2 || normalized.length > 40) {
+      return null;
+    }
+
+    return normalized
+      .split(/\s+/)
+      .map((word) => (word === word.toLowerCase() ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+      .join(' ');
+  }
+
+  private mergeCandidates(
+    fallbackCandidates: ExtractedRoleplayMemory[],
+    extractedCandidates: ExtractedRoleplayMemory[],
+  ): ExtractedRoleplayMemory[] {
+    if (!fallbackCandidates.some((candidate) => this.isIdentityMemory(candidate))) {
+      return [...fallbackCandidates, ...extractedCandidates];
+    }
+
+    return [
+      ...fallbackCandidates,
+      ...extractedCandidates.filter((candidate) => !this.isIdentityMemory(candidate)),
+    ];
+  }
+
+  private isIdentityMemory(candidate: ExtractedRoleplayMemory): boolean {
+    const text = `${candidate.content} ${candidate.sourceText}`.toLowerCase();
+    return /\b(nama|panggil|dipanggil|nickname)\b/u.test(text);
   }
 
   private hasNameOrNicknameSignal(text: string): boolean {

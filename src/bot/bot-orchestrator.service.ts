@@ -61,11 +61,81 @@ export class BotOrchestratorService {
       return null;
     }
 
-    const reply = {
-      text: await this.roleplayChat.generateReply(message, settings),
-    };
+    const reply = await this.roleplayChat.generateReply(message, settings);
     await this.recordReply(message, reply);
     return reply;
+  }
+
+  async handleBatch(messages: IncomingMessage[]): Promise<BotReply | null> {
+    const freshMessages = messages.filter((message) => !this.deduplicator.isDuplicate(message.id));
+
+    if (freshMessages.length === 0) {
+      return null;
+    }
+
+    if (freshMessages.length === 1) {
+      return this.handleFreshNonCommand(freshMessages[0]);
+    }
+
+    const latestMessage = freshMessages.at(-1) as IncomingMessage;
+    const batchedMessage = this.createBatchedMessage(freshMessages);
+
+    if (!this.contactPolicy.canRespondTo(batchedMessage)) {
+      this.logger.debug(`Ignored batched messages from non-allowlisted chat ${latestMessage.chatId}`);
+      return null;
+    }
+
+    for (const message of freshMessages) {
+      await this.conversations.recordInbound(message);
+    }
+
+    const settings = await this.contactSettings.getOrCreate(latestMessage.chatId);
+
+    if (settings.mode === BotMode.silent || settings.mode === BotMode.command_only) {
+      return null;
+    }
+
+    const reply = await this.roleplayChat.generateReply(batchedMessage, settings);
+    await this.recordReply(latestMessage, reply);
+    return reply;
+  }
+
+  private async handleFreshNonCommand(message: IncomingMessage): Promise<BotReply | null> {
+    const temporaryReply = this.temporaryGreetingReply.createReply(message);
+    if (temporaryReply) {
+      await this.conversations.recordInbound(message);
+      await this.recordReply(message, temporaryReply);
+      return temporaryReply;
+    }
+
+    if (!this.contactPolicy.canRespondTo(message)) {
+      this.logger.debug(`Ignored message from non-allowlisted chat ${message.chatId}`);
+      return null;
+    }
+
+    await this.conversations.recordInbound(message);
+
+    const settings = await this.contactSettings.getOrCreate(message.chatId);
+
+    if (settings.mode === BotMode.silent || settings.mode === BotMode.command_only) {
+      return null;
+    }
+
+    const reply = await this.roleplayChat.generateReply(message, settings);
+    await this.recordReply(message, reply);
+    return reply;
+  }
+
+  private createBatchedMessage(messages: IncomingMessage[]): IncomingMessage {
+    const latestMessage = messages.at(-1) as IncomingMessage;
+    const aliases = new Set(messages.flatMap((message) => message.chatIdAliases));
+
+    return {
+      ...latestMessage,
+      id: `batch:${messages.map((message) => message.id).join('|')}`,
+      chatIdAliases: Array.from(aliases),
+      body: messages.map((message) => message.body).join('\n'),
+    };
   }
 
   private async recordReply(message: IncomingMessage, reply: BotReply | null): Promise<void> {

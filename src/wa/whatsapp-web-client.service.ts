@@ -3,9 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import qrcode from 'qrcode-terminal';
 import { Client, LocalAuth, Message } from 'whatsapp-web.js';
 import { BotOrchestratorService } from '../bot/bot-orchestrator.service';
+import { BotReply } from '../bot/domain/bot-reply';
 import { AppEnv } from '../config/env.validation';
 import { BrowserExecutableResolverService } from './browser-executable-resolver.service';
 import { WhatsappMessageNormalizerService } from './whatsapp-message-normalizer.service';
+import { WhatsappReplyBatcherService } from './whatsapp-reply-batcher.service';
 import { WhatsappTypingSimulatorService } from './whatsapp-typing-simulator.service';
 
 @Injectable()
@@ -18,6 +20,7 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
     private readonly bot: BotOrchestratorService,
     private readonly normalizer: WhatsappMessageNormalizerService,
     private readonly browserResolver: BrowserExecutableResolverService,
+    private readonly replyBatcher: WhatsappReplyBatcherService,
     private readonly typingSimulator: WhatsappTypingSimulatorService,
   ) {}
 
@@ -88,16 +91,32 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
 
     try {
       const incoming = await this.normalizer.normalize(message);
-      const reply = await this.bot.handle(incoming);
 
-      if (reply) {
-        const chat = await message.getChat();
-        await this.typingSimulator.simulate(chat, reply.text);
-        await chat.sendMessage(reply.text);
+      if (this.isCommand(incoming.body)) {
+        this.replyBatcher.cancel(incoming.chatId);
+        const reply = await this.bot.handle(incoming);
+        await this.sendReply(message, reply);
+        return;
       }
+
+      this.replyBatcher.enqueue(incoming, message);
     } catch (error) {
       const detail = error instanceof Error ? error.stack ?? error.message : String(error);
       this.logger.error(`Failed to process incoming WhatsApp message: ${detail}`);
     }
+  }
+
+  private async sendReply(message: Message, reply: BotReply | null): Promise<void> {
+    if (!reply) {
+      return;
+    }
+
+    const chat = await message.getChat();
+    await this.typingSimulator.simulate(chat, reply.text);
+    await chat.sendMessage(reply.text, reply.quoteMessageId ? { quotedMessageId: reply.quoteMessageId } : undefined);
+  }
+
+  private isCommand(body: string): boolean {
+    return /^[!/]/u.test(body.trim());
   }
 }

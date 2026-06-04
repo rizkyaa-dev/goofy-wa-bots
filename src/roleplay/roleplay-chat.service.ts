@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ContactSetting } from '@prisma/client';
+import { BotReply } from '../bot/domain/bot-reply';
 import { ConversationsService } from '../conversations/conversations.service';
 import { LlmProviderError } from '../llm/errors/llm-provider.error';
 import { LlmService } from '../llm/llm.service';
@@ -11,6 +12,9 @@ import { EmotionClassifierService } from './emotion-classifier.service';
 import { EmotionEngineService } from './emotion-engine.service';
 import { RoleplayMemoryService } from './memory/roleplay-memory.service';
 import { RoleplayPromptCompilerService } from './prompt/roleplay-prompt-compiler.service';
+import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retriever.service';
+import { QuoteDecisionService } from './quote/quote-decision.service';
+import { QuotePolicyService } from './quote/quote-policy.service';
 import { RoleplayStateRepository } from './roleplay-state.repository';
 import { TimeContextService } from './time-context.service';
 
@@ -24,12 +28,15 @@ export class RoleplayChatService {
     private readonly llm: LlmService,
     private readonly memories: RoleplayMemoryService,
     private readonly promptCompiler: RoleplayPromptCompilerService,
+    private readonly quoteCandidates: QuoteCandidateRetrieverService,
+    private readonly quoteDecisions: QuoteDecisionService,
+    private readonly quotePolicy: QuotePolicyService,
     private readonly recentContext: RecentMessageContextService,
     private readonly states: RoleplayStateRepository,
     private readonly timeContext: TimeContextService,
   ) {}
 
-  async generateReply(message: IncomingMessage, settings: ContactSetting): Promise<string> {
+  async generateReply(message: IncomingMessage, settings: ContactSetting): Promise<BotReply> {
     const previousState = await this.states.getOrCreate(message.chatId);
     const recentMessages = await this.recentContext.build(message.chatId);
     const analysis = await this.emotionClassifier.analyze(message, this.formatRecentContext(recentMessages));
@@ -38,13 +45,30 @@ export class RoleplayChatService {
 
     await this.memories.captureFromInbound(message, this.formatRecentContext(recentMessages));
 
+    const memories = await this.memories.retrieve(message.chatId);
+    const quoteCandidates = await this.quoteCandidates.retrieve(message.chatId);
+    const quoteDecision = this.quotePolicy.apply(
+      await this.quoteDecisions.decide({
+        latestUserTurn: message.body,
+        recentContext: this.formatRecentContext(recentMessages),
+        candidates: quoteCandidates,
+        memories,
+        settings,
+      }),
+      quoteCandidates,
+    );
+    const quoteTarget = quoteCandidates.find((candidate) => candidate.messageId === quoteDecision.targetMessageId);
+
     const prompt = this.promptCompiler.compile({
       profile: this.characterProfile.getProfile(settings.persona),
       state,
       time: this.timeContext.create(previousState),
-      memories: await this.memories.retrieve(message.chatId),
+      memories,
       recentMessages,
       analysis,
+      conversationScope: message.isGroup ? 'group_chat' : 'personal_chat',
+      quoteDecision,
+      quoteTargetText: quoteTarget?.body,
     });
 
     try {
@@ -54,13 +78,16 @@ export class RoleplayChatService {
         messages: prompt,
       });
 
-      return this.cleanReply(result.text, recentMessages);
+      return {
+        text: this.cleanReply(result.text, recentMessages),
+        quoteMessageId: quoteDecision.action === 'quote_reply' ? quoteDecision.targetMessageId : undefined,
+      };
     } catch (error) {
       if (error instanceof LlmProviderError) {
-        return `Aku lagi agak susah jawab sekarang. (${error.provider}: ${error.message})`;
+        return { text: `Aku lagi agak susah jawab sekarang. (${error.provider}: ${error.message})` };
       }
 
-      return 'Aku lagi agak susah jawab sekarang. Coba kirim lagi sebentar ya.';
+      return { text: 'Aku lagi agak susah jawab sekarang. Coba kirim lagi sebentar ya.' };
     }
   }
 

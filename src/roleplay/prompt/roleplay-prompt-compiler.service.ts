@@ -4,6 +4,7 @@ import { RoleplayEmotionAnalysis } from '../domain/roleplay-emotion-analysis';
 import { RoleplayCharacterProfile } from '../domain/roleplay-character-profile';
 import { RoleplayTimeContext } from '../domain/roleplay-time-context';
 import { LlmMessage } from '../../llm/domain/llm.types';
+import { QuoteDecision } from '../quote/domain/quote-decision';
 
 @Injectable()
 export class RoleplayPromptCompilerService {
@@ -33,6 +34,15 @@ export class RoleplayPromptCompilerService {
       `Gaya bicara: ${profile.style}`,
       profile.personaOverride ? `Persona override chat ini: ${profile.personaOverride}` : '',
       `Batasan: ${profile.boundaries}`,
+      '',
+      'LANGUAGE REGISTER',
+      '- Section ini menjaga konsistensi pilihan kata dan kata ganti karakter.',
+      ...profile.languageRegister.map((rule) => `- ${rule}`),
+      '',
+      'LINGUISTIC PROFILE',
+      '- Section ini hanya mengatur tekstur bahasa, bukan mengganti kepribadian karakter.',
+      '- Jika bertentangan dengan profil karakter, persona override, mood, atau konteks hubungan, abaikan slang dan ikuti karakter.',
+      ...profile.linguisticProfile.map((rule) => `- ${rule}`),
       '',
       'ROLEPLAY PRINCIPLES',
       '- Karakter punya mood, agenda, rutinitas, rasa lelah, rasa ingin tahu, harga diri, batasan, dan kepentingan sendiri.',
@@ -67,11 +77,16 @@ export class RoleplayPromptCompilerService {
       `Directive: ${this.createTimeDirective(input.time)}`,
       `Commonsense: ${this.createTimeCommonsense(input.time)}`,
       '',
+      'CONVERSATION SCOPE',
+      this.createConversationScopeDirective(input.conversationScope),
+      '',
       'CONVERSATION SUMMARY',
       input.state.summary ?? 'Belum ada ringkasan percakapan.',
       '',
       'RELEVANT MEMORY',
       memories,
+      '',
+      ...this.createQuoteDirective(input.quoteDecision, input.quoteTargetText),
       '',
       'WHATSAPP OUTPUT CONTRACT',
       '- Output hanya isi pesan WhatsApp yang akan dikirim.',
@@ -156,6 +171,30 @@ export class RoleplayPromptCompilerService {
     return 'Malam: wajar membahas rebahan, makan malam, capek, belum tidur, ngantuk, atau suasana lebih pelan.';
   }
 
+  private createConversationScopeDirective(scope: ConversationScope): string {
+    if (scope === 'group_chat') {
+      return 'Chat ini grup. Perhatikan bahwa ada banyak peserta; jangan mengasumsikan semua pesan berasal dari satu orang.';
+    }
+
+    return 'Chat ini personal dengan satu lawan bicara. Hindari sapaan kolektif seperti "kalian", "pada", "semua", atau "guys" kecuali user memang membahas orang lain.';
+  }
+
+  private createQuoteDirective(decision?: QuoteDecision, targetText?: string): string[] {
+    if (!decision || decision.action !== 'quote_reply' || !targetText) {
+      return ['QUOTE REPLY DIRECTIVE', '- Tidak perlu quote pesan tertentu untuk balasan ini.'];
+    }
+
+    return [
+      'QUOTE REPLY DIRECTIVE',
+      '- Balasan WhatsApp ini akan dikirim sambil mengutip pesan target.',
+      `- Intent quote: ${decision.intent}`,
+      `- Pesan target yang akan dikutip: ${targetText}`,
+      `- Instruksi: ${decision.instruction}`,
+      '- Jangan mengulang isi quote secara panjang karena WhatsApp sudah menampilkan pesan yang dikutip.',
+      '- Jawab pendek dan natural sesuai karakter.',
+    ];
+  }
+
   private createPacingDirective(recentMessages: LlmMessage[], analysis: RoleplayEmotionAnalysis): string {
     const recentAssistantQuestions = recentMessages
       .filter((message) => message.role === 'assistant')
@@ -194,4 +233,9 @@ type CompileInput = {
   memories: RoleplayMemory[];
   recentMessages: LlmMessage[];
   analysis: RoleplayEmotionAnalysis;
+  conversationScope: ConversationScope;
+  quoteDecision?: QuoteDecision;
+  quoteTargetText?: string;
 };
+
+type ConversationScope = 'personal_chat' | 'group_chat';

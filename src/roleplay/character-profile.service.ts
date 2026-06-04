@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppEnv } from '../config/env.validation';
+import { defaultRoleplayCharacter } from './domain/default-roleplay-character';
 import { RoleplayCharacterProfile } from './domain/roleplay-character-profile';
 
 @Injectable()
@@ -11,8 +12,10 @@ export class CharacterProfileService {
     return {
       name: this.config.get('ROLEPLAY_CHARACTER_NAME'),
       profile: this.config.get('ROLEPLAY_CHARACTER_PROFILE'),
-      style: this.config.get('ROLEPLAY_CHARACTER_STYLE'),
-      boundaries: this.config.get('ROLEPLAY_BOUNDARIES'),
+      style: defaultRoleplayCharacter.style,
+      languageRegister: defaultRoleplayCharacter.languageRegister,
+      linguisticProfile: defaultRoleplayCharacter.linguisticProfile,
+      boundaries: defaultRoleplayCharacter.boundaries,
       personaOverride,
     };
   }
