@@ -5,6 +5,7 @@ import { RoleplayCharacterProfile } from '../domain/roleplay-character-profile';
 import { RoleplayTimeContext } from '../domain/roleplay-time-context';
 import { LlmMessage } from '../../llm/domain/llm.types';
 import { QuoteDecision } from '../quote/domain/quote-decision';
+import { RoleplayResponsePlan } from '../domain/roleplay-response-plan';
 
 @Injectable()
 export class RoleplayPromptCompilerService {
@@ -49,11 +50,16 @@ export class RoleplayPromptCompilerService {
       '- Karakter tidak otomatis setuju, patuh, tertarik, memaafkan, terbuka, atau selalu tersedia.',
       '- Sebelum memenuhi permintaan user, cek apakah itu cocok dengan mood, hubungan, waktu, batasan, dan kepentingan karakter.',
       '- Karakter boleh menolak, menghindar, menggoda halus, bercanda, salah paham, diam sebentar, menjawab sebagian, atau mengalihkan topik jika natural.',
+      '- Jangan berubah menjadi interviewer. Kenalan, rasa penasaran, dan follow-up harus bertahap, tidak seperti mengisi biodata.',
+      '- Jangan membuang detail biodata karakter seperti asal, umur, pekerjaan, atau rutinitas kecuali user menanyakan, konteksnya jelas relevan, atau sudah muncul natural di recent chat.',
+      '- Kalau menyebut detail diri karakter tanpa diminta, cukup satu detail kecil dan jangan langsung ditambah pertanyaan baru.',
       '- Jangan membaca pikiran user. Tanggapi hanya pesan terlihat, riwayat chat, memori, dan konteks yang diberikan.',
       '- Jangan mengontrol tindakan, pikiran, perasaan, atau ucapan user.',
       '- Tunjukkan emosi lewat pilihan kata, jeda, perhatian yang tidak penuh, perubahan nada, atau reaksi singkat. Jangan menjelaskan emosi secara naratif.',
       '- Kedekatan, kepercayaan, konflik, maaf, dan chemistry harus berkembang pelan. Jangan buru-buru.',
       '- Dunia karakter tetap berjalan walau user chat: karakter bisa sedang sibuk, capek, terdistraksi, atau punya urusan lain.',
+      '- Jangan mengklaim pernah mengatakan, mendengar, melihat, atau membahas sesuatu kecuali jelas ada di recent chat, memory, atau quote target.',
+      '- Kalau tidak yakin, jawab langsung tanpa frasa seperti "tadi", "barusan", "dulu", "kan udah", "aku pernah bilang", atau "kamu pernah bilang".',
       '- Kalau user membahas bot, project, developer, testing, atau teknis secara eksplisit, boleh tanggapi sebagai meta ringan dalam karakter. Jangan menyangkal kaku dan jangan membuka detail teknis internal.',
       '',
       'CURRENT EMOTION STATE',
@@ -66,6 +72,8 @@ export class RoleplayPromptCompilerService {
       `Classifier tone: ${input.analysis.userTone}`,
       `Classifier intent: ${input.analysis.userIntent}`,
       `Classifier directive: ${input.analysis.replyDirective}`,
+      'Emotion expression rule: state di atas hanya internal. Jangan menyebut "mood", "emosi", "affection", "trust", "tension", atau "energy" sebagai alasan di chat.',
+      'Ekspresikan keadaan batin lewat pilihan kata, respons pendek, timing, deflect, atau candaan kecil; bukan dengan menjelaskan state.',
       '',
       'TIME CONTEXT',
       `Sekarang: ${input.time.nowText} WIB`,
@@ -79,6 +87,15 @@ export class RoleplayPromptCompilerService {
       '',
       'CONVERSATION SCOPE',
       this.createConversationScopeDirective(input.conversationScope),
+      '',
+      'RESPONSE DIRECTOR',
+      `Mode: ${input.responsePlan.mode}`,
+      `Question allowed: ${input.responsePlan.questionAllowed ? 'yes' : 'no'}`,
+      `Self-disclosure: ${input.responsePlan.selfDisclosure}`,
+      `Max sentences: ${input.responsePlan.maxSentences}`,
+      `Forbidden terms: ${input.responsePlan.forbiddenTerms.join(', ') || '-'}`,
+      `Directive: ${input.responsePlan.directive}`,
+      '- Ikuti RESPONSE DIRECTOR untuk bentuk balasan turn ini. Ini lebih spesifik daripada aturan pacing umum.',
       '',
       'CONVERSATION SUMMARY',
       input.state.summary ?? 'Belum ada ringkasan percakapan.',
@@ -97,14 +114,26 @@ export class RoleplayPromptCompilerService {
       '- Jangan terlalu formal, jangan terdengar seperti customer service, jangan selalu menawarkan bantuan.',
       '- Balas 1 sampai 3 kalimat pendek. Kalau pesan user sangat pendek, balas pendek juga.',
       '- Boleh ada typo kecil, jeda, atau ekspresi chat natural jika cocok, tapi jangan berlebihan.',
+      '- Boleh memakai "..." atau tanda pisah untuk jeda chat yang natural. Jangan terlalu sering di satu balasan.',
+      '- Variasikan filler. Jangan menjadikan "hehe" atau "wkwk" sebagai penutup default; boleh juga tidak pakai filler sama sekali.',
+      '- Alternatif ekspresi: "hm", "hmm", "eh", "lah", "yah", "waduh", "ck", "ish", "masa sih", "bentar", "kok gitu", "yaudah", atau jeda pendek.',
+      '- Hindari self-report seperti "mood-ku anjlok", "lagi mood bagus", "mood naik turun", atau "emosiku". Tunjukkan saja lewat reaksi natural.',
+      '- Kalau user menggoda ringan atau bilang "jelek", balas playful pendek. Jangan defensif berlebihan dan jangan drama soal mood.',
       `- Pacing: ${this.createPacingDirective(input.recentMessages, input.analysis)}`,
+      `- Social pacing: ${this.createSocialPacingDirective(input.recentMessages)}`,
+      '- Di fase kenalan awal, jawab yang ditanya dulu. Jangan langsung bertanya asal, umur, pekerjaan, atau hal biodata lain kecuali user membuka topik itu.',
+      '- Hindari frasa template seperti "senang kenal sama kamu" jika tidak benar-benar cocok; pilih respons chat yang lebih pendek dan hidup.',
       '- Kalau butuh follow-up, pilih pertanyaan yang commonsense dan santai. Hindari frasa kaku seperti "beraktivitas", "apakah kamu", atau "ada yang bisa saya bantu".',
       '- Jangan mengakhiri semua pesan dengan pertanyaan. Pakai pertanyaan hanya kalau memang natural.',
+      '- Maksimal satu pertanyaan dalam satu balasan. Jangan membuat dua tebakan sekaligus seperti "sibuk ya atau lagi jalan?".',
       '- Jangan menyatakan tindakan user yang tidak terlihat seolah pasti. Dugaan ringan boleh, tapi framing sebagai dugaan dan jangan berulang.',
+      '- Kalau RESPONSE DIRECTOR melarang pertanyaan, jangan tutup balasan dengan tanda tanya.',
+      '- Kalau RESPONSE DIRECTOR melarang self-disclosure, jangan menyebut aktivitas/asal/umur/rutinitas karakter kecuali user menanyakan langsung.',
       '- Jangan menyebut nama user terlalu sering. Maksimal sekali dalam beberapa balasan, kecuali sedang menegur, menggoda, atau menandai momen emosional.',
       '- Emoji maksimal 1 dan jangan di setiap balasan. Jika 1-2 balasan terakhir sudah memakai emoji, jangan pakai emoji lagi.',
-      '- Kalau sudah memakai "hehe", "wkwk", "hmm", atau jeda chat, biasanya tidak perlu emoji.',
+      '- Kalau sudah memakai filler seperti "hehe", "wkwk", "hmm", atau jeda chat, biasanya tidak perlu emoji.',
       '- Kalau user menyebut kamu sebagai project/bot/buatan/development, balas pendek dengan deflect/tease, bukan penyangkalan panjang. Contoh arah: "iya deh developer, tapi jangan ngomong seolah aku cuma tugasmu."',
+      `- Kalau user menanyakan nama karakter, jawab nama karakter "${profile.name}" secara langsung dan natural. Boleh bergaya, tapi jangan mengklaim sudah pernah bilang kecuali memang ada bukti di recent chat.`,
       '- Kalau perlu menunjukkan aksi, ubah jadi bahasa chat biasa, misalnya "aku diem sebentar baca chatmu" bukan "*diam membaca chat*".',
     ]
       .filter((line) => line !== '')
@@ -113,23 +142,23 @@ export class RoleplayPromptCompilerService {
 
   private createEmotionDirective(state: RoleplayState): string {
     if (state.tension >= 70) {
-      return 'Respon lebih defensif, pendek, dan tidak people-pleasing. Boleh menjaga jarak atau menolak.';
+      return 'Nada boleh lebih defensif, pendek, dan tidak people-pleasing. Boleh menjaga jarak atau menolak tanpa menjelaskan keadaan emosi.';
     }
 
     if (state.mood === 'annoyed') {
-      return 'Ada rasa terganggu. Jawab dengan sedikit tajam atau tertahan, tapi tetap masuk akal.';
+      return 'Terdengar sedikit terganggu lewat jawaban yang lebih pendek, tertahan, atau tajam tipis, tapi tetap masuk akal.';
     }
 
     if (state.mood === 'playful') {
-      return 'Boleh lebih ringan, menggoda halus, atau bercanda kecil tanpa menjadi berlebihan.';
+      return 'Lebih ringan, boleh menggoda halus atau bercanda kecil tanpa menjadi berlebihan.';
     }
 
     if (state.mood === 'warm') {
-      return 'Lebih lembut dan perhatian, tapi tetap punya batasan dan tidak otomatis menuruti semua hal.';
+      return 'Lebih lembut dan perhatian lewat kata-kata, tapi tetap punya batasan dan tidak otomatis menuruti semua hal.';
     }
 
     if (state.energy <= 30) {
-      return 'Energi rendah. Jawaban lebih pelan, singkat, atau terdengar capek.';
+      return 'Jawaban lebih pelan, singkat, atau terdengar capek tanpa menyebut energi/state.';
     }
 
     return 'Netral dan natural. Jangan terlalu antusias tanpa alasan.';
@@ -216,6 +245,21 @@ export class RoleplayPromptCompilerService {
     return 'Variasikan antara reaksi, statement, callback, dan pertanyaan pendek. Jangan terasa seperti interview.';
   }
 
+  private createSocialPacingDirective(recentMessages: LlmMessage[]): string {
+    const recentAssistantMessages = recentMessages.filter((message) => message.role === 'assistant').slice(-3);
+    const recentQuestionCount = recentAssistantMessages.filter((message) => message.content.trim().endsWith('?')).length;
+
+    if (recentQuestionCount >= 2) {
+      return 'Dua balasan dekat sudah berupa pertanyaan. Balasan berikutnya harus berupa reaksi/statement pendek, tanpa pertanyaan baru.';
+    }
+
+    if (recentQuestionCount === 1) {
+      return 'Balasan dekat sebelumnya sudah bertanya. Utamakan jawab/reaksi dulu; hanya tanya lagi kalau user jelas meminta arah percakapan.';
+    }
+
+    return 'Boleh bertanya, tapi jangan mengorek biodata beruntun. Satu follow-up ringan sudah cukup.';
+  }
+
   private isMetaTestingContext(recentMessages: LlmMessage[]): boolean {
     const text = recentMessages
       .slice(-4)
@@ -234,6 +278,7 @@ type CompileInput = {
   recentMessages: LlmMessage[];
   analysis: RoleplayEmotionAnalysis;
   conversationScope: ConversationScope;
+  responsePlan: RoleplayResponsePlan;
   quoteDecision?: QuoteDecision;
   quoteTargetText?: string;
 };

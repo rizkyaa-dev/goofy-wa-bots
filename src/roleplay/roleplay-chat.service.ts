@@ -6,6 +6,7 @@ import { LlmProviderError } from '../llm/errors/llm-provider.error';
 import { LlmService } from '../llm/llm.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
 import { CharacterProfileService } from './character-profile.service';
+import { ContinuityGuardService } from './continuity-guard.service';
 import { RecentMessageContextService } from './context/recent-message-context.service';
 import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
 import { EmotionClassifierService } from './emotion-classifier.service';
@@ -15,6 +16,8 @@ import { RoleplayPromptCompilerService } from './prompt/roleplay-prompt-compiler
 import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retriever.service';
 import { QuoteDecisionService } from './quote/quote-decision.service';
 import { QuotePolicyService } from './quote/quote-policy.service';
+import { ResponseDirectorService } from './response-director.service';
+import { ResponseValidatorService } from './response-validator.service';
 import { RoleplayStateRepository } from './roleplay-state.repository';
 import { TimeContextService } from './time-context.service';
 
@@ -22,6 +25,7 @@ import { TimeContextService } from './time-context.service';
 export class RoleplayChatService {
   constructor(
     private readonly characterProfile: CharacterProfileService,
+    private readonly continuityGuard: ContinuityGuardService,
     private readonly conversations: ConversationsService,
     private readonly emotionClassifier: EmotionClassifierService,
     private readonly emotionEngine: EmotionEngineService,
@@ -32,6 +36,8 @@ export class RoleplayChatService {
     private readonly quoteDecisions: QuoteDecisionService,
     private readonly quotePolicy: QuotePolicyService,
     private readonly recentContext: RecentMessageContextService,
+    private readonly responseDirector: ResponseDirectorService,
+    private readonly responseValidator: ResponseValidatorService,
     private readonly states: RoleplayStateRepository,
     private readonly timeContext: TimeContextService,
   ) {}
@@ -59,15 +65,25 @@ export class RoleplayChatService {
       message.id,
     );
     const quoteTarget = quoteCandidates.find((candidate) => candidate.messageId === quoteDecision.targetMessageId);
+    const conversationScope = message.isGroup ? 'group_chat' : 'personal_chat';
+    const responsePlan = this.responseDirector.createPlan({
+      latestUserMessage: message.body,
+      recentMessages,
+      analysis,
+      conversationScope,
+      quoteIntent: quoteDecision.intent,
+    });
 
+    const profile = this.characterProfile.getProfile(settings.persona);
     const prompt = this.promptCompiler.compile({
-      profile: this.characterProfile.getProfile(settings.persona),
+      profile,
       state,
       time: this.timeContext.create(previousState),
       memories,
       recentMessages,
       analysis,
-      conversationScope: message.isGroup ? 'group_chat' : 'personal_chat',
+      conversationScope,
+      responsePlan,
       quoteDecision,
       quoteTargetText: quoteTarget?.body,
     });
@@ -79,8 +95,24 @@ export class RoleplayChatService {
         messages: prompt,
       });
 
+      const cleanedReply = this.cleanReply(result.text, recentMessages);
+
+      const continuitySafeReply = this.continuityGuard.apply({
+        text: cleanedReply,
+        latestUserMessage: message.body,
+        characterName: profile.name,
+        recentMessages,
+        memories,
+        quoteTargetText: quoteTarget?.body,
+      });
+      const validatedReply = this.responseValidator.apply({
+        text: continuitySafeReply,
+        plan: responsePlan,
+        conversationScope,
+      });
+
       return {
-        text: this.cleanReply(result.text, recentMessages),
+        text: validatedReply,
         quoteMessageId: quoteDecision.action === 'quote_reply' ? quoteDecision.targetMessageId : undefined,
       };
     } catch (error) {
@@ -103,7 +135,38 @@ export class RoleplayChatService {
       .replace(/\s{2,}/g, ' ')
       .trim();
 
-    return this.limitEmoji(cleaned, recentMessages);
+    return this.limitEmoji(
+      this.limitInterviewQuestion(
+        this.limitRepeatedChatFiller(this.naturalizeSocialTemplate(this.naturalizeEmotionSelfReport(cleaned)), recentMessages),
+        recentMessages,
+      ),
+      recentMessages,
+    );
+  }
+
+  private naturalizeEmotionSelfReport(text: string): string {
+    return text
+      .replace(/\buntung\s+aku\s+lagi\s+mood\s+bagus\b/giu, 'untung aku lagi baik hati')
+      .replace(/\blagi\s+mood\s+bagus\b/giu, 'lagi baik hati')
+      .replace(/\bmood[-\s]*(?:ku|aku)\s+bisa\s+anjlok\b/giu, 'aku bisa bete')
+      .replace(/\bmood[-\s]*(?:ku|aku)\s+(?:naik\s+turun|naik-turun)\b/giu, 'aku jadi maju mundur')
+      .replace(/\bbikin\s+mood[-\s]*(?:ku|aku)\s+(?:naik\s+turun|naik-turun)\b/giu, 'bikin aku maju mundur')
+      .replace(/\brusuh\s+mood\s+pagiku\b/giu, 'rusuh pagi-pagiku')
+      .replace(/\bkalau\s+dikatain\s+jelek,\s*enaknya\s+marah\s+apa\s+ketawa\s+ya\s+sekarang\?/giu, 'jahat amat. aku ketawa dikit aja deh')
+      .replace(/\bmood[-\s]*(?:ku|aku)\b/giu, 'aku')
+      .replace(/\bemosi(?:ku| aku)?\b/giu, 'aku')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  private naturalizeSocialTemplate(text: string): string {
+    return text
+      .replace(/\bsenang\s+kenal\s+(?:sama|dengan)\s+kamu[,.!\s]*/giu, '')
+      .replace(/\bsalam\s+kenal[,.!\s]*/giu, '')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+([,.!?])/gu, '$1')
+      .replace(/^[,.\s]+/gu, '')
+      .trim();
   }
 
   private applyAnalysis<T extends StatePatch>(statePatch: T, analysis: RoleplayEmotionAnalysis): T {
@@ -147,11 +210,58 @@ export class RoleplayChatService {
       .trim();
   }
 
+  private limitRepeatedChatFiller(text: string, recentMessages: Array<{ role: string; content: string }>): string {
+    const recentAssistantText = recentMessages
+      .filter((message) => message.role === 'assistant')
+      .slice(-2)
+      .map((message) => message.content.toLowerCase())
+      .join('\n');
+
+    const repeatedFillers = ['hehe', 'wkwk', 'haha', 'hmm', 'hm'].filter((filler) =>
+      new RegExp(`\\b${filler}\\b`, 'u').test(recentAssistantText),
+    );
+
+    if (repeatedFillers.length === 0) {
+      return text;
+    }
+
+    return repeatedFillers
+      .reduce((current, filler) => current.replace(new RegExp(`\\b${filler}\\b[,.!?\\s]*`, 'giu'), ''), text)
+      .replace(/\s+([,.!?])/gu, '$1')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  private limitInterviewQuestion(text: string, recentMessages: Array<{ role: string; content: string }>): string {
+    if (!this.recentAssistantAskedQuestion(recentMessages)) {
+      return text;
+    }
+
+    const sentences = text.match(/[^.!?]+[.!?]?/gu)?.map((sentence) => sentence.trim()).filter(Boolean) ?? [text];
+
+    if (sentences.length < 2 || !sentences.at(-1)?.endsWith('?')) {
+      return text;
+    }
+
+    return sentences
+      .slice(0, -1)
+      .join(' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
   private recentAssistantUsedEmoji(recentMessages: Array<{ role: string; content: string }>): boolean {
     return recentMessages
       .filter((message) => message.role === 'assistant')
       .slice(-2)
       .some((message) => /\p{Extended_Pictographic}/u.test(message.content));
+  }
+
+  private recentAssistantAskedQuestion(recentMessages: Array<{ role: string; content: string }>): boolean {
+    return recentMessages
+      .filter((message) => message.role === 'assistant')
+      .slice(-2)
+      .some((message) => message.content.trim().endsWith('?'));
   }
 }
 
