@@ -20,6 +20,11 @@ const optionalEnum = <T extends [string, ...string[]]>(values: T) =>
     return trimmed || undefined;
   }, z.enum(values).optional());
 
+const thinkingType = z
+  .string()
+  .default('true')
+  .transform((value) => (value.trim().toLowerCase() === 'true' ? 'enabled' : 'disabled') as 'enabled' | 'disabled');
+
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().min(1).default('file:./dev.db'),
@@ -116,7 +121,7 @@ const envSchema = z.object({
   DEEPSEEK_TOP_P: optionalNumber(z.number().min(0).max(1)),
   DEEPSEEK_MAX_TOKENS: optionalNumber(z.number().int().positive()),
   DEEPSEEK_REASONING_EFFORT: optionalEnum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh']),
-  DEEPSEEK_THINKING_TYPE: z.enum(['enabled', 'disabled']).default('enabled'),
+  DEEPSEEK_THINKING_TYPE: thinkingType,
   ROLEPLAY_CHARACTER_NAME: z.string().min(1).default('Alya'),
   ROLEPLAY_CHARACTER_PROFILE: z
     .string()

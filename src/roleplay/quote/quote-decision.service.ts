@@ -56,7 +56,7 @@ export class QuoteDecisionService {
               })),
               quoteUseCases: {
                 clarify: 'Latest user message is ambiguous, absurd, typo-heavy, or context is unclear. Quote the exact unclear bubble and ask shortly.',
-                evidence: 'User asks for proof or denies saying something.',
+                evidence: 'User asks for proof or denies saying something. Never quote latestUserTurn itself as proof; choose an older candidate containing the evidence.',
                 tease: 'Light playful contradiction or callback, not hostile.',
                 callback: 'A previous message is directly useful to continue the current topic.',
                 boundary: 'User violates or asks about a boundary/preference they stated before.',

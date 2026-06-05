@@ -8,7 +8,7 @@ import { noQuoteDecision, QuoteDecision } from './domain/quote-decision';
 export class QuotePolicyService {
   constructor(private readonly config: ConfigService<AppEnv, true>) {}
 
-  apply(decision: QuoteDecision, candidates: QuoteCandidate[]): QuoteDecision {
+  apply(decision: QuoteDecision, candidates: QuoteCandidate[], latestMessageId?: string): QuoteDecision {
     if (!this.config.get('ROLEPLAY_QUOTE_ENGINE_ENABLED')) {
       return noQuoteDecision;
     }
@@ -27,11 +27,36 @@ export class QuotePolicyService {
       return noQuoteDecision;
     }
 
+    if (this.isInvalidLatestMessageQuote(decision, candidate, latestMessageId)) {
+      return noQuoteDecision;
+    }
+
     return {
       ...decision,
       instruction: decision.instruction.trim().slice(0, 240),
       confidence: Math.min(1, Math.max(0, decision.confidence)),
     };
+  }
+
+  private isInvalidLatestMessageQuote(
+    decision: QuoteDecision,
+    candidate: QuoteCandidate,
+    latestMessageId?: string,
+  ): boolean {
+    if (!latestMessageId || candidate.messageId !== latestMessageId) {
+      return false;
+    }
+
+    if (decision.intent === 'clarify') {
+      return this.looksLikeEvidenceRequest(candidate.body);
+    }
+
+    return decision.intent === 'evidence' || decision.intent === 'contradiction' || decision.intent === 'callback';
+  }
+
+  private looksLikeEvidenceRequest(text: string): boolean {
+    const lower = text.toLowerCase();
+    return /\b(?:bukti|mana|kapan|pernah|reply|quote|kutip)\b/u.test(lower);
   }
 
   private isUnsafeCandidate(candidate: QuoteCandidate): boolean {

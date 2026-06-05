@@ -56,6 +56,7 @@ export class RoleplayChatService {
         settings,
       }),
       quoteCandidates,
+      message.id,
     );
     const quoteTarget = quoteCandidates.find((candidate) => candidate.messageId === quoteDecision.targetMessageId);
 

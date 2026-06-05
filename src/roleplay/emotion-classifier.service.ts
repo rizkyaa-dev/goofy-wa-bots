@@ -32,6 +32,7 @@ export class EmotionClassifierService {
       const result = await this.llm.generateReply({
         providerName: this.config.get('ROLEPLAY_EMOTION_CLASSIFIER_PROVIDER'),
         model: this.config.get('ROLEPLAY_EMOTION_CLASSIFIER_MODEL') || null,
+        thinkingType: 'disabled',
         maxTokens: 220,
         messages: [
           {

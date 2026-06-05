@@ -28,6 +28,7 @@ export class RoleplayMemoryExtractorService {
     const result = await this.llm.generateReply({
       providerName: this.config.get('ROLEPLAY_MEMORY_EXTRACTOR_PROVIDER'),
       model: this.config.get('ROLEPLAY_MEMORY_EXTRACTOR_MODEL') || null,
+      thinkingType: 'disabled',
       maxTokens: 520,
       messages: [
         {

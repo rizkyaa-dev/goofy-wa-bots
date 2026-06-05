@@ -55,6 +55,10 @@ export class RoleplayMemoryService {
   }
 
   private async extractCandidates(message: IncomingMessage, recentContext: string): Promise<ExtractedRoleplayMemory[]> {
+    if (this.isMemoryMetaRequest(message.body)) {
+      return [];
+    }
+
     const fallbackCandidates = this.extractFallbackCandidates(message.body);
 
     if (this.config.get('ROLEPLAY_MEMORY_EXTRACTOR_ENABLED') && this.trigger.shouldExtract(message)) {
@@ -256,6 +260,15 @@ export class RoleplayMemoryService {
       /\bnama\s+saya\b/u.test(text) ||
       /\bpanggil\s+(aja|saja|saya|aku)\b/u.test(text) ||
       /\bpanggilnya\s+/u.test(text)
+    );
+  }
+
+  private isMemoryMetaRequest(text: string): boolean {
+    const lower = text.toLowerCase();
+
+    return (
+      /\b(?:bukti|mana|kapan|pernah|reply|quote|kutip)\b/u.test(lower) &&
+      /\b(?:nama|panggil|memory|memori|ingat)\b/u.test(lower)
     );
   }
 
