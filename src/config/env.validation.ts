@@ -151,6 +151,17 @@ const envSchema = z.object({
     .default('0.74')
     .transform((value) => Number(value))
     .pipe(z.number().min(0).max(1)),
+  ROLEPLAY_ROUTER_ENABLED: z
+    .string()
+    .default('false')
+    .transform((value) => value.toLowerCase() !== 'false'),
+  ROLEPLAY_ROUTER_PROVIDER: z.string().min(1).default('deepseek'),
+  ROLEPLAY_ROUTER_MODEL: z.string().optional().default('deepseek-v4-flash'),
+  ROLEPLAY_ROUTER_MIN_CONFIDENCE: z
+    .string()
+    .default('0.58')
+    .transform((value) => Number(value))
+    .pipe(z.number().min(0).max(1)),
   ROLEPLAY_EMOTION_CLASSIFIER_ENABLED: z
     .string()
     .default('true')

@@ -12,12 +12,14 @@ import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
 import { EmotionClassifierService } from './emotion-classifier.service';
 import { EmotionEngineService } from './emotion-engine.service';
 import { RoleplayMemoryService } from './memory/roleplay-memory.service';
+import { ExpertPromptRegistryService } from './prompt/expert-prompt-registry.service';
 import { RoleplayPromptCompilerService } from './prompt/roleplay-prompt-compiler.service';
 import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retriever.service';
 import { QuoteDecisionService } from './quote/quote-decision.service';
 import { QuotePolicyService } from './quote/quote-policy.service';
 import { ResponseDirectorService } from './response-director.service';
 import { ResponseValidatorService } from './response-validator.service';
+import { RoleplayRouterService } from './roleplay-router.service';
 import { RoleplayStateRepository } from './roleplay-state.repository';
 import { TimeContextService } from './time-context.service';
 
@@ -31,6 +33,7 @@ export class RoleplayChatService {
     private readonly emotionEngine: EmotionEngineService,
     private readonly llm: LlmService,
     private readonly memories: RoleplayMemoryService,
+    private readonly expertPrompts: ExpertPromptRegistryService,
     private readonly promptCompiler: RoleplayPromptCompilerService,
     private readonly quoteCandidates: QuoteCandidateRetrieverService,
     private readonly quoteDecisions: QuoteDecisionService,
@@ -38,6 +41,7 @@ export class RoleplayChatService {
     private readonly recentContext: RecentMessageContextService,
     private readonly responseDirector: ResponseDirectorService,
     private readonly responseValidator: ResponseValidatorService,
+    private readonly router: RoleplayRouterService,
     private readonly states: RoleplayStateRepository,
     private readonly timeContext: TimeContextService,
   ) {}
@@ -66,11 +70,20 @@ export class RoleplayChatService {
     );
     const quoteTarget = quoteCandidates.find((candidate) => candidate.messageId === quoteDecision.targetMessageId);
     const conversationScope = message.isGroup ? 'group_chat' : 'personal_chat';
+    const routeDecision = await this.router.route({
+      latestUserMessage: message.body,
+      recentMessages,
+      memories,
+      analysis,
+      conversationScope,
+      quoteIntent: quoteDecision.intent,
+    });
     const responsePlan = this.responseDirector.createPlan({
       latestUserMessage: message.body,
       recentMessages,
       analysis,
       conversationScope,
+      routeDecision,
       quoteIntent: quoteDecision.intent,
     });
 
@@ -84,6 +97,7 @@ export class RoleplayChatService {
       analysis,
       conversationScope,
       responsePlan,
+      expertPrompt: this.expertPrompts.get(routeDecision.route),
       quoteDecision,
       quoteTargetText: quoteTarget?.body,
     });

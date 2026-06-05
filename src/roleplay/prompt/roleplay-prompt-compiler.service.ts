@@ -90,12 +90,19 @@ export class RoleplayPromptCompilerService {
       '',
       'RESPONSE DIRECTOR',
       `Mode: ${input.responsePlan.mode}`,
+      `Route: ${input.responsePlan.route}`,
+      `Route confidence: ${input.responsePlan.routeConfidence.toFixed(2)}`,
+      `Route reason: ${input.responsePlan.routeReason}`,
       `Question allowed: ${input.responsePlan.questionAllowed ? 'yes' : 'no'}`,
       `Self-disclosure: ${input.responsePlan.selfDisclosure}`,
       `Max sentences: ${input.responsePlan.maxSentences}`,
       `Forbidden terms: ${input.responsePlan.forbiddenTerms.join(', ') || '-'}`,
       `Directive: ${input.responsePlan.directive}`,
       '- Ikuti RESPONSE DIRECTOR untuk bentuk balasan turn ini. Ini lebih spesifik daripada aturan pacing umum.',
+      '',
+      'ROUTE EXPERT PROMPT',
+      ...input.expertPrompt,
+      '- ROUTE EXPERT PROMPT adalah strategi respons khusus untuk route turn ini.',
       '',
       'CONVERSATION SUMMARY',
       input.state.summary ?? 'Belum ada ringkasan percakapan.',
@@ -279,6 +286,7 @@ type CompileInput = {
   analysis: RoleplayEmotionAnalysis;
   conversationScope: ConversationScope;
   responsePlan: RoleplayResponsePlan;
+  expertPrompt: string[];
   quoteDecision?: QuoteDecision;
   quoteTargetText?: string;
 };

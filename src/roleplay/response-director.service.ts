@@ -2,12 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { LlmMessage } from '../llm/domain/llm.types';
 import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
 import { RoleplayResponsePlan } from './domain/roleplay-response-plan';
+import { RoleplayRoute, RoleplayRouteDecision } from './domain/roleplay-route';
 
 type CreatePlanInput = {
   latestUserMessage: string;
   recentMessages: LlmMessage[];
   analysis: RoleplayEmotionAnalysis;
   conversationScope: 'personal_chat' | 'group_chat';
+  routeDecision: RoleplayRouteDecision;
   quoteIntent?: string;
 };
 
@@ -26,11 +28,16 @@ export class ResponseDirectorService {
       latestIsQuestion,
       latestLooksLikeAnswer,
       isNameQuestion,
+      routeQuestionAllowed: input.routeDecision.questionAllowed,
     });
+    const selfDisclosure = this.resolveSelfDisclosure(latestText, latestIsQuestion, latestLooksLikeAnswer, input.routeDecision);
 
     return {
+      route: input.routeDecision.route,
+      routeConfidence: input.routeDecision.confidence,
       mode: this.resolveMode({
         analysis: input.analysis,
+        route: input.routeDecision.route,
         quoteIntent: input.quoteIntent,
         latestIsQuestion,
         latestLooksLikeAnswer,
@@ -39,14 +46,21 @@ export class ResponseDirectorService {
         questionAllowed,
       }),
       questionAllowed,
-      selfDisclosure: this.resolveSelfDisclosure(latestText, latestIsQuestion, latestLooksLikeAnswer),
+      selfDisclosure,
       maxSentences: questionAllowed ? 2 : 1,
       forbiddenTerms: input.conversationScope === 'personal_chat' ? ['pada', 'kalian', 'guys', 'semua'] : [],
+      routeReason: input.routeDecision.reason,
       directive: this.createDirective(questionAllowed, latestLooksLikeAnswer, isNameQuestion, isAmbiguous),
     };
   }
 
   private resolveMode(input: ResolveModeInput): RoleplayResponsePlan['mode'] {
+    const routeMode = this.resolveRouteMode(input.route);
+
+    if (routeMode) {
+      return routeMode;
+    }
+
     if (input.quoteIntent === 'evidence') {
       return 'quote_evidence';
     }
@@ -87,12 +101,21 @@ export class ResponseDirectorService {
       return false;
     }
 
-    return true;
+    return input.routeQuestionAllowed ?? true;
   }
 
-  private resolveSelfDisclosure(text: string, latestIsQuestion: boolean, latestLooksLikeAnswer: boolean): RoleplayResponsePlan['selfDisclosure'] {
+  private resolveSelfDisclosure(
+    text: string,
+    latestIsQuestion: boolean,
+    latestLooksLikeAnswer: boolean,
+    routeDecision: RoleplayRouteDecision,
+  ): RoleplayResponsePlan['selfDisclosure'] {
     if (this.isCharacterNameQuestion(text) || latestLooksLikeAnswer) {
       return 'none';
+    }
+
+    if (routeDecision.selfDisclosure) {
+      return routeDecision.selfDisclosure;
     }
 
     if (latestIsQuestion) {
@@ -120,6 +143,38 @@ export class ResponseDirectorService {
     return questionAllowed
       ? 'Boleh memakai satu follow-up ringan kalau benar-benar natural.'
       : 'Jangan tambah pertanyaan baru. Balas dengan reaksi atau statement pendek.';
+  }
+
+  private resolveRouteMode(route: RoleplayRoute): RoleplayResponsePlan['mode'] | null {
+    if (route === 'answer_identity') {
+      return 'answer_only';
+    }
+
+    if (route === 'quote_evidence') {
+      return 'quote_evidence';
+    }
+
+    if (route === 'ambiguous_clarify') {
+      return 'clarify';
+    }
+
+    if (route === 'tease_deflect') {
+      return 'tease';
+    }
+
+    if (route === 'conflict_boundary' || route === 'meta_testing') {
+      return 'deflect';
+    }
+
+    if (route === 'smalltalk_react' || route === 'emotional_care' || route === 'memory_recall') {
+      return 'react_only';
+    }
+
+    if (route === 'smalltalk_continue') {
+      return 'light_follow_up';
+    }
+
+    return null;
   }
 
   private looksLikeAnswerToBotQuestion(text: string, recentMessages: LlmMessage[]): boolean {
@@ -153,6 +208,7 @@ export class ResponseDirectorService {
 
 type ResolveModeInput = {
   analysis: RoleplayEmotionAnalysis;
+  route: RoleplayRoute;
   quoteIntent?: string;
   latestIsQuestion: boolean;
   latestLooksLikeAnswer: boolean;
@@ -167,4 +223,5 @@ type ShouldAllowQuestionInput = {
   latestIsQuestion: boolean;
   latestLooksLikeAnswer: boolean;
   isNameQuestion: boolean;
+  routeQuestionAllowed?: boolean;
 };

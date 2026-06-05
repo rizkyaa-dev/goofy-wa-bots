@@ -11,6 +11,7 @@ import { RoleplayMemoryExtractorService } from './memory/roleplay-memory-extract
 import { RoleplayMemoryService } from './memory/roleplay-memory.service';
 import { RoleplayMemoryTriggerService } from './memory/roleplay-memory-trigger.service';
 import { RoleplayMemoryValidatorService } from './memory/roleplay-memory-validator.service';
+import { ExpertPromptRegistryService } from './prompt/expert-prompt-registry.service';
 import { RoleplayPromptCompilerService } from './prompt/roleplay-prompt-compiler.service';
 import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retriever.service';
 import { QuoteDecisionService } from './quote/quote-decision.service';
@@ -19,6 +20,7 @@ import { ResponseDirectorService } from './response-director.service';
 import { ResponseValidatorService } from './response-validator.service';
 import { RoleplayChatService } from './roleplay-chat.service';
 import { RoleplayResetService } from './roleplay-reset.service';
+import { RoleplayRouterService } from './roleplay-router.service';
 import { RoleplayStateRepository } from './roleplay-state.repository';
 import { TimeContextService } from './time-context.service';
 
@@ -36,6 +38,7 @@ import { TimeContextService } from './time-context.service';
     RoleplayMemoryService,
     RoleplayMemoryTriggerService,
     RoleplayMemoryValidatorService,
+    ExpertPromptRegistryService,
     RoleplayPromptCompilerService,
     QuoteCandidateRetrieverService,
     QuoteDecisionService,
@@ -43,6 +46,7 @@ import { TimeContextService } from './time-context.service';
     ResponseDirectorService,
     ResponseValidatorService,
     RoleplayResetService,
+    RoleplayRouterService,
     RoleplayStateRepository,
     TimeContextService,
   ],
