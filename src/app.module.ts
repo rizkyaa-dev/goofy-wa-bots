@@ -10,6 +10,7 @@ import { WhatsappModule } from './wa/whatsapp.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
+      envFilePath: ['.env', '../.env'],
       isGlobal: true,
       validate: validateEnv,
     }),

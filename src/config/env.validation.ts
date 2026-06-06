@@ -95,7 +95,7 @@ const envSchema = z.object({
     .string()
     .default('true')
     .transform((value) => value.toLowerCase() !== 'false'),
-  LLM_PROVIDER: z.string().min(1).default('gemini'),
+  LLM_PROVIDER: z.string().min(1),
   LLM_MAX_TOKENS: z
     .string()
     .default('1200')
@@ -103,20 +103,20 @@ const envSchema = z.object({
     .pipe(z.number().int().positive()),
   GEMINI_API_KEY: z.string().optional().default(''),
   GEMINI_BASE_URL: z.string().url().default('https://generativelanguage.googleapis.com'),
-  GEMINI_MODEL: z.string().min(1).default('gemini-3.5-flash'),
+  GEMINI_MODEL: z.string().min(1),
   GEMINI_TEMPERATURE: optionalNumber(z.number().min(0).max(2)),
   GEMINI_TOP_P: optionalNumber(z.number().min(0).max(1)),
   GEMINI_MAX_TOKENS: optionalNumber(z.number().int().positive()),
   OPENAI_API_KEY: z.string().optional().default(''),
   OPENAI_BASE_URL: z.string().url().default('https://api.openai.com/v1'),
-  OPENAI_MODEL: z.string().min(1).default('gpt-5.5'),
+  OPENAI_MODEL: z.string().min(1),
   OPENAI_TEMPERATURE: optionalNumber(z.number().min(0).max(2)),
   OPENAI_TOP_P: optionalNumber(z.number().min(0).max(1)),
   OPENAI_MAX_TOKENS: optionalNumber(z.number().int().positive()),
   OPENAI_REASONING_EFFORT: z.enum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh']).default('high'),
   DEEPSEEK_API_KEY: z.string().optional().default(''),
   DEEPSEEK_BASE_URL: z.string().url().default('https://api.deepseek.com'),
-  DEEPSEEK_MODEL: z.string().min(1).default('deepseek-v4-pro'),
+  DEEPSEEK_MODEL: z.string().min(1),
   DEEPSEEK_TEMPERATURE: optionalNumber(z.number().min(0).max(2)),
   DEEPSEEK_TOP_P: optionalNumber(z.number().min(0).max(1)),
   DEEPSEEK_MAX_TOKENS: optionalNumber(z.number().int().positive()),
@@ -155,8 +155,8 @@ const envSchema = z.object({
     .string()
     .default('false')
     .transform((value) => value.toLowerCase() !== 'false'),
-  ROLEPLAY_ROUTER_PROVIDER: z.string().min(1).default('deepseek'),
-  ROLEPLAY_ROUTER_MODEL: z.string().optional().default('deepseek-v4-flash'),
+  ROLEPLAY_ROUTER_PROVIDER: z.string().min(1),
+  ROLEPLAY_ROUTER_MODEL: z.string().min(1),
   ROLEPLAY_ROUTER_MIN_CONFIDENCE: z
     .string()
     .default('0.58')
@@ -166,14 +166,14 @@ const envSchema = z.object({
     .string()
     .default('true')
     .transform((value) => value.toLowerCase() !== 'false'),
-  ROLEPLAY_EMOTION_CLASSIFIER_PROVIDER: z.string().min(1).default('gemini'),
+  ROLEPLAY_EMOTION_CLASSIFIER_PROVIDER: z.string().min(1),
   ROLEPLAY_EMOTION_CLASSIFIER_MODEL: z.string().optional().default(''),
   ROLEPLAY_MEMORY_EXTRACTOR_ENABLED: z
     .string()
     .default('true')
     .transform((value) => value.toLowerCase() !== 'false'),
-  ROLEPLAY_MEMORY_EXTRACTOR_PROVIDER: z.string().min(1).default('deepseek'),
-  ROLEPLAY_MEMORY_EXTRACTOR_MODEL: z.string().optional().default('deepseek-v4-flash'),
+  ROLEPLAY_MEMORY_EXTRACTOR_PROVIDER: z.string().min(1),
+  ROLEPLAY_MEMORY_EXTRACTOR_MODEL: z.string().min(1),
   ROLEPLAY_MEMORY_EXTRACTOR_MIN_CONFIDENCE: z
     .string()
     .default('0.65')
