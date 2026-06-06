@@ -323,8 +323,9 @@ long_term -> tidak expire
 Retrieve memory mengambil memory belum expired, diurutkan:
 
 ```txt
-importance desc
-updatedAt desc
+ambil candidate awal by importance desc + updatedAt desc
+rank ulang dengan keyword relevance terhadap latest user turn
+tie-breaker: importance desc, updatedAt desc
 limit ROLEPLAY_MEMORY_LIMIT
 ```
 
@@ -349,6 +350,8 @@ Env:
 ROLEPLAY_QUOTE_ENGINE_ENABLED=true
 ROLEPLAY_QUOTE_CANDIDATE_LIMIT=40
 ROLEPLAY_QUOTE_MIN_CONFIDENCE=0.74
+ROLEPLAY_QUOTE_PROVIDER=deepseek
+ROLEPLAY_QUOTE_MODEL=deepseek-v4-flash
 ```
 
 Intent quote:
@@ -412,6 +415,7 @@ ROLEPLAY_ROUTER_ENABLED=true
 ROLEPLAY_ROUTER_PROVIDER=deepseek
 ROLEPLAY_ROUTER_MODEL=deepseek-v4-flash
 ROLEPLAY_ROUTER_MIN_CONFIDENCE=0.58
+ROLEPLAY_DEBUG_LOG_ENABLED=true
 ```
 
 Deterministic rules:
@@ -579,12 +583,13 @@ System prompt sections:
 6. CURRENT EMOTION STATE
 7. TIME CONTEXT
 8. CONVERSATION SCOPE
-9. RESPONSE DIRECTOR
-10. ROUTE EXPERT PROMPT
-11. CONVERSATION SUMMARY
-12. RELEVANT MEMORY
-13. QUOTE REPLY DIRECTIVE
-14. WHATSAPP OUTPUT CONTRACT
+9. LATEST USER TURN
+10. RESPONSE DIRECTOR
+11. ROUTE EXPERT PROMPT
+12. CONVERSATION SUMMARY
+13. RELEVANT MEMORY
+14. QUOTE REPLY DIRECTIVE
+15. WHATSAPP OUTPUT CONTRACT
 ```
 
 ### Runtime Identity
@@ -677,6 +682,19 @@ Directive
 
 Prompt menyatakan bahwa response director lebih spesifik daripada aturan pacing
 umum.
+
+### Latest User Turn
+
+Section ini menandai pesan user yang harus dijawab pada turn sekarang:
+
+```txt
+LATEST USER TURN
+<isi pesan user terbaru atau batch gabungan>
+- Balas LATEST USER TURN ini. Recent messages hanya konteks; jangan membalas pesan lama kecuali relevan sebagai callback.
+```
+
+Tujuannya supaya generator tidak perlu menebak pesan mana yang menjadi target
+utama ketika recent context sudah panjang atau user mengirim beberapa bubble.
 
 ### Route Expert Prompt
 

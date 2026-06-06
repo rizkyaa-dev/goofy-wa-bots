@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { ContactSetting } from '@prisma/client';
 import { BotReply } from '../bot/domain/bot-reply';
+import { AppEnv } from '../config/env.validation';
 import { ConversationsService } from '../conversations/conversations.service';
 import { LlmProviderError } from '../llm/errors/llm-provider.error';
 import { LlmService } from '../llm/llm.service';
@@ -25,8 +27,11 @@ import { TimeContextService } from './time-context.service';
 
 @Injectable()
 export class RoleplayChatService {
+  private readonly logger = new Logger(RoleplayChatService.name);
+
   constructor(
     private readonly characterProfile: CharacterProfileService,
+    private readonly config: ConfigService<AppEnv, true>,
     private readonly continuityGuard: ContinuityGuardService,
     private readonly conversations: ConversationsService,
     private readonly emotionClassifier: EmotionClassifierService,
@@ -55,7 +60,7 @@ export class RoleplayChatService {
 
     await this.memories.captureFromInbound(message, this.formatRecentContext(recentMessages));
 
-    const memories = await this.memories.retrieve(message.chatId);
+    const memories = await this.memories.retrieve(message.chatId, message.body);
     const quoteCandidates = await this.quoteCandidates.retrieve(message.chatId);
     const quoteDecision = this.quotePolicy.apply(
       await this.quoteDecisions.decide({
@@ -63,7 +68,6 @@ export class RoleplayChatService {
         recentContext: this.formatRecentContext(recentMessages),
         candidates: quoteCandidates,
         memories,
-        settings,
       }),
       quoteCandidates,
       message.id,
@@ -93,6 +97,7 @@ export class RoleplayChatService {
       state,
       time: this.timeContext.create(previousState),
       memories,
+      latestUserTurn: message.body,
       recentMessages,
       analysis,
       conversationScope,
@@ -100,6 +105,19 @@ export class RoleplayChatService {
       expertPrompt: this.expertPrompts.get(routeDecision.route),
       quoteDecision,
       quoteTargetText: quoteTarget?.body,
+    });
+
+    this.logDebugTrace({
+      message,
+      analysis,
+      memoryCount: memories.length,
+      quoteAction: quoteDecision.action,
+      quoteIntent: quoteDecision.intent,
+      route: routeDecision.route,
+      routeConfidence: routeDecision.confidence,
+      responseMode: responsePlan.mode,
+      questionAllowed: responsePlan.questionAllowed,
+      selfDisclosure: responsePlan.selfDisclosure,
     });
 
     try {
@@ -204,6 +222,36 @@ export class RoleplayChatService {
     return Math.max(0, Math.min(100, value));
   }
 
+  private logDebugTrace(trace: RoleplayDebugTrace): void {
+    if (!this.config.get('ROLEPLAY_DEBUG_LOG_ENABLED')) {
+      return;
+    }
+
+    this.logger.debug(
+      JSON.stringify({
+        chatId: trace.message.chatId,
+        isGroup: trace.message.isGroup,
+        tone: trace.analysis.userTone,
+        intent: trace.analysis.userIntent,
+        avoidQuestion: trace.analysis.avoidQuestion,
+        deltas: {
+          affection: trace.analysis.affectionDelta,
+          trust: trace.analysis.trustDelta,
+          tension: trace.analysis.tensionDelta,
+          energy: trace.analysis.energyDelta,
+        },
+        memoryCount: trace.memoryCount,
+        quoteAction: trace.quoteAction,
+        quoteIntent: trace.quoteIntent,
+        route: trace.route,
+        routeConfidence: Number(trace.routeConfidence.toFixed(2)),
+        responseMode: trace.responseMode,
+        questionAllowed: trace.questionAllowed,
+        selfDisclosure: trace.selfDisclosure,
+      }),
+    );
+  }
+
   private limitEmoji(text: string, recentMessages: Array<{ role: string; content: string }>): string {
     if (this.recentAssistantUsedEmoji(recentMessages)) {
       return text.replace(/\p{Extended_Pictographic}/gu, '').replace(/\s{2,}/g, ' ').trim();
@@ -285,4 +333,17 @@ type StatePatch = {
   trust: number;
   energy: number;
   tension: number;
+};
+
+type RoleplayDebugTrace = {
+  message: IncomingMessage;
+  analysis: RoleplayEmotionAnalysis;
+  memoryCount: number;
+  quoteAction: string;
+  quoteIntent: string;
+  route: string;
+  routeConfidence: number;
+  responseMode: string;
+  questionAllowed: boolean;
+  selfDisclosure: string;
 };

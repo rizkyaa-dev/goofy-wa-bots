@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ContactSetting, RoleplayMemory } from '@prisma/client';
+import { ConfigService } from '@nestjs/config';
+import { RoleplayMemory } from '@prisma/client';
+import { AppEnv } from '../../config/env.validation';
 import { LlmService } from '../../llm/llm.service';
 import { LlmProviderError } from '../../llm/errors/llm-provider.error';
 import { QuoteCandidate } from './domain/quote-candidate';
@@ -15,7 +17,10 @@ type QuoteDecisionResponse = {
 
 @Injectable()
 export class QuoteDecisionService {
-  constructor(private readonly llm: LlmService) {}
+  constructor(
+    private readonly config: ConfigService<AppEnv, true>,
+    private readonly llm: LlmService,
+  ) {}
 
   async decide(input: DecideQuoteInput): Promise<QuoteDecision> {
     if (input.candidates.length === 0) {
@@ -24,8 +29,8 @@ export class QuoteDecisionService {
 
     try {
       const result = await this.llm.generateReply({
-        providerName: input.settings.llmProvider,
-        model: input.settings.llmModel,
+        providerName: this.config.get('ROLEPLAY_QUOTE_PROVIDER'),
+        model: this.config.get('ROLEPLAY_QUOTE_MODEL'),
         temperature: 0.1,
         maxTokens: 420,
         messages: [
@@ -124,5 +129,4 @@ type DecideQuoteInput = {
   recentContext: string;
   candidates: QuoteCandidate[];
   memories: RoleplayMemory[];
-  settings: ContactSetting;
 };

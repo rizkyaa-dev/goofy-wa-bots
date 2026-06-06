@@ -19,15 +19,19 @@ export class RoleplayMemoryService {
     private readonly validator: RoleplayMemoryValidatorService,
   ) {}
 
-  async retrieve(chatId: string) {
-    return this.prisma.roleplayMemory.findMany({
+  async retrieve(chatId: string, queryText = ''): Promise<RoleplayMemory[]> {
+    const limit = this.config.get('ROLEPLAY_MEMORY_LIMIT');
+    const candidateLimit = Math.max(limit * 4, 16);
+    const memories = await this.prisma.roleplayMemory.findMany({
       where: {
         chatId,
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
       orderBy: [{ importance: 'desc' }, { updatedAt: 'desc' }],
-      take: this.config.get('ROLEPLAY_MEMORY_LIMIT'),
+      take: candidateLimit,
     });
+
+    return this.rankByRelevance(memories, queryText).slice(0, limit);
   }
 
   async list(chatId: string, limit = 10): Promise<RoleplayMemory[]> {
@@ -296,6 +300,39 @@ export class RoleplayMemoryService {
     const union = new Set([...leftWords, ...rightWords]).size;
 
     return intersection / union;
+  }
+
+  private rankByRelevance(memories: RoleplayMemory[], queryText: string): RoleplayMemory[] {
+    const queryTokens = new Set(this.tokenize(queryText));
+
+    if (queryTokens.size === 0) {
+      return memories;
+    }
+
+    return [...memories].sort((left, right) => {
+      const leftScore = this.calculateMemoryScore(left, queryTokens);
+      const rightScore = this.calculateMemoryScore(right, queryTokens);
+
+      if (leftScore !== rightScore) {
+        return rightScore - leftScore;
+      }
+
+      if (left.importance !== right.importance) {
+        return right.importance - left.importance;
+      }
+
+      return right.updatedAt.getTime() - left.updatedAt.getTime();
+    });
+  }
+
+  private calculateMemoryScore(memory: RoleplayMemory, queryTokens: ReadonlySet<string>): number {
+    const memoryTokens = new Set(this.tokenize(`${memory.content} ${memory.sourceText ?? ''}`));
+    const overlap = Array.from(queryTokens).filter((token) => memoryTokens.has(token)).length;
+    const relevance = queryTokens.size > 0 ? overlap / queryTokens.size : 0;
+    const importance = memory.importance / 100;
+    const confidence = memory.confidence;
+
+    return relevance * 3 + importance * 0.7 + confidence * 0.3;
   }
 
   private tokenize(text: string): string[] {

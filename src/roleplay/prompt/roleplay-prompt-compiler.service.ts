@@ -88,6 +88,10 @@ export class RoleplayPromptCompilerService {
       'CONVERSATION SCOPE',
       this.createConversationScopeDirective(input.conversationScope),
       '',
+      'LATEST USER TURN',
+      input.latestUserTurn,
+      '- Balas LATEST USER TURN ini. Recent messages hanya konteks; jangan membalas pesan lama kecuali relevan sebagai callback.',
+      '',
       'RESPONSE DIRECTOR',
       `Mode: ${input.responsePlan.mode}`,
       `Route: ${input.responsePlan.route}`,
@@ -282,6 +286,7 @@ type CompileInput = {
   state: RoleplayState;
   time: RoleplayTimeContext;
   memories: RoleplayMemory[];
+  latestUserTurn: string;
   recentMessages: LlmMessage[];
   analysis: RoleplayEmotionAnalysis;
   conversationScope: ConversationScope;
