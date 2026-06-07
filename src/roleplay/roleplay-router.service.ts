@@ -6,6 +6,7 @@ import { LlmMessage } from '../llm/domain/llm.types';
 import { LlmService } from '../llm/llm.service';
 import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
 import { RoleplayRoute, RoleplayRouteDecision, roleplayRoutes } from './domain/roleplay-route';
+import { RoleplayIdentityQuestionDetectorService } from './identity/roleplay-identity-question-detector.service';
 
 type RouteInput = {
   latestUserMessage: string;
@@ -31,6 +32,7 @@ type RouterResponse = {
 export class RoleplayRouterService {
   constructor(
     private readonly config: ConfigService<AppEnv, true>,
+    private readonly identityQuestionDetector: RoleplayIdentityQuestionDetectorService,
     private readonly llm: LlmService,
   ) {}
 
@@ -57,7 +59,7 @@ export class RoleplayRouterService {
       return this.createDecision('quote_evidence', 1, 'evidence', false, 'small', true, true, 'Quote decision requested evidence.');
     }
 
-    if (this.isCharacterNameQuestion(lower)) {
+    if (this.identityQuestionDetector.isCharacterNameQuestion(lower)) {
       return this.createDecision('answer_identity', 1, 'direct', false, 'none', false, false, 'User asks character identity.');
     }
 
@@ -220,10 +222,6 @@ export class RoleplayRouterService {
       .slice(-8)
       .map((message) => `${message.role}: ${message.content}`)
       .join('\n');
-  }
-
-  private isCharacterNameQuestion(text: string): boolean {
-    return /\b(?:namamu|nama\s+(?:kamu|mu|bot|alya)|(?:kamu|alya|bot)\s+siapa|siapa\s+(?:kamu|alya|bot))\b/u.test(text);
   }
 
   private isAmbiguous(text: string): boolean {

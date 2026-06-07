@@ -9,6 +9,7 @@ import { RecentMessageContextService } from './context/recent-message-context.se
 import { RoleplayContextMessageFilterService } from './context/roleplay-context-message-filter.service';
 import { EmotionClassifierService } from './emotion-classifier.service';
 import { EmotionEngineService } from './emotion-engine.service';
+import { RoleplayIdentityQuestionDetectorService } from './identity/roleplay-identity-question-detector.service';
 import { RoleplayMemoryExtractorService } from './memory/roleplay-memory-extractor.service';
 import { RoleplayMemoryService } from './memory/roleplay-memory.service';
 import { RoleplayMemoryTriggerService } from './memory/roleplay-memory-trigger.service';
@@ -37,6 +38,7 @@ import { TimeContextService } from './time-context.service';
     EmotionEngineService,
     RecentMessageContextService,
     RoleplayContextMessageFilterService,
+    RoleplayIdentityQuestionDetectorService,
     RoleplayMemoryExtractorService,
     RoleplayChatService,
     RoleplayMemoryService,

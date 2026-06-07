@@ -4,6 +4,7 @@ import { RoleplayBotMove, RoleplayConversationPlan } from './domain/roleplay-con
 import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
 import { RoleplayResponsePlan } from './domain/roleplay-response-plan';
 import { RoleplayRoute, RoleplayRouteDecision } from './domain/roleplay-route';
+import { RoleplayIdentityQuestionDetectorService } from './identity/roleplay-identity-question-detector.service';
 
 type CreatePlanInput = {
   latestUserMessage: string;
@@ -17,6 +18,8 @@ type CreatePlanInput = {
 
 @Injectable()
 export class ResponseDirectorService {
+  constructor(private readonly identityQuestionDetector: RoleplayIdentityQuestionDetectorService) {}
+
   createPlan(input: CreatePlanInput): RoleplayResponsePlan {
     const recentQuestionCount = this.countRecentAssistantQuestions(input.recentMessages);
     const latestText = input.latestUserMessage.trim();
@@ -430,10 +433,7 @@ export class ResponseDirectorService {
   }
 
   private isCharacterNameQuestion(text: string): boolean {
-    const normalized = text.toLowerCase();
-    return /\b(?:namamu|nama\s+(?:kamu|mu|bot|alya)|(?:kamu|alya|bot)\s+siapa|siapa\s+(?:kamu|alya|bot))\b/u.test(
-      normalized,
-    );
+    return this.identityQuestionDetector.isCharacterNameQuestion(text);
   }
 
   private isAmbiguous(text: string): boolean {

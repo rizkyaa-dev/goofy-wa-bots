@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { RoleplayMemory } from '@prisma/client';
 import { LlmMessage } from '../llm/domain/llm.types';
+import { RoleplayIdentityQuestionDetectorService } from './identity/roleplay-identity-question-detector.service';
 
 type ContinuityGuardInput = {
   text: string;
@@ -13,6 +14,8 @@ type ContinuityGuardInput = {
 
 @Injectable()
 export class ContinuityGuardService {
+  constructor(private readonly identityQuestionDetector: RoleplayIdentityQuestionDetectorService) {}
+
   apply(input: ContinuityGuardInput): string {
     if (!this.hasContinuityClaim(input.text)) {
       return input.text;
@@ -84,10 +87,7 @@ export class ContinuityGuardService {
   }
 
   private isCharacterNameQuestion(text: string): boolean {
-    const normalized = text.toLowerCase();
-    return /\b(?:namamu|nama\s+(?:kamu|mu|bot|alya)|(?:kamu|alya|bot)\s+siapa|siapa\s+(?:kamu|alya|bot))\b/u.test(
-      normalized,
-    );
+    return this.identityQuestionDetector.isCharacterNameQuestion(text);
   }
 
   private containsCharacterName(text: string, characterName: string): boolean {
