@@ -117,14 +117,15 @@ Urutan aktual:
 11. Filter quote decision dengan QuotePolicyService
 12. Tentukan conversation scope: personal_chat atau group_chat
 13. Route turn dengan RoleplayRouterService
-14. Buat response plan dengan ResponseDirectorService
-15. Ambil character profile
-16. Compile final prompt
-17. Generate reply memakai LlmService
-18. Clean raw reply
-19. Apply ContinuityGuardService
-20. Apply ResponseValidatorService
-21. Return BotReply
+14. Buat conversation plan dengan ConversationBuilderService
+15. Buat response plan dengan ResponseDirectorService
+16. Ambil character profile
+17. Compile final prompt
+18. Generate reply memakai LlmService
+19. Clean raw reply
+20. Apply ContinuityGuardService
+21. Apply ResponseValidatorService
+22. Return BotReply
 ```
 
 Output akhir:
@@ -584,12 +585,13 @@ System prompt sections:
 7. TIME CONTEXT
 8. CONVERSATION SCOPE
 9. LATEST USER TURN
-10. RESPONSE DIRECTOR
-11. ROUTE EXPERT PROMPT
-12. CONVERSATION SUMMARY
-13. RELEVANT MEMORY
-14. QUOTE REPLY DIRECTIVE
-15. WHATSAPP OUTPUT CONTRACT
+10. CONVERSATION BUILDER
+11. RESPONSE DIRECTOR
+12. ROUTE EXPERT PROMPT
+13. CONVERSATION SUMMARY
+14. RELEVANT MEMORY
+15. QUOTE REPLY DIRECTIVE
+16. WHATSAPP OUTPUT CONTRACT
 ```
 
 ### Runtime Identity
@@ -695,6 +697,28 @@ LATEST USER TURN
 
 Tujuannya supaya generator tidak perlu menebak pesan mana yang menjadi target
 utama ketika recent context sudah panjang atau user mengirim beberapa bubble.
+
+### Conversation Builder
+
+Section ini memberi "bahan hidup" untuk obrolan tanpa menambah route terlalu
+banyak.
+
+```txt
+CONVERSATION BUILDER
+Topic: everyday_coordination
+User move: asks_practical_instruction
+Bot move: answer_then_warm_texture
+Detail hooks: paket, teras, ambil
+Warmth: normal
+Follow-up policy: only_if_needed
+Avoid: customer service tone, bare instruction only, unnecessary interview
+Directive: Jawab kebutuhan praktisnya dengan jelas, lalu tambah satu sentuhan karakter kecil dari detail pesan agar obrolan tidak terasa mati.
+```
+
+Conversation builder berjalan setelah router dan sebelum prompt final. Ia tidak
+mengganti response director; ia memberi topik, detail hooks, dan conversational
+move agar balasan tidak berhenti di respons generik seperti "oh oke" atau
+"siang juga".
 
 ### Route Expert Prompt
 
@@ -948,6 +972,7 @@ input WhatsApp
 -> memory writer/reader
 -> quote planner
 -> route planner
+-> conversation builder
 -> response planner
 -> prompt compiler
 -> LLM generator

@@ -8,6 +8,7 @@ import { LlmProviderError } from '../llm/errors/llm-provider.error';
 import { LlmService } from '../llm/llm.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
 import { CharacterProfileService } from './character-profile.service';
+import { ConversationBuilderService } from './conversation/conversation-builder.service';
 import { ContinuityGuardService } from './continuity-guard.service';
 import { RecentMessageContextService } from './context/recent-message-context.service';
 import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
@@ -32,6 +33,7 @@ export class RoleplayChatService {
   constructor(
     private readonly characterProfile: CharacterProfileService,
     private readonly config: ConfigService<AppEnv, true>,
+    private readonly conversationBuilder: ConversationBuilderService,
     private readonly continuityGuard: ContinuityGuardService,
     private readonly conversations: ConversationsService,
     private readonly emotionClassifier: EmotionClassifierService,
@@ -82,12 +84,22 @@ export class RoleplayChatService {
       conversationScope,
       quoteIntent: quoteDecision.intent,
     });
+    const conversationPlan = this.conversationBuilder.create({
+      latestUserMessage: message.body,
+      recentMessages,
+      memories,
+      analysis,
+      routeDecision,
+      quoteIntent: quoteDecision.intent,
+      conversationScope,
+    });
     const responsePlan = this.responseDirector.createPlan({
       latestUserMessage: message.body,
       recentMessages,
       analysis,
       conversationScope,
       routeDecision,
+      conversationPlan,
       quoteIntent: quoteDecision.intent,
     });
 
@@ -99,6 +111,7 @@ export class RoleplayChatService {
       memories,
       latestUserTurn: message.body,
       recentMessages,
+      conversationPlan,
       analysis,
       conversationScope,
       responsePlan,
@@ -115,7 +128,16 @@ export class RoleplayChatService {
       quoteIntent: quoteDecision.intent,
       route: routeDecision.route,
       routeConfidence: routeDecision.confidence,
+      conversationTopic: conversationPlan.topic,
+      userMove: conversationPlan.userMove,
+      botMove: conversationPlan.botMove,
+      warmth: conversationPlan.warmth,
+      followUpPolicy: conversationPlan.followUpPolicy,
       responseMode: responsePlan.mode,
+      replyShape: responsePlan.replyShape,
+      emotionalTexture: responsePlan.emotionalTexture,
+      playfulness: responsePlan.playfulness,
+      topicDevelopment: responsePlan.topicDevelopment,
       questionAllowed: responsePlan.questionAllowed,
       selfDisclosure: responsePlan.selfDisclosure,
     });
@@ -245,7 +267,16 @@ export class RoleplayChatService {
         quoteIntent: trace.quoteIntent,
         route: trace.route,
         routeConfidence: Number(trace.routeConfidence.toFixed(2)),
+        conversationTopic: trace.conversationTopic,
+        userMove: trace.userMove,
+        botMove: trace.botMove,
+        warmth: trace.warmth,
+        followUpPolicy: trace.followUpPolicy,
         responseMode: trace.responseMode,
+        replyShape: trace.replyShape,
+        emotionalTexture: trace.emotionalTexture,
+        playfulness: trace.playfulness,
+        topicDevelopment: trace.topicDevelopment,
         questionAllowed: trace.questionAllowed,
         selfDisclosure: trace.selfDisclosure,
       }),
@@ -343,7 +374,16 @@ type RoleplayDebugTrace = {
   quoteIntent: string;
   route: string;
   routeConfidence: number;
+  conversationTopic: string;
+  userMove: string;
+  botMove: string;
+  warmth: string;
+  followUpPolicy: string;
   responseMode: string;
+  replyShape: string;
+  emotionalTexture: string;
+  playfulness: string;
+  topicDevelopment: string;
   questionAllowed: boolean;
   selfDisclosure: string;
 };

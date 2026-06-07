@@ -16,7 +16,8 @@ export class ResponseValidatorService {
     const disclosureSafe = this.limitSelfDisclosure(scopeSafe, input.plan);
     const questionSafe = this.limitQuestions(disclosureSafe, input.plan);
     const sentenceSafe = this.limitSentences(questionSafe, input.plan.maxSentences);
-    const punctuationSafe = this.normalizeCasualPunctuation(sentenceSafe, input.plan);
+    const textureSafe = this.repairDeadEndAcknowledgement(sentenceSafe, input.plan);
+    const punctuationSafe = this.normalizeCasualPunctuation(textureSafe, input.plan);
 
     return punctuationSafe || this.createFallback(input.plan);
   }
@@ -104,6 +105,30 @@ export class ResponseValidatorService {
     return this.normalizeWhitespace(sentences.slice(0, maxSentences).join(' '));
   }
 
+  private repairDeadEndAcknowledgement(text: string, plan: RoleplayResponsePlan): string {
+    if (plan.topicDevelopment === 'none' || !this.isDeadEndAcknowledgement(text)) {
+      return text;
+    }
+
+    if (plan.replyShape === 'comfort_anchor') {
+      return 'Iya... itu kerasa berat sih';
+    }
+
+    if (plan.replyShape === 'tease_deflect') {
+      return 'Ih, bisa aja kamu';
+    }
+
+    if (plan.replyShape === 'answer_texture') {
+      return 'Oke, aku nangkep maksudnya';
+    }
+
+    return 'Oh oke, aku nangkep';
+  }
+
+  private isDeadEndAcknowledgement(text: string): boolean {
+    return /^(?:oh\s+)?(?:oke|ok|iya|ya|y|sip|baik|noted|makasih|terima\s+kasih|thanks|thx)[.!?]*$/iu.test(text.trim());
+  }
+
   private normalizeCasualPunctuation(text: string, plan: RoleplayResponsePlan): string {
     if (!this.shouldSoftenTrailingPeriod(plan)) {
       return text;
@@ -158,7 +183,7 @@ export class ResponseValidatorService {
   }
 
   private createFallback(plan: RoleplayResponsePlan): string {
-    if (plan.mode === 'answer_only') {
+    if (plan.mode === 'answer_only' || plan.mode === 'answer_with_texture') {
       return 'Iya.';
     }
 
@@ -168,6 +193,10 @@ export class ResponseValidatorService {
 
     if (plan.mode === 'tease') {
       return 'Ih, ada-ada aja.';
+    }
+
+    if (plan.mode === 'react_expand') {
+      return plan.emotionalTexture === 'medium' ? 'Iya... aku nangkep kok.' : 'Oh oke, aku nangkep.';
     }
 
     return 'Oh gitu.';

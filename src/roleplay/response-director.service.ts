@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { LlmMessage } from '../llm/domain/llm.types';
+import { RoleplayBotMove, RoleplayConversationPlan } from './domain/roleplay-conversation-plan';
 import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
 import { RoleplayResponsePlan } from './domain/roleplay-response-plan';
 import { RoleplayRoute, RoleplayRouteDecision } from './domain/roleplay-route';
@@ -10,6 +11,7 @@ type CreatePlanInput = {
   analysis: RoleplayEmotionAnalysis;
   conversationScope: 'personal_chat' | 'group_chat';
   routeDecision: RoleplayRouteDecision;
+  conversationPlan: RoleplayConversationPlan;
   quoteIntent?: string;
 };
 
@@ -29,8 +31,13 @@ export class ResponseDirectorService {
       latestLooksLikeAnswer,
       isNameQuestion,
       routeQuestionAllowed: input.routeDecision.questionAllowed,
+      conversationPlan: input.conversationPlan,
     });
     const selfDisclosure = this.resolveSelfDisclosure(latestText, latestIsQuestion, latestLooksLikeAnswer, input.routeDecision);
+    const replyShape = this.resolveReplyShape(input.routeDecision.route, input.conversationPlan.botMove);
+    const topicDevelopment = this.resolveTopicDevelopment(input.conversationPlan, questionAllowed, input.routeDecision.route);
+    const emotionalTexture = this.resolveEmotionalTexture(input.conversationPlan, input.routeDecision.route);
+    const playfulness = this.resolvePlayfulness(input.conversationPlan, input.routeDecision.route);
 
     return {
       route: input.routeDecision.route,
@@ -38,6 +45,7 @@ export class ResponseDirectorService {
       mode: this.resolveMode({
         analysis: input.analysis,
         route: input.routeDecision.route,
+        conversationPlan: input.conversationPlan,
         quoteIntent: input.quoteIntent,
         latestIsQuestion,
         latestLooksLikeAnswer,
@@ -47,15 +55,32 @@ export class ResponseDirectorService {
       }),
       questionAllowed,
       selfDisclosure,
-      maxSentences: questionAllowed ? 2 : 1,
+      maxSentences: this.resolveMaxSentences({
+        questionAllowed,
+        route: input.routeDecision.route,
+        replyShape,
+        topicDevelopment,
+        isAmbiguous,
+      }),
+      emotionalTexture,
+      playfulness,
+      topicDevelopment,
+      replyShape,
       forbiddenTerms: input.conversationScope === 'personal_chat' ? ['pada', 'kalian', 'guys', 'semua'] : [],
       routeReason: input.routeDecision.reason,
-      directive: this.createDirective(questionAllowed, latestLooksLikeAnswer, isNameQuestion, isAmbiguous),
+      directive: this.createDirective({
+        questionAllowed,
+        latestLooksLikeAnswer,
+        isNameQuestion,
+        isAmbiguous,
+        topicDevelopment,
+        replyShape,
+      }),
     };
   }
 
   private resolveMode(input: ResolveModeInput): RoleplayResponsePlan['mode'] {
-    const routeMode = this.resolveRouteMode(input.route);
+    const routeMode = this.resolveRouteMode(input.route, input.conversationPlan);
 
     if (routeMode) {
       return routeMode;
@@ -66,7 +91,7 @@ export class ResponseDirectorService {
     }
 
     if (input.isNameQuestion || input.latestIsQuestion) {
-      return 'answer_only';
+      return input.conversationPlan.botMove === 'answer_then_warm_texture' ? 'answer_with_texture' : 'answer_only';
     }
 
     if (input.isAmbiguous) {
@@ -82,7 +107,7 @@ export class ResponseDirectorService {
     }
 
     if (input.latestLooksLikeAnswer || !input.questionAllowed) {
-      return 'react_only';
+      return this.shouldExpandReaction(input.conversationPlan) ? 'react_expand' : 'react_only';
     }
 
     return 'light_follow_up';
@@ -99,6 +124,14 @@ export class ResponseDirectorService {
 
     if (input.latestIsQuestion) {
       return false;
+    }
+
+    if (input.conversationPlan.followUpPolicy === 'none') {
+      return false;
+    }
+
+    if (input.conversationPlan.followUpPolicy === 'one_light_question') {
+      return input.routeQuestionAllowed ?? true;
     }
 
     return input.routeQuestionAllowed ?? true;
@@ -125,29 +158,45 @@ export class ResponseDirectorService {
     return 'normal';
   }
 
-  private createDirective(questionAllowed: boolean, latestLooksLikeAnswer: boolean, isNameQuestion: boolean, isAmbiguous: boolean): string {
-    if (isNameQuestion) {
-      return 'Jawab nama karakter langsung. Jangan tambah pertanyaan balik, biodata, atau klaim sudah pernah bilang.';
+  private createDirective(input: CreateDirectiveInput): string {
+    if (input.isNameQuestion) {
+      return 'Jawab nama karakter langsung, lalu boleh beri satu warna kecil yang cocok. Jangan tambah pertanyaan balik, biodata, atau klaim sudah pernah bilang.';
     }
 
-    if (latestLooksLikeAnswer) {
-      return 'User baru menjawab/menanggapi pertanyaan bot. Reaksi dulu, jangan langsung lempar pertanyaan baru.';
+    if (input.latestLooksLikeAnswer) {
+      return input.topicDevelopment === 'micro'
+        ? 'User baru menjawab/menanggapi pertanyaan bot. Reaksi dulu, lalu tambah komentar kecil dari detail user tanpa melempar pertanyaan baru.'
+        : 'User baru menjawab/menanggapi pertanyaan bot. Reaksi dulu, jangan langsung lempar pertanyaan baru.';
     }
 
-    if (isAmbiguous) {
-      return questionAllowed
+    if (input.isAmbiguous) {
+      return input.questionAllowed
         ? 'Pesan user ambigu. Boleh minta klarifikasi pendek tanpa dua tebakan.'
         : 'Pesan user ambigu, tapi jangan tambah pertanyaan baru; beri reaksi pendek dulu.';
     }
 
-    return questionAllowed
-      ? 'Boleh memakai satu follow-up ringan kalau benar-benar natural.'
-      : 'Jangan tambah pertanyaan baru. Balas dengan reaksi atau statement pendek.';
+    if (input.replyShape === 'answer_texture') {
+      return input.questionAllowed
+        ? 'Jawab kebutuhan user dulu, lalu tambah satu texture kecil. Satu follow-up ringan boleh hanya kalau terasa natural.'
+        : 'Jawab kebutuhan user dulu, lalu tambah satu texture kecil. Jangan tutup dengan pertanyaan.';
+    }
+
+    if (input.replyShape === 'comfort_anchor') {
+      return 'Beri validasi singkat yang terasa hadir. Ambil satu detail user sebagai anchor, bukan nasihat panjang atau interview.';
+    }
+
+    if (input.replyShape === 'tease_deflect') {
+      return 'Balas playful pendek dengan sedikit warna. Jangan jadi datar literal, tapi juga jangan menaikkan konflik.';
+    }
+
+    return input.questionAllowed
+      ? 'Boleh memakai satu follow-up ringan kalau benar-benar natural. Tetap masukkan reaksi atau komentar kecil dulu.'
+      : 'Jangan tambah pertanyaan baru. Balas dengan reaksi atau statement yang punya sedikit warna, bukan acknowledgement mati.';
   }
 
-  private resolveRouteMode(route: RoleplayRoute): RoleplayResponsePlan['mode'] | null {
+  private resolveRouteMode(route: RoleplayRoute, conversationPlan: RoleplayConversationPlan): RoleplayResponsePlan['mode'] | null {
     if (route === 'answer_identity') {
-      return 'answer_only';
+      return 'answer_with_texture';
     }
 
     if (route === 'quote_evidence') {
@@ -162,12 +211,24 @@ export class ResponseDirectorService {
       return 'tease';
     }
 
-    if (route === 'conflict_boundary' || route === 'meta_testing') {
+    if (route === 'conflict_boundary') {
       return 'deflect';
     }
 
-    if (route === 'smalltalk_react' || route === 'emotional_care' || route === 'memory_recall') {
-      return 'react_only';
+    if (route === 'meta_testing') {
+      return conversationPlan.warmth === 'playful' ? 'tease' : 'deflect';
+    }
+
+    if (route === 'emotional_care') {
+      return 'react_expand';
+    }
+
+    if (route === 'memory_recall') {
+      return conversationPlan.botMove === 'answer_then_warm_texture' ? 'answer_with_texture' : 'react_expand';
+    }
+
+    if (route === 'smalltalk_react') {
+      return this.shouldExpandReaction(conversationPlan) ? 'react_expand' : 'react_only';
     }
 
     if (route === 'smalltalk_continue') {
@@ -175,6 +236,105 @@ export class ResponseDirectorService {
     }
 
     return null;
+  }
+
+  private shouldExpandReaction(conversationPlan: RoleplayConversationPlan): boolean {
+    return (
+      conversationPlan.botMove === 'react_then_continue' ||
+      conversationPlan.botMove === 'answer_then_warm_texture' ||
+      conversationPlan.botMove === 'comfort_briefly' ||
+      conversationPlan.followUpPolicy !== 'none'
+    );
+  }
+
+  private resolveReplyShape(route: RoleplayRoute, botMove: RoleplayBotMove): RoleplayResponsePlan['replyShape'] {
+    if (route === 'conflict_boundary') {
+      return 'boundary';
+    }
+
+    if (botMove === 'comfort_briefly') {
+      return 'comfort_anchor';
+    }
+
+    if (botMove === 'tease_lightly') {
+      return 'tease_deflect';
+    }
+
+    if (botMove === 'clarify_briefly') {
+      return 'clarify_briefly';
+    }
+
+    if (botMove === 'answer_then_warm_texture') {
+      return 'answer_texture';
+    }
+
+    if (botMove === 'react_then_continue') {
+      return 'react_expand';
+    }
+
+    return 'answer_react';
+  }
+
+  private resolveTopicDevelopment(
+    conversationPlan: RoleplayConversationPlan,
+    questionAllowed: boolean,
+    route: RoleplayRoute,
+  ): RoleplayResponsePlan['topicDevelopment'] {
+    if (route === 'conflict_boundary' || conversationPlan.followUpPolicy === 'none') {
+      return conversationPlan.botMove === 'answer_then_warm_texture' || conversationPlan.botMove === 'tease_lightly' ? 'micro' : 'none';
+    }
+
+    if (questionAllowed && conversationPlan.followUpPolicy === 'one_light_question') {
+      return 'follow_up';
+    }
+
+    return 'micro';
+  }
+
+  private resolveEmotionalTexture(
+    conversationPlan: RoleplayConversationPlan,
+    route: RoleplayRoute,
+  ): RoleplayResponsePlan['emotionalTexture'] {
+    if (route === 'conflict_boundary' || conversationPlan.warmth === 'low') {
+      return 'none';
+    }
+
+    if (conversationPlan.warmth === 'tender' || conversationPlan.botMove === 'comfort_briefly') {
+      return 'medium';
+    }
+
+    return 'small';
+  }
+
+  private resolvePlayfulness(
+    conversationPlan: RoleplayConversationPlan,
+    route: RoleplayRoute,
+  ): RoleplayResponsePlan['playfulness'] {
+    if (route === 'conflict_boundary') {
+      return 'none';
+    }
+
+    if (conversationPlan.warmth === 'playful' || conversationPlan.botMove === 'tease_lightly') {
+      return 'medium';
+    }
+
+    return 'light';
+  }
+
+  private resolveMaxSentences(input: ResolveMaxSentencesInput): number {
+    if (input.route === 'conflict_boundary' || input.isAmbiguous) {
+      return 1;
+    }
+
+    if (input.replyShape === 'comfort_anchor' || input.replyShape === 'answer_texture' || input.replyShape === 'react_expand') {
+      return input.topicDevelopment === 'follow_up' || input.questionAllowed ? 3 : 2;
+    }
+
+    if (input.replyShape === 'tease_deflect') {
+      return 2;
+    }
+
+    return input.questionAllowed ? 2 : 1;
   }
 
   private looksLikeAnswerToBotQuestion(text: string, recentMessages: LlmMessage[]): boolean {
@@ -209,6 +369,7 @@ export class ResponseDirectorService {
 type ResolveModeInput = {
   analysis: RoleplayEmotionAnalysis;
   route: RoleplayRoute;
+  conversationPlan: RoleplayConversationPlan;
   quoteIntent?: string;
   latestIsQuestion: boolean;
   latestLooksLikeAnswer: boolean;
@@ -224,4 +385,22 @@ type ShouldAllowQuestionInput = {
   latestLooksLikeAnswer: boolean;
   isNameQuestion: boolean;
   routeQuestionAllowed?: boolean;
+  conversationPlan: RoleplayConversationPlan;
+};
+
+type CreateDirectiveInput = {
+  questionAllowed: boolean;
+  latestLooksLikeAnswer: boolean;
+  isNameQuestion: boolean;
+  isAmbiguous: boolean;
+  topicDevelopment: RoleplayResponsePlan['topicDevelopment'];
+  replyShape: RoleplayResponsePlan['replyShape'];
+};
+
+type ResolveMaxSentencesInput = {
+  questionAllowed: boolean;
+  route: RoleplayRoute;
+  replyShape: RoleplayResponsePlan['replyShape'];
+  topicDevelopment: RoleplayResponsePlan['topicDevelopment'];
+  isAmbiguous: boolean;
 };

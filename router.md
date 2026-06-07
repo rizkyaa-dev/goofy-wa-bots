@@ -15,6 +15,7 @@ pesan user
 -> emotion classifier membaca tone/intent
 -> memory dan quote layer menyiapkan konteks
 -> router memilih route respons
+-> conversation builder menentukan topik dan conversational move
 -> response director mengubah route menjadi plan
 -> expert prompt dipilih berdasarkan route
 -> prompt compiler menyusun prompt final
@@ -46,6 +47,12 @@ src/roleplay/domain/roleplay-route.ts
 
 src/roleplay/response-director.service.ts
 = mengubah route menjadi response plan: mode, boleh tanya, self-disclosure, max sentences.
+
+src/roleplay/conversation/conversation-builder.service.ts
+= menentukan topic, userMove, botMove, detailHooks, warmth, dan followUpPolicy agar balasan tidak terasa mati.
+
+src/roleplay/domain/roleplay-conversation-plan.ts
+= type untuk conversation plan.
 
 src/roleplay/domain/roleplay-response-plan.ts
 = type untuk response plan.
@@ -412,6 +419,7 @@ CURRENT EMOTION STATE
 TIME CONTEXT
 CONVERSATION SCOPE
 LATEST USER TURN
+CONVERSATION BUILDER
 RESPONSE DIRECTOR
 ROUTE EXPERT PROMPT
 CONVERSATION SUMMARY
@@ -458,6 +466,44 @@ Jika ingin bot lebih tegas di konflik, edit `conflict_boundary`.
 Jika ingin bot lebih jarang nanya saat smalltalk, edit `smalltalk_continue`
 atau logic `ResponseDirectorService`.
 Jika ingin bot lebih lembut saat user capek, edit `emotional_care`.
+
+## Conversation Builder
+
+Conversation builder adalah layer universal setelah router. Ia tidak membuat
+route baru untuk setiap topik kecil seperti paket, makan, tidur, kerja, atau
+sapaan. Ia membaca pesan terbaru lalu memberi bahan conversational:
+
+```ts
+type RoleplayConversationPlan = {
+  topic: string;
+  userMove: RoleplayUserMove;
+  botMove: RoleplayBotMove;
+  detailHooks: string[];
+  warmth: 'low' | 'normal' | 'playful' | 'tender';
+  followUpPolicy: 'none' | 'only_if_needed' | 'one_light_question';
+  avoid: string[];
+  directive: string;
+};
+```
+
+Contoh untuk koordinasi harian:
+
+```json
+{
+  "topic": "everyday_coordination",
+  "userMove": "asks_practical_instruction",
+  "botMove": "answer_then_warm_texture",
+  "detailHooks": ["paket", "teras", "ambil"],
+  "warmth": "normal",
+  "followUpPolicy": "only_if_needed",
+  "avoid": ["customer service tone", "bare instruction only"],
+  "directive": "Jawab kebutuhan praktisnya dengan jelas, lalu tambah satu sentuhan karakter kecil dari detail pesan agar obrolan tidak terasa mati."
+}
+```
+
+Section ini masuk ke final prompt sebagai `CONVERSATION BUILDER`, sebelum
+`RESPONSE DIRECTOR`. Fungsinya memberi warna dan topik hidup, sementara response
+director tetap menjaga batas seperti panjang balasan dan kebijakan pertanyaan.
 
 ## Response Director
 

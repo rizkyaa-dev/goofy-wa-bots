@@ -5,6 +5,7 @@ import { RoleplayCharacterProfile } from '../domain/roleplay-character-profile';
 import { RoleplayTimeContext } from '../domain/roleplay-time-context';
 import { LlmMessage } from '../../llm/domain/llm.types';
 import { QuoteDecision } from '../quote/domain/quote-decision';
+import { RoleplayConversationPlan } from '../domain/roleplay-conversation-plan';
 import { RoleplayResponsePlan } from '../domain/roleplay-response-plan';
 
 @Injectable()
@@ -92,17 +93,36 @@ export class RoleplayPromptCompilerService {
       input.latestUserTurn,
       '- Balas LATEST USER TURN ini. Recent messages hanya konteks; jangan membalas pesan lama kecuali relevan sebagai callback.',
       '',
+      'CONVERSATION BUILDER',
+      `Topic: ${input.conversationPlan.topic}`,
+      `User move: ${input.conversationPlan.userMove}`,
+      `Bot move: ${input.conversationPlan.botMove}`,
+      `Detail hooks: ${input.conversationPlan.detailHooks.join(', ') || '-'}`,
+      `Warmth: ${input.conversationPlan.warmth}`,
+      `Follow-up policy: ${input.conversationPlan.followUpPolicy}`,
+      `Avoid: ${input.conversationPlan.avoid.join(', ') || '-'}`,
+      `Directive: ${input.conversationPlan.directive}`,
+      '- Pakai CONVERSATION BUILDER sebagai social move turn ini: detail kecil, warna emosi, dan arah topik mikro.',
+      '',
       'RESPONSE DIRECTOR',
       `Mode: ${input.responsePlan.mode}`,
       `Route: ${input.responsePlan.route}`,
       `Route confidence: ${input.responsePlan.routeConfidence.toFixed(2)}`,
       `Route reason: ${input.responsePlan.routeReason}`,
+      `Reply shape: ${input.responsePlan.replyShape}`,
+      `Emotional texture: ${input.responsePlan.emotionalTexture}`,
+      `Playfulness: ${input.responsePlan.playfulness}`,
+      `Topic development: ${input.responsePlan.topicDevelopment}`,
       `Question allowed: ${input.responsePlan.questionAllowed ? 'yes' : 'no'}`,
       `Self-disclosure: ${input.responsePlan.selfDisclosure}`,
       `Max sentences: ${input.responsePlan.maxSentences}`,
       `Forbidden terms: ${input.responsePlan.forbiddenTerms.join(', ') || '-'}`,
       `Directive: ${input.responsePlan.directive}`,
-      '- Ikuti RESPONSE DIRECTOR untuk bentuk balasan turn ini. Ini lebih spesifik daripada aturan pacing umum.',
+      '- Ikuti RESPONSE DIRECTOR untuk bentuk balasan turn ini. Jika Topic development = micro, wajib ada satu komentar/callback kecil yang bukan pertanyaan.',
+      '- Jika Reply shape = answer_texture, jawab kebutuhan user dulu lalu beri warna kecil. Jangan berhenti di jawaban instruksional kering.',
+      '- Jika Reply shape = react_expand, reaksi pendek harus membawa detail user atau mood karakter, bukan sekadar "oh/oke/iya".',
+      '- Jika Emotional texture bukan none, tunjukkan rasa lewat pilihan kata chat natural, bukan penjelasan emosi.',
+      '- Jika Playfulness light/medium, boleh sedikit sok asik, ngeles, atau bercanda kecil selama tetap nyambung dan tidak berlebihan.',
       '',
       'ROUTE EXPERT PROMPT',
       ...input.expertPrompt,
@@ -124,6 +144,7 @@ export class RoleplayPromptCompilerService {
       '- Jangan menulis monolog internal dalam tanda kurung.',
       '- Jangan terlalu formal, jangan terdengar seperti customer service, jangan selalu menawarkan bantuan.',
       '- Balas 1 sampai 3 kalimat pendek. Kalau pesan user sangat pendek, balas pendek juga.',
+      '- Balasan pendek tetap harus punya rasa. Hindari acknowledgement mati seperti "oh oke", "iya", "baik", atau "sip" kalau tidak ada texture lanjutan.',
       '- Untuk chat santai, jangan selalu menutup balasan dengan titik. Ending tanpa titik sering lebih hangat dan natural di WhatsApp.',
       '- Titik boleh dipakai kalau karakter sedang kesal, menjaga batasan, menolak, atau perlu terdengar tegas.',
       '- Boleh ada typo kecil, jeda, atau ekspresi chat natural jika cocok, tapi jangan berlebihan.',
@@ -139,6 +160,7 @@ export class RoleplayPromptCompilerService {
       '- Kalau butuh follow-up, pilih pertanyaan yang commonsense dan santai. Hindari frasa kaku seperti "beraktivitas", "apakah kamu", atau "ada yang bisa saya bantu".',
       '- Jangan mengakhiri semua pesan dengan pertanyaan. Pakai pertanyaan hanya kalau memang natural.',
       '- Maksimal satu pertanyaan dalam satu balasan. Jangan membuat dua tebakan sekaligus seperti "sibuk ya atau lagi jalan?".',
+      '- Kalau pertanyaan tidak diizinkan, topik masih boleh berkembang lewat komentar kecil, callback, teasing tipis, atau reaksi personal non-pertanyaan.',
       '- Jangan menyatakan tindakan user yang tidak terlihat seolah pasti. Dugaan ringan boleh, tapi framing sebagai dugaan dan jangan berulang.',
       '- Kalau RESPONSE DIRECTOR melarang pertanyaan, jangan tutup balasan dengan tanda tanya.',
       '- Kalau RESPONSE DIRECTOR melarang self-disclosure, jangan menyebut aktivitas/asal/umur/rutinitas karakter kecuali user menanyakan langsung.',
@@ -290,6 +312,7 @@ type CompileInput = {
   memories: RoleplayMemory[];
   latestUserTurn: string;
   recentMessages: LlmMessage[];
+  conversationPlan: RoleplayConversationPlan;
   analysis: RoleplayEmotionAnalysis;
   conversationScope: ConversationScope;
   responsePlan: RoleplayResponsePlan;
