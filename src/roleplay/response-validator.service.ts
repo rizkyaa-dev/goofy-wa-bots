@@ -16,8 +16,9 @@ export class ResponseValidatorService {
     const disclosureSafe = this.limitSelfDisclosure(scopeSafe, input.plan);
     const questionSafe = this.limitQuestions(disclosureSafe, input.plan);
     const sentenceSafe = this.limitSentences(questionSafe, input.plan.maxSentences);
+    const punctuationSafe = this.normalizeCasualPunctuation(sentenceSafe, input.plan);
 
-    return sentenceSafe || this.createFallback(input.plan);
+    return punctuationSafe || this.createFallback(input.plan);
   }
 
   private removeSocialTemplates(text: string): string {
@@ -101,6 +102,55 @@ export class ResponseValidatorService {
     }
 
     return this.normalizeWhitespace(sentences.slice(0, maxSentences).join(' '));
+  }
+
+  private normalizeCasualPunctuation(text: string, plan: RoleplayResponsePlan): string {
+    if (!this.shouldSoftenTrailingPeriod(plan)) {
+      return text;
+    }
+
+    if (!this.hasSingleCasualTrailingPeriod(text)) {
+      return text;
+    }
+
+    return text.slice(0, -1).trim();
+  }
+
+  private shouldSoftenTrailingPeriod(plan: RoleplayResponsePlan): boolean {
+    if (plan.mode === 'deflect' || plan.mode === 'quote_evidence') {
+      return false;
+    }
+
+    if (plan.route === 'conflict_boundary' || plan.route === 'quote_evidence') {
+      return false;
+    }
+
+    return (
+      plan.route === 'smalltalk_react' ||
+      plan.route === 'smalltalk_continue' ||
+      plan.route === 'tease_deflect' ||
+      plan.route === 'emotional_care' ||
+      plan.route === 'answer_identity' ||
+      plan.route === 'ambiguous_clarify' ||
+      plan.route === 'meta_testing' ||
+      plan.route === 'casual_default'
+    );
+  }
+
+  private hasSingleCasualTrailingPeriod(text: string): boolean {
+    const trimmed = text.trim();
+
+    if (!trimmed.endsWith('.') || trimmed.endsWith('...')) {
+      return false;
+    }
+
+    if (/[!?]$/u.test(trimmed)) {
+      return false;
+    }
+
+    const sentences = this.splitSentences(trimmed);
+
+    return sentences.length <= 1;
   }
 
   private splitSentences(text: string): string[] {

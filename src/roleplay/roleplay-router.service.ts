@@ -103,7 +103,7 @@ export class RoleplayRouterService {
         {
           role: 'system',
           content: [
-            'You are a cheap route classifier for a WhatsApp roleplay chatbot.',
+            'You are a route classifier for a WhatsApp roleplay chatbot.',
             'Choose the response route that best describes what the next assistant reply should do.',
             'Route by response function, not by vague genre.',
             'Return strict JSON only. No markdown.',
