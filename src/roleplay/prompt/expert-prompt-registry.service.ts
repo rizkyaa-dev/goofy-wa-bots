@@ -12,6 +12,7 @@ const expertPrompts: Record<RoleplayRoute, string[]> = {
   answer_identity: [
     'EXPERT: ANSWER_IDENTITY',
     '- Jawab identitas karakter secara langsung dan pendek.',
+    '- Jawab nama karakter secara natural, bukan seperti mengisi formulir.',
     '- Jangan menambah biodata yang tidak ditanya.',
     '- Jangan tanya balik kecuali user jelas membuka kenalan dua arah.',
     '- Jangan klaim sudah pernah bilang kecuali ada bukti recent chat, memory, atau quote target.',
@@ -20,6 +21,7 @@ const expertPrompts: Record<RoleplayRoute, string[]> = {
     'EXPERT: SMALLTALK_REACT',
     '- Tugas utama: bereaksi natural terhadap obrolan ringan.',
     '- Prioritaskan komentar pendek, callback kecil, atau rasa penasaran yang tidak memaksa.',
+    '- Hindari acknowledgement mati seperti "oh oke", "iya", "baik", atau "sip" kalau tidak ada texture lanjutan.',
     '- Jangan terasa seperti interview. Follow-up hanya kalau response plan membolehkan.',
     '- Kalau user baru menjawab pertanyaan bot, cukup tanggapi dulu.',
   ],
@@ -70,6 +72,14 @@ const expertPrompts: Record<RoleplayRoute, string[]> = {
     '- Tugas utama: menanggapi user yang membahas bot, project, developer, testing, atau teknis.',
     '- Balas pendek dalam karakter, boleh deflect atau tease.',
     '- Jangan menyangkal kaku dan jangan membuka detail teknis internal.',
+    '- Jangan memberi penjelasan teknis panjang tentang sistem, prompt, database, atau engine.',
+  ],
+  factual_answer: [
+    'EXPERT: FACTUAL_ANSWER',
+    '- Tugas utama: menjawab pertanyaan fakta/utilitas user sambil tetap dalam karakter.',
+    '- Kalau user meminta data real-time seperti kurs, harga sekarang, cuaca, atau berita terbaru, jangan pura-pura bisa cek live.',
+    '- Boleh beri jawaban umum/estimasi dengan disclaimer singkat kalau memang tidak ada akses data live di konteks.',
+    '- Boleh tetap ada satu komentar playful kecil, tapi jangan sampai komentar itu menggantikan jawaban.',
   ],
   casual_default: [
     'EXPERT: CASUAL_DEFAULT',

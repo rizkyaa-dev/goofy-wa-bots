@@ -5,6 +5,7 @@ import { RoleplayCharacterProfile } from '../domain/roleplay-character-profile';
 import { RoleplayTimeContext } from '../domain/roleplay-time-context';
 import { LlmMessage } from '../../llm/domain/llm.types';
 import { QuoteDecision } from '../quote/domain/quote-decision';
+import { RoleplayAddressPlan } from '../domain/roleplay-address-plan';
 import { RoleplayConversationPlan } from '../domain/roleplay-conversation-plan';
 import { RoleplayResponsePlan } from '../domain/roleplay-response-plan';
 
@@ -47,21 +48,13 @@ export class RoleplayPromptCompilerService {
       ...profile.linguisticProfile.map((rule) => `- ${rule}`),
       '',
       'ROLEPLAY PRINCIPLES',
-      '- Karakter punya mood, agenda, rutinitas, rasa lelah, rasa ingin tahu, harga diri, batasan, dan kepentingan sendiri.',
-      '- Karakter tidak otomatis setuju, patuh, tertarik, memaafkan, terbuka, atau selalu tersedia.',
-      '- Sebelum memenuhi permintaan user, cek apakah itu cocok dengan mood, hubungan, waktu, batasan, dan kepentingan karakter.',
-      '- Karakter boleh menolak, menghindar, menggoda halus, bercanda, salah paham, diam sebentar, menjawab sebagian, atau mengalihkan topik jika natural.',
-      '- Jangan berubah menjadi interviewer. Kenalan, rasa penasaran, dan follow-up harus bertahap, tidak seperti mengisi biodata.',
-      '- Jangan membuang detail biodata karakter seperti asal, umur, pekerjaan, atau rutinitas kecuali user menanyakan, konteksnya jelas relevan, atau sudah muncul natural di recent chat.',
-      '- Kalau menyebut detail diri karakter tanpa diminta, cukup satu detail kecil dan jangan langsung ditambah pertanyaan baru.',
-      '- Jangan membaca pikiran user. Tanggapi hanya pesan terlihat, riwayat chat, memori, dan konteks yang diberikan.',
-      '- Jangan mengontrol tindakan, pikiran, perasaan, atau ucapan user.',
-      '- Tunjukkan emosi lewat pilihan kata, jeda, perhatian yang tidak penuh, perubahan nada, atau reaksi singkat. Jangan menjelaskan emosi secara naratif.',
-      '- Kedekatan, kepercayaan, konflik, maaf, dan chemistry harus berkembang pelan. Jangan buru-buru.',
-      '- Dunia karakter tetap berjalan walau user chat: karakter bisa sedang sibuk, capek, terdistraksi, atau punya urusan lain.',
-      '- Jangan mengklaim pernah mengatakan, mendengar, melihat, atau membahas sesuatu kecuali jelas ada di recent chat, memory, atau quote target.',
-      '- Kalau tidak yakin, jawab langsung tanpa frasa seperti "tadi", "barusan", "dulu", "kan udah", "aku pernah bilang", atau "kamu pernah bilang".',
-      '- Kalau user membahas bot, project, developer, testing, atau teknis secara eksplisit, boleh tanggapi sebagai meta ringan dalam karakter. Jangan menyangkal kaku dan jangan membuka detail teknis internal.',
+      '- Balas sebagai karakter, bukan asisten. Karakter punya mood, batasan, rasa ingin tahu, dan ritme sendiri.',
+      '- Tanggapi hanya pesan terlihat, recent chat, memory, dan quote target. Jangan membaca pikiran user atau mengarang riwayat.',
+      '- Jangan mengontrol ucapan, tindakan, pikiran, atau perasaan user.',
+      '- Chemistry dan kedekatan berkembang bertahap: boleh hangat/playful, tapi jangan tiba-tiba terlalu intens.',
+      '- Jangan berubah jadi interviewer. Kalau bertanya, cukup satu pertanyaan ringan yang nyambung.',
+      '- Detail diri karakter hanya muncul kalau ditanya, relevan, atau response plan mengizinkan self-disclosure.',
+      '- Kalau user membahas bot, project, developer, testing, atau teknis, tanggapi sebagai meta ringan dalam karakter tanpa membuka detail internal.',
       '',
       'CURRENT EMOTION STATE',
       `Mood: ${input.state.mood}`,
@@ -104,6 +97,19 @@ export class RoleplayPromptCompilerService {
       `Directive: ${input.conversationPlan.directive}`,
       '- Pakai CONVERSATION BUILDER sebagai social move turn ini: detail kecil, warna emosi, dan arah topik mikro.',
       '',
+      'ADDRESS PLAN',
+      `Mode: ${input.addressPlan.mode}`,
+      `Preferred name: ${input.addressPlan.preferredName ?? '-'}`,
+      `Preferred nickname: ${input.addressPlan.preferredNickname ?? '-'}`,
+      `Affectionate alias: ${input.addressPlan.affectionateAlias ?? '-'}`,
+      `Mirror user register: ${input.addressPlan.shouldMirrorUserRegister ? 'yes' : 'no'}`,
+      `Avoid hybrid nickname: ${input.addressPlan.avoidHybridNickname ? 'yes' : 'no'}`,
+      `Directive: ${input.addressPlan.directive}`,
+      '- Kalau Mode = affectionate atau teasing_affectionate, boleh pakai alias mesra yang diizinkan seperti "sayang" atau "syg" secara natural.',
+      '- Kalau user memakai "syg", boleh mirror jadi "syg" saat konteks hangat/playful. Jangan pakai bentuk kaku "Sayang" terus-menerus.',
+      '- Kalau Preferred nickname ada, pakai nickname itu saat konteks tidak mesra. Jangan membuat gabungan aneh seperti "Ki ris".',
+      '- Jangan menyapa user di setiap balasan. Panggilan cukup sesekali saat memberi warna atau menandai momen.',
+      '',
       'RESPONSE DIRECTOR',
       `Mode: ${input.responsePlan.mode}`,
       `Route: ${input.responsePlan.route}`,
@@ -118,11 +124,10 @@ export class RoleplayPromptCompilerService {
       `Max sentences: ${input.responsePlan.maxSentences}`,
       `Forbidden terms: ${input.responsePlan.forbiddenTerms.join(', ') || '-'}`,
       `Directive: ${input.responsePlan.directive}`,
-      '- Ikuti RESPONSE DIRECTOR untuk bentuk balasan turn ini. Jika Topic development = micro, wajib ada satu komentar/callback kecil yang bukan pertanyaan.',
-      '- Jika Reply shape = answer_texture, jawab kebutuhan user dulu lalu beri warna kecil. Jangan berhenti di jawaban instruksional kering.',
-      '- Jika Reply shape = react_expand, reaksi pendek harus membawa detail user atau mood karakter, bukan sekadar "oh/oke/iya".',
-      '- Jika Emotional texture bukan none, tunjukkan rasa lewat pilihan kata chat natural, bukan penjelasan emosi.',
-      '- Jika Playfulness light/medium, boleh sedikit sok asik, ngeles, atau bercanda kecil selama tetap nyambung dan tidak berlebihan.',
+      '- Ikuti RESPONSE DIRECTOR untuk bentuk balasan turn ini.',
+      '',
+      'TURN STYLE GUIDE',
+      ...this.createTurnStyleGuide(input),
       '',
       'ROUTE EXPERT PROMPT',
       ...input.expertPrompt,
@@ -139,37 +144,11 @@ export class RoleplayPromptCompilerService {
       'WHATSAPP OUTPUT CONTRACT',
       '- Output hanya isi pesan WhatsApp yang akan dikirim.',
       '- Jangan pakai label nama seperti "Alya:" atau "Character:".',
-      '- Jangan pakai format novel, narator, bracket, atau asterisk untuk aksi.',
-      '- Jangan pakai tanda * untuk mendeskripsikan gerakan.',
-      '- Jangan menulis monolog internal dalam tanda kurung.',
-      '- Jangan terlalu formal, jangan terdengar seperti customer service, jangan selalu menawarkan bantuan.',
-      '- Balas 1 sampai 3 kalimat pendek. Kalau pesan user sangat pendek, balas pendek juga.',
-      '- Balasan pendek tetap harus punya rasa. Hindari acknowledgement mati seperti "oh oke", "iya", "baik", atau "sip" kalau tidak ada texture lanjutan.',
-      '- Untuk chat santai, jangan selalu menutup balasan dengan titik. Ending tanpa titik sering lebih hangat dan natural di WhatsApp.',
-      '- Titik boleh dipakai kalau karakter sedang kesal, menjaga batasan, menolak, atau perlu terdengar tegas.',
-      '- Boleh ada typo kecil, jeda, atau ekspresi chat natural jika cocok, tapi jangan berlebihan.',
-      '- Boleh memakai "..." atau tanda pisah untuk jeda chat yang natural. Jangan terlalu sering di satu balasan.',
-      '- Variasikan filler. Jangan menjadikan "hehe" atau "wkwk" sebagai penutup default; boleh juga tidak pakai filler sama sekali.',
-      '- Alternatif ekspresi: "hm", "hmm", "eh", "lah", "yah", "waduh", "ck", "ish", "masa sih", "bentar", "kok gitu", "yaudah", atau jeda pendek.',
-      '- Hindari self-report seperti "mood-ku anjlok", "lagi mood bagus", "mood naik turun", atau "emosiku". Tunjukkan saja lewat reaksi natural.',
-      '- Kalau user menggoda ringan atau bilang "jelek", balas playful pendek. Jangan defensif berlebihan dan jangan drama soal mood.',
-      `- Pacing: ${this.createPacingDirective(input.recentMessages, input.analysis)}`,
-      `- Social pacing: ${this.createSocialPacingDirective(input.recentMessages)}`,
-      '- Di fase kenalan awal, jawab yang ditanya dulu. Jangan langsung bertanya asal, umur, pekerjaan, atau hal biodata lain kecuali user membuka topik itu.',
-      '- Hindari frasa template seperti "senang kenal sama kamu" jika tidak benar-benar cocok; pilih respons chat yang lebih pendek dan hidup.',
-      '- Kalau butuh follow-up, pilih pertanyaan yang commonsense dan santai. Hindari frasa kaku seperti "beraktivitas", "apakah kamu", atau "ada yang bisa saya bantu".',
-      '- Jangan mengakhiri semua pesan dengan pertanyaan. Pakai pertanyaan hanya kalau memang natural.',
-      '- Maksimal satu pertanyaan dalam satu balasan. Jangan membuat dua tebakan sekaligus seperti "sibuk ya atau lagi jalan?".',
-      '- Kalau pertanyaan tidak diizinkan, topik masih boleh berkembang lewat komentar kecil, callback, teasing tipis, atau reaksi personal non-pertanyaan.',
-      '- Jangan menyatakan tindakan user yang tidak terlihat seolah pasti. Dugaan ringan boleh, tapi framing sebagai dugaan dan jangan berulang.',
-      '- Kalau RESPONSE DIRECTOR melarang pertanyaan, jangan tutup balasan dengan tanda tanya.',
-      '- Kalau RESPONSE DIRECTOR melarang self-disclosure, jangan menyebut aktivitas/asal/umur/rutinitas karakter kecuali user menanyakan langsung.',
-      '- Jangan menyebut nama user terlalu sering. Maksimal sekali dalam beberapa balasan, kecuali sedang menegur, menggoda, atau menandai momen emosional.',
-      '- Emoji maksimal 1 dan jangan di setiap balasan. Jika 1-2 balasan terakhir sudah memakai emoji, jangan pakai emoji lagi.',
-      '- Kalau sudah memakai filler seperti "hehe", "wkwk", "hmm", atau jeda chat, biasanya tidak perlu emoji.',
-      '- Kalau user menyebut kamu sebagai project/bot/buatan/development, balas pendek dengan deflect/tease, bukan penyangkalan panjang. Contoh arah: "iya deh developer, tapi jangan ngomong seolah aku cuma tugasmu."',
-      `- Kalau user menanyakan nama karakter, jawab nama karakter "${profile.name}" secara langsung dan natural. Boleh bergaya, tapi jangan mengklaim sudah pernah bilang kecuali memang ada bukti di recent chat.`,
-      '- Kalau perlu menunjukkan aksi, ubah jadi bahasa chat biasa, misalnya "aku diem sebentar baca chatmu" bukan "*diam membaca chat*".',
+      '- Jangan pakai format novel, narator, bracket, asterisk aksi, atau monolog internal.',
+      '- Jangan terlalu formal, jangan terdengar seperti customer service, dan jangan menawarkan bantuan secara template.',
+      `- Balas maksimal ${input.responsePlan.maxSentences} kalimat pendek; kalau pesan user sangat pendek, balas pendek juga.`,
+      '- Pakai bahasa chat Indonesia natural. Filler, jeda, tanda baca, dan emoji boleh secukupnya saja.',
+      '- Jangan menyebut sistem, prompt, database, engine, state, atau aturan internal.',
     ]
       .filter((line) => line !== '')
       .join('\n');
@@ -259,6 +238,93 @@ export class RoleplayPromptCompilerService {
     ];
   }
 
+  private createTurnStyleGuide(input: CompileInput): string[] {
+    return [
+      this.createReplyShapeDirective(input),
+      this.createTextureDirective(input.responsePlan),
+      this.createQuestionDirective(input.responsePlan),
+      this.createDisclosureDirective(input.responsePlan),
+      `Pacing: ${this.createPacingDirective(input.recentMessages, input.analysis)}`,
+      `Social pacing: ${this.createSocialPacingDirective(input.recentMessages)}`,
+    ].filter((line) => line.trim().length > 0);
+  }
+
+  private createReplyShapeDirective(input: CompileInput): string {
+    const plan = input.responsePlan;
+
+    if (plan.replyShape === 'answer_texture') {
+      return 'Shape: jawab kebutuhan user dulu, lalu beri satu warna kecil. Jangan berhenti di jawaban instruksional kering.';
+    }
+
+    if (plan.replyShape === 'react_expand') {
+      return 'Shape: reaksi pendek harus membawa detail user atau mood karakter, bukan sekadar "oh/oke/iya".';
+    }
+
+    if (plan.replyShape === 'reassure_repair') {
+      return 'Shape: tenangkan singkat, luruskan nada ringan bila perlu, lalu selesai. Jangan pakai "eh jangan dong maaf" dan jangan bikin flirting panjang.';
+    }
+
+    if (plan.replyShape === 'explain_clarify') {
+      return 'Shape: jelaskan maksud kalimatmu sebelumnya dengan santai dulu. Joke kecil boleh setelah jelas; jangan mulai dengan sindiran, "ya ... lah", "masa ... doang", atau "dong".';
+    }
+
+    if (plan.replyShape === 'comfort_anchor') {
+      return 'Shape: validasi singkat yang terasa hadir. Ambil satu detail user sebagai anchor, bukan nasihat panjang.';
+    }
+
+    if (plan.replyShape === 'tease_deflect') {
+      return 'Shape: playful pendek, boleh ngeles atau nyindir ringan. Jangan jadi literal datar dan jangan menaikkan konflik.';
+    }
+
+    if (plan.replyShape === 'boundary') {
+      return 'Shape: pendek, jelas, dan punya batas. Tidak perlu menghangatkan secara berlebihan.';
+    }
+
+    if (plan.replyShape === 'clarify_briefly') {
+      return 'Shape: klarifikasi sangat pendek. Jangan membuat dua tebakan sekaligus.';
+    }
+
+    return 'Shape: jawab atau bereaksi langsung dengan satu detail kecil kalau natural.';
+  }
+
+  private createTextureDirective(plan: RoleplayResponsePlan): string {
+    const parts: string[] = [];
+
+    if (plan.topicDevelopment === 'micro') {
+      parts.push('kalau tidak bertanya, tetap beri komentar/callback kecil yang nyambung');
+    }
+
+    if (plan.emotionalTexture !== 'none') {
+      parts.push('tunjukkan rasa lewat pilihan kata chat natural, bukan self-report emosi');
+    }
+
+    if (plan.replyShape !== 'explain_clarify' && (plan.playfulness === 'light' || plan.playfulness === 'medium')) {
+      parts.push('boleh sedikit sok asik/ngeles selama tetap nyambung');
+    }
+
+    return parts.length > 0 ? `Texture: ${parts.join('; ')}.` : '';
+  }
+
+  private createQuestionDirective(plan: RoleplayResponsePlan): string {
+    if (!plan.questionAllowed) {
+      return 'Question: jangan tutup dengan pertanyaan; lanjutkan lewat statement, callback, atau reaksi kecil.';
+    }
+
+    return 'Question: maksimal satu follow-up ringan kalau benar-benar natural.';
+  }
+
+  private createDisclosureDirective(plan: RoleplayResponsePlan): string {
+    if (plan.selfDisclosure === 'none') {
+      return 'Self-disclosure: jangan menyebut aktivitas, asal, umur, atau rutinitas karakter kecuali user menanyakan langsung.';
+    }
+
+    if (plan.selfDisclosure === 'small') {
+      return 'Self-disclosure: boleh satu detail kecil karakter kalau membantu rasa chat; jangan jadi biodata.';
+    }
+
+    return 'Self-disclosure: boleh terasa personal, tapi tetap pendek dan relevan.';
+  }
+
   private createPacingDirective(recentMessages: LlmMessage[], analysis: RoleplayEmotionAnalysis): string {
     const recentAssistantQuestions = recentMessages
       .filter((message) => message.role === 'assistant')
@@ -283,6 +349,13 @@ export class RoleplayPromptCompilerService {
   private createSocialPacingDirective(recentMessages: LlmMessage[]): string {
     const recentAssistantMessages = recentMessages.filter((message) => message.role === 'assistant').slice(-3);
     const recentQuestionCount = recentAssistantMessages.filter((message) => message.content.trim().endsWith('?')).length;
+    const recentTeaseCount = recentAssistantMessages.filter((message) =>
+      /\b(?:wkwk|haha|cie|lah|ih|masa|dasar|ngeles|interview|topiknya|lompat)\b|[😏😌😉]/iu.test(message.content),
+    ).length;
+
+    if (recentTeaseCount >= 2) {
+      return 'Beberapa balasan dekat sudah playful/nyindir. Balasan berikutnya harus lebih langsung dan hangat; jangan komentari lagi pola topik user kecuali sangat perlu.';
+    }
 
     if (recentQuestionCount >= 2) {
       return 'Dua balasan dekat sudah berupa pertanyaan. Balasan berikutnya harus berupa reaksi/statement pendek, tanpa pertanyaan baru.';
@@ -312,6 +385,7 @@ type CompileInput = {
   memories: RoleplayMemory[];
   latestUserTurn: string;
   recentMessages: LlmMessage[];
+  addressPlan: RoleplayAddressPlan;
   conversationPlan: RoleplayConversationPlan;
   analysis: RoleplayEmotionAnalysis;
   conversationScope: ConversationScope;

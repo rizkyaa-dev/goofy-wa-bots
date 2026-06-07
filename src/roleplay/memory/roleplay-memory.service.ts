@@ -183,8 +183,20 @@ export class RoleplayMemoryService {
       memories.push(this.createFallbackMemory(RoleplayMemoryKind.user_fact, `Nama pengguna adalah ${name}.`, 95));
     }
 
-    if (nickname) {
+    if (nickname && !this.isAffectionateAlias(nickname)) {
       memories.push(this.createFallbackMemory(RoleplayMemoryKind.user_fact, `Pengguna ingin dipanggil ${nickname}.`, 92));
+    }
+
+    const affectionateAlias = this.extractAffectionateAlias(sourceText);
+
+    if (affectionateAlias) {
+      memories.push(
+        this.createFallbackMemory(
+          RoleplayMemoryKind.relationship,
+          `User mengizinkan karakter memanggilnya ${affectionateAlias} dalam konteks mesra/playful.`,
+          90,
+        ),
+      );
     }
 
     return memories.map((memory) => ({
@@ -201,9 +213,10 @@ export class RoleplayMemoryService {
 
   private extractNickname(text: string): string | null {
     const patterns = [
-      /\bpanggil\s+(?:aku|saya)\s+(?:aja|saja\s+)?(.+?)(?=[,.!?;]|$)/iu,
-      /\bpanggil\s+(?:aja|saja)\s+(.+?)(?=[,.!?;]|$)/iu,
-      /\bpanggilnya\s+(.+?)(?=[,.!?;]|$)/iu,
+      /\bpanggil\s+(?:aku|saya)\s+(?:aja|saja\s+)?(.+?)(?=\s+(?:tapi|boleh|dan)|[,.!?;]|$)/iu,
+      /\bpanggil\s+(?:aja|saja)\s+(.+?)(?=\s+(?:tapi|boleh|dan)|[,.!?;]|$)/iu,
+      /\bpanggilnya\s+(.+?)(?=\s+(?:tapi|boleh|dan)|[,.!?;]|$)/iu,
+      /\bdipanggil\s+(.+?)(?=\s+(?:tapi|boleh|dan)|[,.!?;]|$)/iu,
     ];
 
     for (const pattern of patterns) {
@@ -215,6 +228,32 @@ export class RoleplayMemoryService {
     }
 
     return null;
+  }
+
+  private extractAffectionateAlias(text: string): string | null {
+    const lower = text.toLowerCase();
+
+    if (!/\b(?:boleh|izin|silakan|panggil|dipanggil)\b.{0,40}\b(?:sayang|syg|ayang|ay)\b/u.test(lower)) {
+      return null;
+    }
+
+    if (/\bsyg\b/u.test(lower)) {
+      return 'syg';
+    }
+
+    if (/\bayang\b/u.test(lower)) {
+      return 'ayang';
+    }
+
+    if (/\bay\b/u.test(lower)) {
+      return 'ay';
+    }
+
+    return 'sayang';
+  }
+
+  private isAffectionateAlias(value: string): boolean {
+    return /^(?:sayang|syg|ayang|ay)$/iu.test(value.trim());
   }
 
   private normalizeIdentityValue(value: string): string | null {
@@ -260,6 +299,8 @@ export class RoleplayMemoryService {
       text.includes('namaku') ||
       text.includes('nama aku') ||
       text.includes('panggil aku') ||
+      text.includes('boleh panggil') ||
+      text.includes('boleh dipanggil') ||
       /\bnama\s+ku\b/u.test(text) ||
       /\bnama\s+saya\b/u.test(text) ||
       /\bpanggil\s+(aja|saja|saya|aku)\b/u.test(text) ||

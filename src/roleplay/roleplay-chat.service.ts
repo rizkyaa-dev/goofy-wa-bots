@@ -7,6 +7,7 @@ import { ConversationsService } from '../conversations/conversations.service';
 import { LlmProviderError } from '../llm/errors/llm-provider.error';
 import { LlmService } from '../llm/llm.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
+import { RoleplayAddressPlannerService } from './address/roleplay-address-planner.service';
 import { CharacterProfileService } from './character-profile.service';
 import { ConversationBuilderService } from './conversation/conversation-builder.service';
 import { ContinuityGuardService } from './continuity-guard.service';
@@ -31,6 +32,7 @@ export class RoleplayChatService {
   private readonly logger = new Logger(RoleplayChatService.name);
 
   constructor(
+    private readonly addressPlanner: RoleplayAddressPlannerService,
     private readonly characterProfile: CharacterProfileService,
     private readonly config: ConfigService<AppEnv, true>,
     private readonly conversationBuilder: ConversationBuilderService,
@@ -93,6 +95,13 @@ export class RoleplayChatService {
       quoteIntent: quoteDecision.intent,
       conversationScope,
     });
+    const addressPlan = this.addressPlanner.create({
+      latestUserMessage: message.body,
+      recentMessages,
+      memories,
+      routeDecision,
+      conversationPlan,
+    });
     const responsePlan = this.responseDirector.createPlan({
       latestUserMessage: message.body,
       recentMessages,
@@ -111,6 +120,7 @@ export class RoleplayChatService {
       memories,
       latestUserTurn: message.body,
       recentMessages,
+      addressPlan,
       conversationPlan,
       analysis,
       conversationScope,
@@ -133,6 +143,9 @@ export class RoleplayChatService {
       botMove: conversationPlan.botMove,
       warmth: conversationPlan.warmth,
       followUpPolicy: conversationPlan.followUpPolicy,
+      addressMode: addressPlan.mode,
+      preferredNickname: addressPlan.preferredNickname,
+      affectionateAlias: addressPlan.affectionateAlias,
       responseMode: responsePlan.mode,
       replyShape: responsePlan.replyShape,
       emotionalTexture: responsePlan.emotionalTexture,
@@ -161,6 +174,8 @@ export class RoleplayChatService {
       });
       const validatedReply = this.responseValidator.apply({
         text: continuitySafeReply,
+        latestUserMessage: message.body,
+        recentMessages,
         plan: responsePlan,
         conversationScope,
       });
@@ -272,6 +287,9 @@ export class RoleplayChatService {
         botMove: trace.botMove,
         warmth: trace.warmth,
         followUpPolicy: trace.followUpPolicy,
+        addressMode: trace.addressMode,
+        preferredNickname: trace.preferredNickname,
+        affectionateAlias: trace.affectionateAlias,
         responseMode: trace.responseMode,
         replyShape: trace.replyShape,
         emotionalTexture: trace.emotionalTexture,
@@ -379,6 +397,9 @@ type RoleplayDebugTrace = {
   botMove: string;
   warmth: string;
   followUpPolicy: string;
+  addressMode: string;
+  preferredNickname?: string;
+  affectionateAlias?: string;
   responseMode: string;
   replyShape: string;
   emotionalTexture: string;

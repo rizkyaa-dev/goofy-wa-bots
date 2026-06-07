@@ -9,6 +9,7 @@ export type RoleplayRoute =
   | 'memory_recall'
   | 'quote_evidence'
   | 'meta_testing'
+  | 'factual_answer'
   | 'casual_default';
 
 export type RoleplayRouteDecision = {
@@ -33,5 +34,6 @@ export const roleplayRoutes: readonly RoleplayRoute[] = [
   'memory_recall',
   'quote_evidence',
   'meta_testing',
+  'factual_answer',
   'casual_default',
 ] as const;

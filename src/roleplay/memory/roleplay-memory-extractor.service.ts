@@ -43,6 +43,8 @@ export class RoleplayMemoryExtractorService {
             'Valid ttl values: session, short_term, long_term.',
             'Importance is 1-100. Confidence is 0-1.',
             'Max 3 memories.',
+            'For names and affectionate addressing, split into separate normalized memories when present.',
+            'If user says they may be called sayang/syg/ayang/ay, save it as relationship with the allowed alias and context.',
           ].join('\n'),
         },
         {
@@ -52,6 +54,7 @@ export class RoleplayMemoryExtractorService {
             latestUserMessage: message.body,
             saveExamples: [
               'User preferred name or nickname',
+              'Allowed affectionate nickname such as sayang/syg',
               'User preferences and boundaries',
               'Current project, goal, or ongoing problem',
               'Relationship shift, promise, conflict, or important episode',

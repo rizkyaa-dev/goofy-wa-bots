@@ -3,6 +3,7 @@ import { ConversationsModule } from '../conversations/conversations.module';
 import { LlmModule } from '../llm/llm.module';
 import { CharacterProfileService } from './character-profile.service';
 import { ContinuityGuardService } from './continuity-guard.service';
+import { RoleplayAddressPlannerService } from './address/roleplay-address-planner.service';
 import { ConversationBuilderService } from './conversation/conversation-builder.service';
 import { RecentMessageContextService } from './context/recent-message-context.service';
 import { RoleplayContextMessageFilterService } from './context/roleplay-context-message-filter.service';
@@ -30,6 +31,7 @@ import { TimeContextService } from './time-context.service';
   providers: [
     CharacterProfileService,
     ContinuityGuardService,
+    RoleplayAddressPlannerService,
     ConversationBuilderService,
     EmotionClassifierService,
     EmotionEngineService,

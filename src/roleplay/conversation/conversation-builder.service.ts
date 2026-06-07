@@ -48,6 +48,20 @@ export class ConversationBuilderService {
       });
     }
 
+    if (this.isUserIdentityOffer(lower)) {
+      return this.createPlan({
+        topic: 'user_identity_offer',
+        userMove: 'offers_identity',
+        botMove: 'react_then_continue',
+        detailHooks,
+        warmth: 'playful',
+        followUpPolicy: 'one_light_question',
+        avoid: ['defensive dodge', 'pretending not to care', 'answering as if user asked bot identity'],
+        directive:
+          'User membuka kesempatan untuk menyebut nama/panggilan mereka. Tunjukkan penasaran secara playful dan boleh tanya nama/panggilan dengan ringan.',
+      });
+    }
+
     if (input.routeDecision.route === 'meta_testing' || this.isMeta(lower)) {
       return this.createPlan({
         topic: 'meta_testing',
@@ -58,6 +72,90 @@ export class ConversationBuilderService {
         followUpPolicy: 'none',
         avoid: ['technical explanation', 'breaking character', 'stiff denial'],
         directive: 'Tanggapi meta secara pendek dalam karakter. Boleh sedikit menyindir atau deflect, bukan menjelaskan sistem.',
+      });
+    }
+
+    if (input.routeDecision.route === 'factual_answer') {
+      return this.createPlan({
+        topic: 'factual_utility',
+        userMove: 'asks_factual',
+        botMove: 'answer_then_warm_texture',
+        detailHooks,
+        warmth: 'normal',
+        followUpPolicy: 'none',
+        avoid: ['only teasing without answering', 'pretending to know live data', 'turning utility question into interview'],
+        directive:
+          'Jawab kebutuhan faktual/utilitas user dulu. Kalau data real-time tidak tersedia, katakan singkat dan boleh tambah komentar kecil agar tetap terasa karakter.',
+      });
+    }
+
+    if (this.isApology(lower)) {
+      return this.createPlan({
+        topic: 'apology_repair',
+        userMove: 'apologizes',
+        botMove: 'reassure_lightly',
+        detailHooks,
+        warmth: 'tender',
+        followUpPolicy: 'none',
+        avoid: ['making the apology dramatic', 'long flirting line', 'saying "jangan dong maaf"', 'overexplaining that it was a joke'],
+        directive:
+          'User minta maaf singkat. Tenangkan dengan natural: maafnya diterima/ tidak apa-apa, luruskan bahwa nada sebelumnya ringan bila relevan, lalu berhenti sebelum jadi gombal panjang.',
+      });
+    }
+
+    if (this.isClarifyingBotWording(lower, input.recentMessages)) {
+      return this.createPlan({
+        topic: 'clarify_bot_wording',
+        userMove: 'asks_clarification_about_bot',
+        botMove: 'explain_previous_casually',
+        detailHooks,
+        warmth: 'normal',
+        followUpPolicy: 'none',
+        avoid: ['teasing before explaining', 'making user feel slow', 'ya ... lah phrasing', 'masa ... doang phrasing'],
+        directive:
+          'User sedang minta penjelasan maksud/frasa bot sebelumnya. Jelaskan maksudnya secara santai dulu; joke kecil boleh setelah jelas, bukan sebagai pembuka.',
+      });
+    }
+
+    if (this.isAffectionRequest(lower) || this.isAffectionCallback(lower, input.memories)) {
+      return this.createPlan({
+        topic: 'affectionate_flirt',
+        userMove: 'requests_affection',
+        botMove: 'playful_affection',
+        detailHooks,
+        warmth: 'playful',
+        followUpPolicy: 'none',
+        avoid: ['stiff compliance', 'ending like a closed task', 'overly intense romance'],
+        directive:
+          'User meminta panggilan/afeksi ringan. Turuti secara playful jika tidak menekan, pakai panggilan mesra yang diizinkan, dan beri reaksi kecil yang membuka chemistry.',
+      });
+    }
+
+    if (this.isIntimacyRequest(lower)) {
+      return this.createPlan({
+        topic: 'intimacy_request',
+        userMove: 'requests_affection',
+        botMove: 'soft_boundary_affection',
+        detailHooks,
+        warmth: 'playful',
+        followUpPolicy: 'none',
+        avoid: ['cold rejection', 'explicit sexual escalation', 'customer service refusal'],
+        directive:
+          'User mengajak mesra. Balas hangat/playful dengan batasan halus: boleh flirting ringan, jangan jadi eksplisit atau terlalu patuh.',
+      });
+    }
+
+    if (this.isFlirting(lower)) {
+      return this.createPlan({
+        topic: 'affectionate_flirt',
+        userMove: 'flirts',
+        botMove: 'playful_affection',
+        detailHooks,
+        warmth: 'playful',
+        followUpPolicy: 'none',
+        avoid: ['flat literal answer', 'overexplaining the joke', 'turning every flirt into sarcasm'],
+        directive:
+          'User sedang flirting/gombal. Balas playful dan sedikit manis. Boleh sok asik secukupnya, jangan menghindar terlalu dingin.',
       });
     }
 
@@ -270,8 +368,62 @@ export class ConversationBuilderService {
     return /(?:^|\b)(?:coba|mending|sebaiknya|baiknya|harusnya|saran(?:ku)?|pelan-pelan|dikit-dikit|usahain|biasain)\b/iu.test(text);
   }
 
+  private isUserIdentityOffer(text: string): boolean {
+    return /\b(?:nama\s*(?:ku|aku|saya)|namaku)\b/iu.test(text) && /[?]|\b(?:pengen|mau|tahu|tau)\b/iu.test(text);
+  }
+
   private isCorrection(text: string): boolean {
     return this.hasAny(text, ['maksudku', 'maksud aku', 'maksudnya', 'bukan gitu', 'bukan itu', 'yang aku maksud']);
+  }
+
+  private isApology(text: string): boolean {
+    return /^(?:maaf|sorry|sori|maap|maf)(?:\s+(?:ya|yah|aku|syg|sayang|ki|tadi|banget|deh))*[.!?]*$/iu.test(text.trim());
+  }
+
+  private isClarifyingBotWording(text: string, recentMessages: LlmMessage[]): boolean {
+    if (!this.looksLikeClarificationQuestion(text)) {
+      return false;
+    }
+
+    if (/\b(?:maksud|maksudnya|gimana\s+caranya|kok\s+bisa|lah\s+gimana)\b/iu.test(text)) {
+      return true;
+    }
+
+    const latestAssistant = recentMessages
+      .filter((message) => message.role === 'assistant')
+      .at(-1)?.content;
+
+    if (!latestAssistant) {
+      return false;
+    }
+
+    return this.calculateTokenOverlap(text, latestAssistant) >= 0.45;
+  }
+
+  private looksLikeClarificationQuestion(text: string): boolean {
+    return /[?]$/u.test(text.trim()) || /\b(?:maksud|maksudnya|gimana\s+caranya|kok\s+bisa|lah\s+gimana)\b/iu.test(text);
+  }
+
+  private calculateTokenOverlap(left: string, right: string): number {
+    const leftTokens = new Set(this.tokenizeForOverlap(left));
+    const rightTokens = new Set(this.tokenizeForOverlap(right));
+
+    if (leftTokens.size === 0 || rightTokens.size === 0) {
+      return 0;
+    }
+
+    const overlap = Array.from(leftTokens).filter((token) => rightTokens.has(token)).length;
+    return overlap / leftTokens.size;
+  }
+
+  private tokenizeForOverlap(text: string): string[] {
+    const stopWords = new Set(['aku', 'kamu', 'yang', 'dan', 'atau', 'tapi', 'sih', 'dong', 'lah', 'ya', 'aja', 'itu', 'ini', 'caranya']);
+
+    return text
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .split(/\s+/u)
+      .filter((token) => token.length >= 3 && !stopWords.has(token));
   }
 
   private isDailyUpdate(text: string): boolean {
@@ -299,6 +451,26 @@ export class ConversationBuilderService {
 
   private isTeasing(text: string): boolean {
     return this.hasAny(text, ['jelek', 'genit', 'gombal', 'modus', 'cie', 'wkwk', 'haha', 'manja']);
+  }
+
+  private isAffectionRequest(text: string): boolean {
+    return /\b(?:panggil|manggil|sebut|coba\s+panggil)\b.{0,32}\b(?:sayang|syg|ayang|ay)\b/iu.test(text);
+  }
+
+  private isAffectionCallback(text: string, memories: RoleplayMemory[]): boolean {
+    if (!/\b(?:coba\s+)?(?:panggil|manggil|sebut)\b/iu.test(text)) {
+      return false;
+    }
+
+    return memories.some((memory) => /\b(?:sayang|syg|ayang|ay)\b/iu.test(`${memory.content} ${memory.sourceText ?? ''}`));
+  }
+
+  private isIntimacyRequest(text: string): boolean {
+    return /\b(?:bermesraan|mesra|romantis|manja(?:in)?|sayang-sayangan|peluk|cium)\b/iu.test(text);
+  }
+
+  private isFlirting(text: string): boolean {
+    return /\b(?:cakep|cantik|manis|gombal|sayang|syg|ayang|cewe\s+cakep|cinta|kangen)\b/iu.test(text);
   }
 
   private isMeta(text: string): boolean {

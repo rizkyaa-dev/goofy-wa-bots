@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import { LlmMessage } from '../llm/domain/llm.types';
 import { RoleplayResponsePlan } from './domain/roleplay-response-plan';
 
 type ValidateInput = {
   text: string;
+  latestUserMessage: string;
+  recentMessages: LlmMessage[];
   plan: RoleplayResponsePlan;
   conversationScope: 'personal_chat' | 'group_chat';
 };
@@ -10,13 +13,16 @@ type ValidateInput = {
 @Injectable()
 export class ResponseValidatorService {
   apply(input: ValidateInput): string {
-    const normalized = this.normalizeWhitespace(input.text);
+    const echoSafe = this.removeEchoedContext(input.text, input.latestUserMessage, input.recentMessages);
+    const normalized = this.normalizeWhitespace(echoSafe);
     const withoutTemplates = this.removeSocialTemplates(normalized);
     const scopeSafe = input.conversationScope === 'personal_chat' ? this.sanitizePersonalScope(withoutTemplates) : withoutTemplates;
     const disclosureSafe = this.limitSelfDisclosure(scopeSafe, input.plan);
     const questionSafe = this.limitQuestions(disclosureSafe, input.plan);
     const sentenceSafe = this.limitSentences(questionSafe, input.plan.maxSentences);
-    const textureSafe = this.repairDeadEndAcknowledgement(sentenceSafe, input.plan);
+    const apologySafe = this.repairAwkwardApology(sentenceSafe, input.plan);
+    const clarificationSafe = this.repairAwkwardClarification(apologySafe, input.plan);
+    const textureSafe = this.repairDeadEndAcknowledgement(clarificationSafe, input.plan);
     const punctuationSafe = this.normalizeCasualPunctuation(textureSafe, input.plan);
 
     return punctuationSafe || this.createFallback(input.plan);
@@ -35,7 +41,7 @@ export class ResponseValidatorService {
       text
         .replace(/\blagi\s+pada\s+/giu, 'lagi ')
         .replace(/\bpada\s+ngapain\b/giu, 'ngapain')
-        .replace(/\b(?:kalian|guys|semua)\b/giu, 'kamu')
+        .replace(/\b(?:kalian|guys)\b/giu, 'kamu')
         .replace(/\bpada\b/giu, ''),
     );
   }
@@ -105,6 +111,92 @@ export class ResponseValidatorService {
     return this.normalizeWhitespace(sentences.slice(0, maxSentences).join(' '));
   }
 
+  private removeEchoedContext(text: string, latestUserMessage: string, recentMessages: LlmMessage[]): string {
+    const lines = text
+      .split(/\n+/u)
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+    if (lines.length === 0) {
+      return text;
+    }
+
+    const recentCandidates = [
+      latestUserMessage,
+      ...recentMessages
+        .slice(-4)
+        .map((message) => message.content)
+        .flatMap((content) => content.split(/\n+/u)),
+    ].filter((candidate) => candidate.trim().length > 0);
+
+    while (lines.length > 1 && recentCandidates.some((candidate) => this.isLikelyEcho(lines[0], candidate))) {
+      lines.shift();
+    }
+
+    if (lines.length > 0) {
+      lines[0] = this.removeEchoedPrefix(lines[0], recentCandidates);
+    }
+
+    return this.normalizeWhitespace(lines.join(' '));
+  }
+
+  private removeEchoedPrefix(line: string, candidates: string[]): string {
+    for (const candidate of candidates) {
+      const trimmedCandidate = candidate.trim();
+
+      if (trimmedCandidate.length < 8 || line.length <= trimmedCandidate.length + 4) {
+        continue;
+      }
+
+      if (line.toLowerCase().startsWith(trimmedCandidate.toLowerCase())) {
+        return line.slice(trimmedCandidate.length).replace(/^[\s,.:;-]+/u, '').trim();
+      }
+    }
+
+    return line;
+  }
+
+  private isLikelyEcho(line: string, candidate: string): boolean {
+    const normalizedLine = this.normalizeForSimilarity(line);
+    const normalizedCandidate = this.normalizeForSimilarity(candidate);
+
+    if (normalizedLine.length < 8 || normalizedCandidate.length < 8) {
+      return false;
+    }
+
+    if (normalizedLine === normalizedCandidate) {
+      return true;
+    }
+
+    if (normalizedLine.length <= 80 && normalizedCandidate.includes(normalizedLine)) {
+      return true;
+    }
+
+    return this.jaccardSimilarity(normalizedLine, normalizedCandidate) >= 0.82;
+  }
+
+  private normalizeForSimilarity(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  private jaccardSimilarity(left: string, right: string): number {
+    const leftTokens = new Set(left.split(/\s+/u).filter(Boolean));
+    const rightTokens = new Set(right.split(/\s+/u).filter(Boolean));
+
+    if (leftTokens.size === 0 || rightTokens.size === 0) {
+      return 0;
+    }
+
+    const intersection = Array.from(leftTokens).filter((token) => rightTokens.has(token)).length;
+    const union = new Set([...leftTokens, ...rightTokens]).size;
+
+    return intersection / union;
+  }
+
   private repairDeadEndAcknowledgement(text: string, plan: RoleplayResponsePlan): string {
     if (plan.topicDevelopment === 'none' || !this.isDeadEndAcknowledgement(text)) {
       return text;
@@ -123,6 +215,37 @@ export class ResponseValidatorService {
     }
 
     return 'Oh oke, aku nangkep';
+  }
+
+  private repairAwkwardApology(text: string, plan: RoleplayResponsePlan): string {
+    if (plan.replyShape !== 'reassure_repair') {
+      return text;
+    }
+
+    const normalized = text.trim();
+
+    if (/\bjangan\s+dong\s+maaf\b/iu.test(normalized)) {
+      return 'nggak apa-apa, aku cuma godain dikit';
+    }
+
+    if (normalized.length > 120) {
+      return this.normalizeWhitespace(this.splitSentences(normalized).slice(0, 2).join(' '));
+    }
+
+    return text;
+  }
+
+  private repairAwkwardClarification(text: string, plan: RoleplayResponsePlan): string {
+    if (plan.replyShape !== 'explain_clarify') {
+      return text;
+    }
+
+    return text
+      .replace(/^\s*ya\s+(.{2,40}?)\s+lah\b/iu, '$1 maksudku')
+      .replace(/\bmasa\s+(.{2,40}?)\s+doang\b/giu, '$1 aja')
+      .replace(/\s+dong\b/giu, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
   }
 
   private isDeadEndAcknowledgement(text: string): boolean {
@@ -197,6 +320,10 @@ export class ResponseValidatorService {
 
     if (plan.mode === 'react_expand') {
       return plan.emotionalTexture === 'medium' ? 'Iya... aku nangkep kok.' : 'Oh oke, aku nangkep.';
+    }
+
+    if (plan.replyShape === 'reassure_repair') {
+      return 'nggak apa-apa, santai';
     }
 
     return 'Oh gitu.';

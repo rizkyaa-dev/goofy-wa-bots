@@ -73,6 +73,10 @@ export class RoleplayRouterService {
       return this.createDecision('memory_recall', 0.9, 'recall', false, 'none', true, true, 'User asks about remembered context or proof.');
     }
 
+    if (this.isFactualQuestion(lower)) {
+      return this.createDecision('factual_answer', 0.88, 'factual', false, 'small', true, false, 'User asks for factual or utility information.');
+    }
+
     if (this.isConflict(lower) || input.analysis.userTone === 'pressuring' || input.analysis.userTone === 'annoyed') {
       return this.createDecision('conflict_boundary', 0.82, input.analysis.userTone, false, 'none', true, false, 'User tone looks conflictual or pressuring.');
     }
@@ -135,6 +139,7 @@ export class RoleplayRouterService {
               memory_recall: 'User asks to remember, prove, recall, or use prior known facts.',
               quote_evidence: 'User asks for proof and quote target/evidence is relevant.',
               meta_testing: 'User mentions bot/project/developer/testing/technical meta.',
+              factual_answer: 'User asks a factual, calculation, current-info, meaning, price, currency, weather, date, or utility question.',
               casual_default: 'General fallback.',
             },
             outputSchema: {
@@ -218,7 +223,7 @@ export class RoleplayRouterService {
   }
 
   private isCharacterNameQuestion(text: string): boolean {
-    return /\b(?:nama|namamu|nama\s+kamu|siapa)\b/u.test(text) && /\b(?:kamu|mu|bot|alya|namamu|nama)\b/u.test(text);
+    return /\b(?:namamu|nama\s+(?:kamu|mu|bot|alya)|(?:kamu|alya|bot)\s+siapa|siapa\s+(?:kamu|alya|bot))\b/u.test(text);
   }
 
   private isAmbiguous(text: string): boolean {
@@ -243,5 +248,15 @@ export class RoleplayRouterService {
 
   private isTeasing(text: string): boolean {
     return /\b(?:jelek|genit|gombal|manja|cie|modus|wkwk|haha|anjay)\b/u.test(text);
+  }
+
+  private isFactualQuestion(text: string): boolean {
+    if (!/[?]|(?:\b(?:berapa|brp|apa|kapan|dimana|di mana|kenapa|gimana|bagaimana)\b)/u.test(text)) {
+      return false;
+    }
+
+    return /\b(?:usd|dolar|dollar|rupiah|idr|harga|kurs|cuaca|tanggal|jam|arti|definisi|siapa presiden|berapa\s+\d|hitung|kalkulasi|rekomendasi|translate|terjemah)\b/u.test(
+      text,
+    );
   }
 }

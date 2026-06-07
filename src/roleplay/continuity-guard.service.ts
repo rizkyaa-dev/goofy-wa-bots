@@ -85,7 +85,9 @@ export class ContinuityGuardService {
 
   private isCharacterNameQuestion(text: string): boolean {
     const normalized = text.toLowerCase();
-    return /\b(?:nama|namamu|nama\s+kamu|siapa)\b/u.test(normalized) && /\b(?:kamu|mu|bot|alya|namamu|nama)\b/u.test(normalized);
+    return /\b(?:namamu|nama\s+(?:kamu|mu|bot|alya)|(?:kamu|alya|bot)\s+siapa|siapa\s+(?:kamu|alya|bot))\b/u.test(
+      normalized,
+    );
   }
 
   private containsCharacterName(text: string, characterName: string): boolean {

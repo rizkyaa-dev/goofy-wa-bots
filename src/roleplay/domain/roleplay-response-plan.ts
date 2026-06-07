@@ -25,6 +25,8 @@ export type RoleplayReplyShape =
   | 'react_expand'
   | 'comfort_anchor'
   | 'tease_deflect'
+  | 'reassure_repair'
+  | 'explain_clarify'
   | 'clarify_briefly'
   | 'boundary';
 

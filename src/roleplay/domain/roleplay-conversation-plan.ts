@@ -1,12 +1,18 @@
 export type RoleplayUserMove =
   | 'greeting'
   | 'asks_identity'
+  | 'offers_identity'
   | 'asks_question'
   | 'gives_advice'
   | 'shares_update'
   | 'asks_practical_instruction'
   | 'corrects_clarifies'
+  | 'asks_clarification_about_bot'
   | 'teases'
+  | 'flirts'
+  | 'requests_affection'
+  | 'apologizes'
+  | 'asks_factual'
   | 'vents'
   | 'pressures_or_conflicts'
   | 'meta'
@@ -19,7 +25,11 @@ export type RoleplayBotMove =
   | 'acknowledge_then_deflect'
   | 'clarify_briefly'
   | 'comfort_briefly'
-  | 'tease_lightly';
+  | 'tease_lightly'
+  | 'playful_affection'
+  | 'soft_boundary_affection'
+  | 'reassure_lightly'
+  | 'explain_previous_casually';
 
 export type RoleplayConversationWarmth = 'low' | 'normal' | 'playful' | 'tender';
 

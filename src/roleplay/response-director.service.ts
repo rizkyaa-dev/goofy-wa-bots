@@ -37,7 +37,7 @@ export class ResponseDirectorService {
     const replyShape = this.resolveReplyShape(input.routeDecision.route, input.conversationPlan.botMove);
     const topicDevelopment = this.resolveTopicDevelopment(input.conversationPlan, questionAllowed, input.routeDecision.route);
     const emotionalTexture = this.resolveEmotionalTexture(input.conversationPlan, input.routeDecision.route);
-    const playfulness = this.resolvePlayfulness(input.conversationPlan, input.routeDecision.route);
+    const playfulness = this.resolvePlayfulness(input.conversationPlan, input.routeDecision.route, input.recentMessages);
 
     return {
       route: input.routeDecision.route,
@@ -66,7 +66,7 @@ export class ResponseDirectorService {
       playfulness,
       topicDevelopment,
       replyShape,
-      forbiddenTerms: input.conversationScope === 'personal_chat' ? ['pada', 'kalian', 'guys', 'semua'] : [],
+      forbiddenTerms: input.conversationScope === 'personal_chat' ? ['pada', 'kalian', 'guys'] : [],
       routeReason: input.routeDecision.reason,
       directive: this.createDirective({
         questionAllowed,
@@ -120,6 +120,10 @@ export class ResponseDirectorService {
 
     if (input.latestLooksLikeAnswer && input.recentQuestionCount >= 1) {
       return false;
+    }
+
+    if (input.latestIsQuestion && input.conversationPlan.topic === 'user_identity_offer') {
+      return true;
     }
 
     if (input.latestIsQuestion) {
@@ -185,6 +189,14 @@ export class ResponseDirectorService {
       return 'Beri validasi singkat yang terasa hadir. Ambil satu detail user sebagai anchor, bukan nasihat panjang atau interview.';
     }
 
+    if (input.replyShape === 'reassure_repair') {
+      return 'User minta maaf singkat. Tenangkan dengan ringan dan manusiawi. Jangan bikin drama, jangan gombal panjang, dan jangan pakai frasa kaku seperti "jangan dong maaf".';
+    }
+
+    if (input.replyShape === 'explain_clarify') {
+      return 'User minta penjelasan maksud/frasa bot sebelumnya. Jelaskan maksudnya dulu dengan santai. Jangan membuka dengan sindiran, "ya ... lah", atau "masa ... doang".';
+    }
+
     if (input.replyShape === 'tease_deflect') {
       return 'Balas playful pendek dengan sedikit warna. Jangan jadi datar literal, tapi juga jangan menaikkan konflik.';
     }
@@ -201,6 +213,10 @@ export class ResponseDirectorService {
 
     if (route === 'quote_evidence') {
       return 'quote_evidence';
+    }
+
+    if (route === 'factual_answer') {
+      return 'answer_with_texture';
     }
 
     if (route === 'ambiguous_clarify') {
@@ -256,7 +272,23 @@ export class ResponseDirectorService {
       return 'comfort_anchor';
     }
 
+    if (botMove === 'reassure_lightly') {
+      return 'reassure_repair';
+    }
+
+    if (botMove === 'explain_previous_casually') {
+      return 'explain_clarify';
+    }
+
     if (botMove === 'tease_lightly') {
+      return 'tease_deflect';
+    }
+
+    if (botMove === 'playful_affection') {
+      return 'tease_deflect';
+    }
+
+    if (botMove === 'soft_boundary_affection') {
       return 'tease_deflect';
     }
 
@@ -281,7 +313,14 @@ export class ResponseDirectorService {
     route: RoleplayRoute,
   ): RoleplayResponsePlan['topicDevelopment'] {
     if (route === 'conflict_boundary' || conversationPlan.followUpPolicy === 'none') {
-      return conversationPlan.botMove === 'answer_then_warm_texture' || conversationPlan.botMove === 'tease_lightly' ? 'micro' : 'none';
+      return conversationPlan.botMove === 'answer_then_warm_texture' ||
+        conversationPlan.botMove === 'tease_lightly' ||
+        conversationPlan.botMove === 'playful_affection' ||
+        conversationPlan.botMove === 'soft_boundary_affection' ||
+        conversationPlan.botMove === 'reassure_lightly' ||
+        conversationPlan.botMove === 'explain_previous_casually'
+        ? 'micro'
+        : 'none';
     }
 
     if (questionAllowed && conversationPlan.followUpPolicy === 'one_light_question') {
@@ -299,7 +338,14 @@ export class ResponseDirectorService {
       return 'none';
     }
 
-    if (conversationPlan.warmth === 'tender' || conversationPlan.botMove === 'comfort_briefly') {
+    if (
+      conversationPlan.warmth === 'tender' ||
+      conversationPlan.botMove === 'comfort_briefly' ||
+      conversationPlan.botMove === 'reassure_lightly' ||
+      conversationPlan.botMove === 'explain_previous_casually' ||
+      conversationPlan.botMove === 'playful_affection' ||
+      conversationPlan.botMove === 'soft_boundary_affection'
+    ) {
       return 'medium';
     }
 
@@ -309,16 +355,37 @@ export class ResponseDirectorService {
   private resolvePlayfulness(
     conversationPlan: RoleplayConversationPlan,
     route: RoleplayRoute,
+    recentMessages: LlmMessage[],
   ): RoleplayResponsePlan['playfulness'] {
     if (route === 'conflict_boundary') {
       return 'none';
+    }
+
+    if (conversationPlan.botMove === 'explain_previous_casually') {
+      return 'light';
+    }
+
+    if (this.countRecentPlayfulAssistantReplies(recentMessages) >= 2 && route !== 'tease_deflect') {
+      return 'light';
     }
 
     if (conversationPlan.warmth === 'playful' || conversationPlan.botMove === 'tease_lightly') {
       return 'medium';
     }
 
+    if (conversationPlan.botMove === 'playful_affection' || conversationPlan.botMove === 'soft_boundary_affection') {
+      return 'medium';
+    }
+
     return 'light';
+  }
+
+  private countRecentPlayfulAssistantReplies(recentMessages: LlmMessage[]): number {
+    return recentMessages
+      .filter((message) => message.role === 'assistant')
+      .slice(-3)
+      .filter((message) => /\b(?:wkwk|haha|cie|lah|ih|masa|dasar|yaudah|ngeles)\b|[😏😌😉]/iu.test(message.content))
+      .length;
   }
 
   private resolveMaxSentences(input: ResolveMaxSentencesInput): number {
@@ -326,7 +393,13 @@ export class ResponseDirectorService {
       return 1;
     }
 
-    if (input.replyShape === 'comfort_anchor' || input.replyShape === 'answer_texture' || input.replyShape === 'react_expand') {
+    if (
+      input.replyShape === 'comfort_anchor' ||
+      input.replyShape === 'reassure_repair' ||
+      input.replyShape === 'explain_clarify' ||
+      input.replyShape === 'answer_texture' ||
+      input.replyShape === 'react_expand'
+    ) {
       return input.topicDevelopment === 'follow_up' || input.questionAllowed ? 3 : 2;
     }
 
@@ -358,7 +431,9 @@ export class ResponseDirectorService {
 
   private isCharacterNameQuestion(text: string): boolean {
     const normalized = text.toLowerCase();
-    return /\b(?:nama|namamu|nama\s+kamu|siapa)\b/u.test(normalized) && /\b(?:kamu|mu|bot|alya|namamu|nama)\b/u.test(normalized);
+    return /\b(?:namamu|nama\s+(?:kamu|mu|bot|alya)|(?:kamu|alya|bot)\s+siapa|siapa\s+(?:kamu|alya|bot))\b/u.test(
+      normalized,
+    );
   }
 
   private isAmbiguous(text: string): boolean {
