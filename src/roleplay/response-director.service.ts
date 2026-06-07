@@ -167,46 +167,46 @@ export class ResponseDirectorService {
 
   private createDirective(input: CreateDirectiveInput): string {
     if (input.isNameQuestion) {
-      return 'Jawab nama karakter langsung, lalu boleh beri satu warna kecil yang cocok. Jangan tambah pertanyaan balik, biodata, atau klaim sudah pernah bilang.';
+      return 'Answer the character\'s name directly, then add one fitting stylistic touch. Do not ask a question in return, dump biographical data, or claim you already introduced yourself.';
     }
 
     if (input.latestLooksLikeAnswer) {
       return input.topicDevelopment === 'micro'
-        ? 'User baru menjawab/menanggapi pertanyaan bot. Reaksi dulu, lalu tambah komentar kecil dari detail user tanpa melempar pertanyaan baru.'
-        : 'User baru menjawab/menanggapi pertanyaan bot. Reaksi dulu, jangan langsung lempar pertanyaan baru.';
+        ? 'The user just answered/responded to your question. React first, then add a brief comment using a detail from the user without throwing a new question.'
+        : 'The user just answered/responded to your question. React first, and do not immediately ask a new question.';
     }
 
     if (input.isAmbiguous) {
       return input.questionAllowed
-        ? 'Pesan user ambigu. Boleh minta klarifikasi pendek tanpa dua tebakan.'
-        : 'Pesan user ambigu, tapi jangan tambah pertanyaan baru; beri reaksi pendek dulu.';
+        ? 'The user\'s message is ambiguous. You may ask for brief clarification without making multiple guesses.'
+        : 'The user\'s message is ambiguous, but do not ask a new question; provide a short reaction first.';
     }
 
     if (input.replyShape === 'answer_texture') {
       return input.questionAllowed
-        ? 'Jawab kebutuhan user dulu, lalu tambah satu texture kecil. Satu follow-up ringan boleh hanya kalau terasa natural.'
-        : 'Jawab kebutuhan user dulu, lalu tambah satu texture kecil. Jangan tutup dengan pertanyaan.';
+        ? 'Address the user\'s needs first, then add a small stylistic texture. One light follow-up question is allowed only if it feels completely natural.'
+        : 'Address the user\'s needs first, then add a small stylistic texture. Do not close with a question.';
     }
 
     if (input.replyShape === 'comfort_anchor') {
-      return 'Beri validasi singkat yang terasa hadir. Ambil satu detail user sebagai anchor, bukan nasihat panjang atau interview.';
+      return 'Provide brief, grounding validation. Use a single detail from the user as an anchor. Do not give lengthy advice or conduct an interview.';
     }
 
     if (input.replyShape === 'reassure_repair') {
-      return 'User minta maaf singkat. Tenangkan dengan ringan dan manusiawi. Jangan bikin drama, jangan gombal panjang, dan jangan pakai frasa kaku seperti "jangan dong maaf".';
+      return 'The user gave a brief apology or expressed concern. Reassure them lightly and humanely. Avoid unnecessary drama, extended flirting, or stiff phrases like "jangan dong maaf".';
     }
 
     if (input.replyShape === 'explain_clarify') {
-      return 'User minta penjelasan maksud/frasa bot sebelumnya. Jelaskan maksudnya dulu dengan santai. Jangan membuka dengan sindiran, "ya ... lah", atau "masa ... doang".';
+      return 'The user asked for clarification on your previous phrase. Casually explain what you meant. Do not open with sarcasm or defensiveness (e.g., "ya ... lah", or "masa ... doang").';
     }
 
     if (input.replyShape === 'tease_deflect') {
-      return 'Balas playful pendek dengan sedikit warna. Jangan jadi datar literal, tapi juga jangan menaikkan konflik.';
+      return 'Reply playfully and briefly with a bit of color. Do not be overly literal, but do not escalate conflicts either.';
     }
 
     return input.questionAllowed
-      ? 'Boleh memakai satu follow-up ringan kalau benar-benar natural. Tetap masukkan reaksi atau komentar kecil dulu.'
-      : 'Jangan tambah pertanyaan baru. Balas dengan reaksi atau statement yang punya sedikit warna, bukan acknowledgement mati.';
+      ? 'You may include one light follow-up question if it feels completely natural, but always include a reaction or small comment first.'
+      : 'Do not add new questions. Reply with a reaction or statement that carries conversational color; avoid dead-end acknowledgments.';
   }
 
   private resolveRouteMode(route: RoleplayRoute, conversationPlan: RoleplayConversationPlan): RoleplayResponsePlan['mode'] | null {
