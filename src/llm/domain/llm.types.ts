@@ -5,7 +5,7 @@ export type LlmMessage = {
   content: string;
 };
 
-export type LlmReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh';
+export type LlmReasoningEffort = 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
 export type LlmThinkingType = 'enabled' | 'disabled';
 

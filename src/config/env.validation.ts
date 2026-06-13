@@ -10,20 +10,49 @@ const optionalNumber = (schema: z.ZodNumber) =>
     return trimmed ? Number(trimmed) : undefined;
   }, schema.optional());
 
-const optionalEnum = <T extends [string, ...string[]]>(values: T) =>
-  z.preprocess((value) => {
-    if (typeof value !== 'string') {
-      return value;
-    }
+const deepSeekReasoningEffort = z.preprocess((value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
 
-    const trimmed = value.trim();
-    return trimmed || undefined;
-  }, z.enum(values).optional());
+  const normalized = value.trim().toLowerCase();
 
-const thinkingType = z
-  .string()
-  .default('true')
-  .transform((value) => (value.trim().toLowerCase() === 'true' ? 'enabled' : 'disabled') as 'enabled' | 'disabled');
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (normalized === 'low' || normalized === 'medium') {
+    return 'high';
+  }
+
+  if (normalized === 'xhigh') {
+    return 'max';
+  }
+
+  return normalized;
+}, z.enum(['high', 'max']).optional());
+
+const thinkingType = z.preprocess((value) => {
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (['enabled', 'true', '1', 'yes', 'on'].includes(normalized)) {
+    return 'enabled';
+  }
+
+  if (['disabled', 'false', '0', 'no', 'off'].includes(normalized)) {
+    return 'disabled';
+  }
+
+  return normalized;
+}, z.enum(['enabled', 'disabled']).default('enabled'));
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -120,7 +149,7 @@ const envSchema = z.object({
   DEEPSEEK_TEMPERATURE: optionalNumber(z.number().min(0).max(2)),
   DEEPSEEK_TOP_P: optionalNumber(z.number().min(0).max(1)),
   DEEPSEEK_MAX_TOKENS: optionalNumber(z.number().int().positive()),
-  DEEPSEEK_REASONING_EFFORT: optionalEnum(['none', 'minimal', 'low', 'medium', 'high', 'xhigh']),
+  DEEPSEEK_REASONING_EFFORT: deepSeekReasoningEffort,
   DEEPSEEK_THINKING_TYPE: thinkingType,
   ROLEPLAY_CHARACTER_NAME: z.string().min(1).default('Alya'),
   ROLEPLAY_CHARACTER_PROFILE: z
