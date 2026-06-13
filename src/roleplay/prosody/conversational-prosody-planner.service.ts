@@ -36,6 +36,7 @@ export class ConversationalProsodyPlannerService {
       socialBeats,
       delimiter: this.delimiter,
       interBubbleDelayMs: this.resolveInterBubbleDelayMs(rhythm),
+      allowSentenceFallbackSplit: maxBubbles > 1,
       directive: this.createDirective(maxBubbles, rhythm),
     };
   }
@@ -97,12 +98,16 @@ export class ConversationalProsodyPlannerService {
       return input.responsePlan.mode === 'react_only' ? 'low_energy' : 'single_direct';
     }
 
-    if (input.responsePlan.playfulness === 'medium') {
-      return 'playful_stutter';
+    if (
+      input.analysis.userTone === 'vulnerable' ||
+      input.responsePlan.replyShape === 'comfort_anchor' ||
+      input.responsePlan.emotionalTexture === 'medium'
+    ) {
+      return 'warm_layered';
     }
 
-    if (input.analysis.userTone === 'vulnerable' || input.responsePlan.emotionalTexture === 'medium') {
-      return 'warm_layered';
+    if (input.responsePlan.playfulness === 'medium') {
+      return 'playful_stutter';
     }
 
     return 'soft_pingpong';

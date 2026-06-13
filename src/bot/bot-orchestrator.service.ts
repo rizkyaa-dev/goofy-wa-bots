@@ -6,7 +6,7 @@ import { ConversationsService } from '../conversations/conversations.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
 import { MessageDeduplicatorService } from '../messages/message-deduplicator.service';
 import { RoleplayChatService } from '../roleplay/roleplay-chat.service';
-import { BotReply, resolveBotReplyParts } from './domain/bot-reply';
+import { BotReply, BotReplyPart } from './domain/bot-reply';
 import { CommandRegistryService } from './command-registry.service';
 import { TemporaryGreetingReplyService } from './temporary-greeting-reply.service';
 
@@ -32,7 +32,6 @@ export class BotOrchestratorService {
     const temporaryReply = this.temporaryGreetingReply.createReply(message);
     if (temporaryReply) {
       await this.conversations.recordInbound(message);
-      await this.recordReply(message, temporaryReply);
       return temporaryReply;
     }
 
@@ -53,7 +52,6 @@ export class BotOrchestratorService {
         args: [],
         rawArgs: '',
       });
-      await this.recordReply(message, reply);
       return reply;
     }
 
@@ -62,7 +60,6 @@ export class BotOrchestratorService {
     }
 
     const reply = await this.roleplayChat.generateReply(message, settings);
-    await this.recordReply(message, reply);
     return reply;
   }
 
@@ -96,7 +93,6 @@ export class BotOrchestratorService {
     }
 
     const reply = await this.roleplayChat.generateReply(batchedMessage, settings);
-    await this.recordReply(latestMessage, reply);
     return reply;
   }
 
@@ -104,7 +100,6 @@ export class BotOrchestratorService {
     const temporaryReply = this.temporaryGreetingReply.createReply(message);
     if (temporaryReply) {
       await this.conversations.recordInbound(message);
-      await this.recordReply(message, temporaryReply);
       return temporaryReply;
     }
 
@@ -122,8 +117,20 @@ export class BotOrchestratorService {
     }
 
     const reply = await this.roleplayChat.generateReply(message, settings);
-    await this.recordReply(message, reply);
     return reply;
+  }
+
+  async recordSentReply(message: IncomingMessage, sentParts: readonly BotReplyPart[]): Promise<void> {
+    const text = sentParts
+      .map((part) => part.text.trim())
+      .filter(Boolean)
+      .join('\n');
+
+    if (!text) {
+      return;
+    }
+
+    await this.conversations.recordOutbound(message.chatId, text, message.id);
   }
 
   private createBatchedMessage(messages: IncomingMessage[]): IncomingMessage {
@@ -138,17 +145,4 @@ export class BotOrchestratorService {
     };
   }
 
-  private async recordReply(message: IncomingMessage, reply: BotReply | null): Promise<void> {
-    if (!reply) {
-      return;
-    }
-
-    await this.conversations.recordOutbound(
-      message.chatId,
-      resolveBotReplyParts(reply)
-        .map((part) => part.text)
-        .join('\n'),
-      message.id,
-    );
-  }
 }

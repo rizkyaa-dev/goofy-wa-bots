@@ -37,7 +37,9 @@ export class ConversationsService {
 
     await this.prisma.conversationMessage.upsert({
       where: { messageId },
-      update: {},
+      update: {
+        body: text,
+      },
       create: {
         messageId,
         chatId,

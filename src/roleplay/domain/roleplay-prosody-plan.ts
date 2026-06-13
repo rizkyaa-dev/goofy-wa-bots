@@ -12,5 +12,6 @@ export type RoleplayProsodyPlan = {
   socialBeats: string[];
   delimiter: string;
   interBubbleDelayMs: number;
+  allowSentenceFallbackSplit: boolean;
   directive: string;
 };

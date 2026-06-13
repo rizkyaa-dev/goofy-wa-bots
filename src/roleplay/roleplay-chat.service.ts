@@ -175,7 +175,12 @@ export class RoleplayChatService {
         messages: prompt,
       });
 
-      const cleanedParts = this.parseReplyParts(result.text, prosodyPlan.delimiter, prosodyPlan.maxBubbles)
+      const cleanedParts = this.parseReplyParts({
+        text: result.text,
+        delimiter: prosodyPlan.delimiter,
+        maxBubbles: prosodyPlan.maxBubbles,
+        allowSentenceFallbackSplit: prosodyPlan.allowSentenceFallbackSplit,
+      })
         .map((part) => this.cleanReply(part, recentMessages))
         .filter((part) => part.trim().length > 0);
       const continuitySafeParts = cleanedParts.map((part) =>
@@ -215,7 +220,13 @@ export class RoleplayChatService {
     }
   }
 
-  private parseReplyParts(text: string, delimiter: string, maxBubbles: number): string[] {
+  private parseReplyParts(input: {
+    text: string;
+    delimiter: string;
+    maxBubbles: number;
+    allowSentenceFallbackSplit: boolean;
+  }): string[] {
+    const { text, delimiter, maxBubbles, allowSentenceFallbackSplit } = input;
     const normalized = text.trim().replace(/\r\n/g, '\n');
 
     if (maxBubbles <= 1) {
@@ -225,7 +236,7 @@ export class RoleplayChatService {
     const delimiterPattern = new RegExp(`\\s*${this.escapeRegExp(delimiter)}\\s*`, 'gu');
     const rawParts = normalized.includes(delimiter)
       ? normalized.split(delimiterPattern)
-      : normalized.split(/\n{2,}/u);
+      : this.createSentenceFallbackParts(normalized, maxBubbles, allowSentenceFallbackSplit);
     const parts = rawParts.map((part) => part.trim()).filter(Boolean);
 
     if (parts.length <= maxBubbles) {
@@ -233,6 +244,28 @@ export class RoleplayChatService {
     }
 
     return [...parts.slice(0, maxBubbles - 1), parts.slice(maxBubbles - 1).join(' ')];
+  }
+
+  private createSentenceFallbackParts(text: string, maxBubbles: number, allowSplit: boolean): string[] {
+    if (!allowSplit) {
+      return [text];
+    }
+
+    const sentences = this.splitSentences(text);
+
+    if (sentences.length < 2) {
+      return [text];
+    }
+
+    if (sentences.length <= maxBubbles) {
+      return sentences;
+    }
+
+    return [...sentences.slice(0, maxBubbles - 1), sentences.slice(maxBubbles - 1).join(' ')];
+  }
+
+  private splitSentences(text: string): string[] {
+    return text.match(/[^.!?]+[.!?]?/gu)?.map((sentence) => sentence.trim()).filter(Boolean) ?? [];
   }
 
   private createReplyParts(input: {

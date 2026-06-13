@@ -69,7 +69,7 @@ export class WhatsappReplyBatcherService implements OnModuleDestroy {
   private async processImmediate(incoming: IncomingMessage, source: Message): Promise<void> {
     try {
       const reply = await this.bot.handleBatch([incoming]);
-      await this.sendReply(source, reply);
+      await this.sendReply(incoming, source, reply);
     } catch (error) {
       this.logError('Failed to process immediate WhatsApp reply', error);
     }
@@ -121,7 +121,7 @@ export class WhatsappReplyBatcherService implements OnModuleDestroy {
         return;
       }
 
-      await this.sendReply(anchor.source, reply, () => this.isCurrent(chatId, scheduledVersion));
+      await this.sendReply(anchor.incoming, anchor.source, reply, () => this.isCurrent(chatId, scheduledVersion));
     } catch (error) {
       this.logError('Failed to process batched WhatsApp reply', error);
     } finally {
@@ -146,32 +146,52 @@ export class WhatsappReplyBatcherService implements OnModuleDestroy {
     }
   }
 
-  private async sendReply(source: Message, reply: BotReply | null, shouldContinue: () => boolean = () => true): Promise<void> {
+  private async sendReply(
+    incoming: IncomingMessage,
+    source: Message,
+    reply: BotReply | null,
+    shouldContinue: () => boolean = () => true,
+  ): Promise<void> {
     if (!reply || !shouldContinue()) {
       return;
     }
 
     const chat = await source.getChat();
     const parts = resolveBotReplyParts(reply);
+    const sentParts: BotReplyPart[] = [];
 
-    for (const part of parts) {
+    for (const [index, part] of parts.entries()) {
       if (!shouldContinue()) {
         return;
       }
 
-      const delayCompleted = await this.delay(part.delayMs ?? 0, shouldContinue);
+      if (index > 0) {
+        const delayCompleted = await this.delay(part.delayMs ?? 0, shouldContinue);
 
-      if (!delayCompleted || !shouldContinue()) {
-        return;
+        if (!delayCompleted || !shouldContinue()) {
+          return;
+        }
       }
 
-      const typingCompleted = await this.typingSimulator.simulate(chat, part.text, shouldContinue);
+      if (index === 0) {
+        const typingCompleted = await this.typingSimulator.simulate(chat, part.text, shouldContinue);
 
-      if (!typingCompleted || !shouldContinue()) {
-        return;
+        if (!typingCompleted || !shouldContinue()) {
+          return;
+        }
       }
 
       await chat.sendMessage(part.text, this.createSendOptions(part));
+      sentParts.push(part);
+      await this.recordSentParts(incoming, sentParts);
+    }
+  }
+
+  private async recordSentParts(incoming: IncomingMessage, sentParts: readonly BotReplyPart[]): Promise<void> {
+    try {
+      await this.bot.recordSentReply(incoming, sentParts);
+    } catch (error) {
+      this.logger.warn(`Failed to record sent WhatsApp reply: ${this.getErrorMessage(error)}`);
     }
   }
 
@@ -248,7 +268,14 @@ export class WhatsappReplyBatcherService implements OnModuleDestroy {
   }
 
   private logError(message: string, error: unknown): void {
-    const detail = error instanceof Error ? error.stack ?? error.message : String(error);
-    this.logger.error(`${message}: ${detail}`);
+    this.logger.error(`${message}: ${this.getErrorDetail(error)}`);
+  }
+
+  private getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  private getErrorDetail(error: unknown): string {
+    return error instanceof Error ? error.stack ?? error.message : String(error);
   }
 }
