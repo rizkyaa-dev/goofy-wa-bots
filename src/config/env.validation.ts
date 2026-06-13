@@ -168,6 +168,15 @@ const envSchema = z.object({
     .string()
     .default('false')
     .transform((value) => value.toLowerCase() !== 'false'),
+  ROLEPLAY_MULTI_BUBBLE_ENABLED: z
+    .string()
+    .default('true')
+    .transform((value) => value.toLowerCase() !== 'false'),
+  ROLEPLAY_MULTI_BUBBLE_MAX_PARTS: z
+    .string()
+    .default('3')
+    .transform((value) => Number(value))
+    .pipe(z.number().int().min(1).max(3)),
   ROLEPLAY_EMOTION_CLASSIFIER_ENABLED: z
     .string()
     .default('true')

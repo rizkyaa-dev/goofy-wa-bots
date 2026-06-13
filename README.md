@@ -187,8 +187,9 @@ Roleplay runtime menyusun balasan dari beberapa layer:
 7. `ConversationBuilderService`: membuat social move turn ini, misalnya factual utility, apology repair, affection/flirt, atau clarification.
 8. `RoleplayAddressPlannerService`: menentukan apakah boleh menyapa user dengan nickname atau alias mesra.
 9. `ResponseDirectorService`: menentukan reply shape, max sentences, question policy, self-disclosure, texture, dan playfulness.
-10. `RoleplayPromptCompilerService`: menyusun prompt final.
-11. `ContinuityGuardService` dan `ResponseValidatorService`: membersihkan echo, pertanyaan terlarang, self-disclosure, punctuation, dan output yang tidak natural.
+10. `ConversationalProsodyPlannerService`: memberi izin ritme 1-3 bubble WhatsApp tanpa mengunci template skenario.
+11. `RoleplayPromptCompilerService`: menyusun prompt final.
+12. `ContinuityGuardService` dan `ResponseValidatorService`: membersihkan echo, pertanyaan terlarang, self-disclosure, punctuation, dan output yang tidak natural.
 
 ### Konfigurasi Roleplay
 
@@ -210,6 +211,8 @@ ROLEPLAY_ROUTER_MODEL=deepseek-v4-flash
 ROLEPLAY_ROUTER_MIN_CONFIDENCE=0.58
 
 ROLEPLAY_DEBUG_LOG_ENABLED=false
+ROLEPLAY_MULTI_BUBBLE_ENABLED=true
+ROLEPLAY_MULTI_BUBBLE_MAX_PARTS=3
 
 ROLEPLAY_EMOTION_CLASSIFIER_ENABLED=true
 ROLEPLAY_EMOTION_CLASSIFIER_PROVIDER=deepseek
@@ -221,6 +224,8 @@ ROLEPLAY_MEMORY_EXTRACTOR_MODEL=deepseek-v4-flash
 ROLEPLAY_MEMORY_EXTRACTOR_MIN_CONFIDENCE=0.65
 ROLEPLAY_MEMORY_EXTRACTOR_MAX_MEMORIES=3
 ```
+
+`ROLEPLAY_MULTI_BUBBLE_ENABLED=true` mengizinkan roleplay runtime mengirim satu balasan sebagai beberapa bubble WhatsApp. Ini bukan template intent; LLM tetap memilih 1-3 bubble berdasarkan ritme chat, sementara sistem membatasi spam, total pertanyaan, total kalimat, quote reply, dan command/error tetap single reply.
 
 `ROLEPLAY_CHARACTER_NAME` dan `ROLEPLAY_CHARACTER_PROFILE` benar-benar masuk ke prompt karakter. Style, language register, linguistic profile, dan boundaries dasar saat ini berasal dari `src/roleplay/domain/default-roleplay-character.ts`.
 

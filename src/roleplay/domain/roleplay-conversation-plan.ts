@@ -8,6 +8,7 @@ export type RoleplayUserMove =
   | 'asks_practical_instruction'
   | 'corrects_clarifies'
   | 'asks_clarification_about_bot'
+  | 'asks_to_complete_bot_fragment'
   | 'teases'
   | 'flirts'
   | 'requests_affection'
@@ -29,7 +30,8 @@ export type RoleplayBotMove =
   | 'playful_affection'
   | 'soft_boundary_affection'
   | 'reassure_lightly'
-  | 'explain_previous_casually';
+  | 'explain_previous_casually'
+  | 'complete_previous_fragment';
 
 export type RoleplayConversationWarmth = 'low' | 'normal' | 'playful' | 'tender';
 

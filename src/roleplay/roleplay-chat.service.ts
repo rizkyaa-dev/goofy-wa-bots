@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ContactSetting } from '@prisma/client';
-import { BotReply } from '../bot/domain/bot-reply';
+import { BotReply, BotReplyPart } from '../bot/domain/bot-reply';
 import { AppEnv } from '../config/env.validation';
 import { ConversationsService } from '../conversations/conversations.service';
 import { LlmProviderError } from '../llm/errors/llm-provider.error';
@@ -18,6 +18,7 @@ import { EmotionEngineService } from './emotion-engine.service';
 import { RoleplayMemoryService } from './memory/roleplay-memory.service';
 import { ExpertPromptRegistryService } from './prompt/expert-prompt-registry.service';
 import { RoleplayPromptCompilerService } from './prompt/roleplay-prompt-compiler.service';
+import { ConversationalProsodyPlannerService } from './prosody/conversational-prosody-planner.service';
 import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retriever.service';
 import { QuoteDecisionService } from './quote/quote-decision.service';
 import { QuotePolicyService } from './quote/quote-policy.service';
@@ -44,6 +45,7 @@ export class RoleplayChatService {
     private readonly memories: RoleplayMemoryService,
     private readonly expertPrompts: ExpertPromptRegistryService,
     private readonly promptCompiler: RoleplayPromptCompilerService,
+    private readonly prosodyPlanner: ConversationalProsodyPlannerService,
     private readonly quoteCandidates: QuoteCandidateRetrieverService,
     private readonly quoteDecisions: QuoteDecisionService,
     private readonly quotePolicy: QuotePolicyService,
@@ -111,6 +113,14 @@ export class RoleplayChatService {
       conversationPlan,
       quoteIntent: quoteDecision.intent,
     });
+    const prosodyPlan = this.prosodyPlanner.create({
+      latestUserMessage: message.body,
+      recentMessages,
+      analysis,
+      conversationPlan,
+      responsePlan,
+      quoteAction: quoteDecision.action,
+    });
 
     const profile = this.characterProfile.getProfile(settings.persona);
     const prompt = this.promptCompiler.compile({
@@ -125,6 +135,7 @@ export class RoleplayChatService {
       analysis,
       conversationScope,
       responsePlan,
+      prosodyPlan,
       expertPrompt: this.expertPrompts.get(routeDecision.route),
       quoteDecision,
       quoteTargetText: quoteTarget?.body,
@@ -151,6 +162,8 @@ export class RoleplayChatService {
       emotionalTexture: responsePlan.emotionalTexture,
       playfulness: responsePlan.playfulness,
       topicDevelopment: responsePlan.topicDevelopment,
+      prosodyRhythm: prosodyPlan.rhythm,
+      maxBubbles: prosodyPlan.maxBubbles,
       questionAllowed: responsePlan.questionAllowed,
       selfDisclosure: responsePlan.selfDisclosure,
     });
@@ -162,27 +175,36 @@ export class RoleplayChatService {
         messages: prompt,
       });
 
-      const cleanedReply = this.cleanReply(result.text, recentMessages);
-
-      const continuitySafeReply = this.continuityGuard.apply({
-        text: cleanedReply,
-        latestUserMessage: message.body,
-        characterName: profile.name,
-        recentMessages,
-        memories,
-        quoteTargetText: quoteTarget?.body,
-      });
-      const validatedReply = this.responseValidator.apply({
-        text: continuitySafeReply,
+      const cleanedParts = this.parseReplyParts(result.text, prosodyPlan.delimiter, prosodyPlan.maxBubbles)
+        .map((part) => this.cleanReply(part, recentMessages))
+        .filter((part) => part.trim().length > 0);
+      const continuitySafeParts = cleanedParts.map((part) =>
+        this.continuityGuard.apply({
+          text: part,
+          latestUserMessage: message.body,
+          characterName: profile.name,
+          recentMessages,
+          memories,
+          quoteTargetText: quoteTarget?.body,
+        }),
+      );
+      const validatedParts = this.responseValidator.applyToParts({
+        parts: continuitySafeParts,
         latestUserMessage: message.body,
         recentMessages,
         plan: responsePlan,
         conversationScope,
       });
+      const parts = this.createReplyParts({
+        texts: validatedParts.slice(0, prosodyPlan.maxBubbles),
+        quoteMessageId: quoteDecision.action === 'quote_reply' ? quoteDecision.targetMessageId : undefined,
+        interBubbleDelayMs: prosodyPlan.interBubbleDelayMs,
+      });
 
       return {
-        text: validatedReply,
-        quoteMessageId: quoteDecision.action === 'quote_reply' ? quoteDecision.targetMessageId : undefined,
+        text: parts.map((part) => part.text).join('\n'),
+        quoteMessageId: parts[0]?.quoteMessageId,
+        parts,
       };
     } catch (error) {
       if (error instanceof LlmProviderError) {
@@ -193,10 +215,50 @@ export class RoleplayChatService {
     }
   }
 
+  private parseReplyParts(text: string, delimiter: string, maxBubbles: number): string[] {
+    const normalized = text.trim().replace(/\r\n/g, '\n');
+
+    if (maxBubbles <= 1) {
+      return [normalized.replaceAll(delimiter, ' ')];
+    }
+
+    const delimiterPattern = new RegExp(`\\s*${this.escapeRegExp(delimiter)}\\s*`, 'gu');
+    const rawParts = normalized.includes(delimiter)
+      ? normalized.split(delimiterPattern)
+      : normalized.split(/\n{2,}/u);
+    const parts = rawParts.map((part) => part.trim()).filter(Boolean);
+
+    if (parts.length <= maxBubbles) {
+      return parts.length > 0 ? parts : [normalized];
+    }
+
+    return [...parts.slice(0, maxBubbles - 1), parts.slice(maxBubbles - 1).join(' ')];
+  }
+
+  private createReplyParts(input: {
+    texts: string[];
+    quoteMessageId?: string;
+    interBubbleDelayMs: number;
+  }): BotReplyPart[] {
+    return input.texts
+      .map((text, index) => ({
+        text,
+        quoteMessageId: index === 0 ? input.quoteMessageId : undefined,
+        delayMs: index === 0 ? 0 : input.interBubbleDelayMs,
+      }))
+      .filter((part) => part.text.trim().length > 0);
+  }
+
+  private escapeRegExp(text: string): string {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   private cleanReply(text: string, recentMessages: Array<{ role: string; content: string }>): string {
     const cleaned = text
       .trim()
       .replace(/^["']|["']$/g, '')
+      .replace(/<<<NEXT>>>/gu, ' ')
+      .replace(/^\s*(?:[-*]|\d+[.)])\s+/u, '')
       .replace(/^\s*[\w .-]{1,32}:\s*/, '')
       .replace(/\[.*?]/g, '')
       .replace(/\((?:[^()]|\([^()]*\)){1,120}\)/g, '')
@@ -295,6 +357,8 @@ export class RoleplayChatService {
         emotionalTexture: trace.emotionalTexture,
         playfulness: trace.playfulness,
         topicDevelopment: trace.topicDevelopment,
+        prosodyRhythm: trace.prosodyRhythm,
+        maxBubbles: trace.maxBubbles,
         questionAllowed: trace.questionAllowed,
         selfDisclosure: trace.selfDisclosure,
       }),
@@ -405,6 +469,8 @@ type RoleplayDebugTrace = {
   emotionalTexture: string;
   playfulness: string;
   topicDevelopment: string;
+  prosodyRhythm: string;
+  maxBubbles: number;
   questionAllowed: boolean;
   selfDisclosure: string;
 };

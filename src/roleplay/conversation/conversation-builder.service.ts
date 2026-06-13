@@ -103,6 +103,20 @@ export class ConversationBuilderService {
       });
     }
 
+    if (this.isAskingToCompletePreviousFragment(lower, input.recentMessages)) {
+      return this.createPlan({
+        topic: 'complete_previous_fragment',
+        userMove: 'asks_to_complete_bot_fragment',
+        botMove: 'complete_previous_fragment',
+        detailHooks,
+        warmth: 'playful',
+        followUpPolicy: 'none',
+        avoid: ['explaining the draft', 'saying "aku tadinya mau ngomong"', 'formal clarification', 'making user feel slow'],
+        directive:
+          'User memancing lanjutan dari kalimat bot yang sebelumnya kepotong. Lanjutkan secara natural/playful seolah chat biasa; jangan menjelaskan proses menulis atau bilang "tadinya mau ngomong".',
+      });
+    }
+
     if (this.isClarifyingBotWording(lower, input.recentMessages)) {
       return this.createPlan({
         topic: 'clarify_bot_wording',
@@ -211,6 +225,20 @@ export class ConversationBuilderService {
       });
     }
 
+    if (text.endsWith('?') && this.isPersonalReciprocalQuestion(lower)) {
+      return this.createPlan({
+        topic: 'personal_reciprocal_question',
+        userMove: 'asks_question',
+        botMove: 'answer_then_warm_texture',
+        detailHooks,
+        warmth: this.hasPlayfulAddress(lower) ? 'playful' : 'normal',
+        followUpPolicy: input.analysis.avoidQuestion ? 'none' : 'one_light_question',
+        avoid: ['answer-only dead end', 'two follow-up questions', 'interview chain', 'formal assistant tone'],
+        directive:
+          'User menanyakan hal personal ringan seperti makan, kabar, atau aktivitas. Jawab singkat sebagai karakter, beri satu detail kecil, lalu boleh balikin perhatian sekali secara natural kalau ritmenya pas.',
+      });
+    }
+
     if (this.isPracticalCoordination(lower)) {
       return this.createPlan({
         topic: 'everyday_coordination',
@@ -303,6 +331,14 @@ export class ConversationBuilderService {
     return 'casual_question';
   }
 
+  private isPersonalReciprocalQuestion(text: string): boolean {
+    return (
+      /\b(?:udah|dah|sudah|uda|udh|belum|blm)\s+(?:makan|sarapan|lunch|dinner)\b/iu.test(text) ||
+      /\b(?:lagi\s+)?(?:ngapain|ngapa(?:in)?|apa\s+kabar|kabar(?:nya)?|sibuk\s+apa|lagi\s+apa)\b/iu.test(text) ||
+      /\b(?:kamu|lu|lo|km)\s+(?:lagi\s+)?(?:dimana|di\s+mana|makan\s+apa|ngapain|apa\s+kabar)\b/iu.test(text)
+    );
+  }
+
   private resolveFallbackTopic(input: CreateConversationPlanInput, detailHooks: string[]): string {
     if (input.quoteIntent && input.quoteIntent !== 'none') {
       return `quote_${input.quoteIntent}`;
@@ -381,6 +417,10 @@ export class ConversationBuilderService {
   }
 
   private isClarifyingBotWording(text: string, recentMessages: LlmMessage[]): boolean {
+    if (this.isAskingToCompletePreviousFragment(text, recentMessages)) {
+      return false;
+    }
+
     if (!this.looksLikeClarificationQuestion(text)) {
       return false;
     }
@@ -398,6 +438,26 @@ export class ConversationBuilderService {
     }
 
     return this.calculateTokenOverlap(text, latestAssistant) >= 0.45;
+  }
+
+  private isAskingToCompletePreviousFragment(text: string, recentMessages: LlmMessage[]): boolean {
+    const latestAssistant = recentMessages
+      .filter((message) => message.role === 'assistant')
+      .at(-1)?.content;
+
+    if (!latestAssistant || !this.endsWithDanglingFragment(latestAssistant)) {
+      return false;
+    }
+
+    return /^(?:cuma|tapi|terus|trus|soalnya|karena|maksudnya|maksudmu|maksudnya\s+apa|apa)\s*(?:apa|gimana|kenapa)?\??$/iu.test(
+      text.trim(),
+    );
+  }
+
+  private endsWithDanglingFragment(text: string): boolean {
+    return /(?:^|[\s,.;!?])(?:cuma|tapi|soalnya|karena|kayak|terus|trus|malah|maksudku|maksudnya|yang|biar|kalau|kalo)\s*[.!?…]*$/iu.test(
+      text.trim(),
+    );
   }
 
   private looksLikeClarificationQuestion(text: string): boolean {

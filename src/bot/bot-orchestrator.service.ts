@@ -6,7 +6,7 @@ import { ConversationsService } from '../conversations/conversations.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
 import { MessageDeduplicatorService } from '../messages/message-deduplicator.service';
 import { RoleplayChatService } from '../roleplay/roleplay-chat.service';
-import { BotReply } from './domain/bot-reply';
+import { BotReply, resolveBotReplyParts } from './domain/bot-reply';
 import { CommandRegistryService } from './command-registry.service';
 import { TemporaryGreetingReplyService } from './temporary-greeting-reply.service';
 
@@ -143,6 +143,12 @@ export class BotOrchestratorService {
       return;
     }
 
-    await this.conversations.recordOutbound(message.chatId, reply.text, message.id);
+    await this.conversations.recordOutbound(
+      message.chatId,
+      resolveBotReplyParts(reply)
+        .map((part) => part.text)
+        .join('\n'),
+      message.id,
+    );
   }
 }

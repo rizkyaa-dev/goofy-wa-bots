@@ -16,6 +16,7 @@ import { RoleplayMemoryTriggerService } from './memory/roleplay-memory-trigger.s
 import { RoleplayMemoryValidatorService } from './memory/roleplay-memory-validator.service';
 import { ExpertPromptRegistryService } from './prompt/expert-prompt-registry.service';
 import { RoleplayPromptCompilerService } from './prompt/roleplay-prompt-compiler.service';
+import { ConversationalProsodyPlannerService } from './prosody/conversational-prosody-planner.service';
 import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retriever.service';
 import { QuoteDecisionService } from './quote/quote-decision.service';
 import { QuotePolicyService } from './quote/quote-policy.service';
@@ -46,6 +47,7 @@ import { TimeContextService } from './time-context.service';
     RoleplayMemoryValidatorService,
     ExpertPromptRegistryService,
     RoleplayPromptCompilerService,
+    ConversationalProsodyPlannerService,
     QuoteCandidateRetrieverService,
     QuoteDecisionService,
     QuotePolicyService,

@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import qrcode from 'qrcode-terminal';
 import { Client, LocalAuth, Message } from 'whatsapp-web.js';
 import { BotOrchestratorService } from '../bot/bot-orchestrator.service';
-import { BotReply } from '../bot/domain/bot-reply';
+import { BotReply, BotReplyPart, resolveBotReplyParts } from '../bot/domain/bot-reply';
 import { AppEnv } from '../config/env.validation';
 import { BrowserExecutableResolverService } from './browser-executable-resolver.service';
 import { WhatsappMessageNormalizerService } from './whatsapp-message-normalizer.service';
@@ -112,8 +112,27 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
     }
 
     const chat = await message.getChat();
-    await this.typingSimulator.simulate(chat, reply.text);
-    await chat.sendMessage(reply.text, reply.quoteMessageId ? { quotedMessageId: reply.quoteMessageId } : undefined);
+    const parts = resolveBotReplyParts(reply);
+
+    for (const part of parts) {
+      await this.delay(part.delayMs ?? 0);
+      await this.typingSimulator.simulate(chat, part.text);
+      await chat.sendMessage(part.text, this.createSendOptions(part));
+    }
+  }
+
+  private createSendOptions(part: BotReplyPart): { quotedMessageId?: string } | undefined {
+    return part.quoteMessageId ? { quotedMessageId: part.quoteMessageId } : undefined;
+  }
+
+  private async delay(ms: number): Promise<void> {
+    if (ms <= 0) {
+      return;
+    }
+
+    await new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 
   private isCommand(body: string): boolean {

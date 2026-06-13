@@ -10,22 +10,60 @@ type ValidateInput = {
   conversationScope: 'personal_chat' | 'group_chat';
 };
 
+type ValidatePartsInput = Omit<ValidateInput, 'text'> & {
+  parts: string[];
+};
+
 @Injectable()
 export class ResponseValidatorService {
   apply(input: ValidateInput): string {
-    const echoSafe = this.removeEchoedContext(input.text, input.latestUserMessage, input.recentMessages);
-    const normalized = this.normalizeWhitespace(echoSafe);
-    const withoutTemplates = this.removeSocialTemplates(normalized);
-    const scopeSafe = input.conversationScope === 'personal_chat' ? this.sanitizePersonalScope(withoutTemplates) : withoutTemplates;
-    const disclosureSafe = this.limitSelfDisclosure(scopeSafe, input.plan);
+    const disclosureSafe = this.sanitizePart(input);
     const questionSafe = this.limitQuestions(disclosureSafe, input.plan);
     const sentenceSafe = this.limitSentences(questionSafe, input.plan.maxSentences);
     const apologySafe = this.repairAwkwardApology(sentenceSafe, input.plan);
     const clarificationSafe = this.repairAwkwardClarification(apologySafe, input.plan);
     const textureSafe = this.repairDeadEndAcknowledgement(clarificationSafe, input.plan);
-    const punctuationSafe = this.normalizeCasualPunctuation(textureSafe, input.plan);
+    const completeSafe = this.repairIncompleteTrailingFragment(textureSafe, input.plan);
+    const draftSafe = this.repairMetaDraftDisclosure(completeSafe, input.plan);
+    const punctuationSafe = this.normalizeCasualPunctuation(draftSafe, input.plan);
 
     return punctuationSafe || this.createFallback(input.plan);
+  }
+
+  applyToParts(input: ValidatePartsInput): string[] {
+    const sanitizedParts = input.parts
+      .map((part) =>
+        this.sanitizePart({
+          text: part,
+          latestUserMessage: input.latestUserMessage,
+          recentMessages: input.recentMessages,
+          plan: input.plan,
+          conversationScope: input.conversationScope,
+        }),
+      )
+      .map((part) => this.repairAwkwardApology(part, input.plan))
+      .map((part) => this.repairAwkwardClarification(part, input.plan))
+      .map((part) => this.repairDeadEndAcknowledgement(part, input.plan))
+      .map((part) => this.repairIncompleteTrailingFragment(part, input.plan))
+      .map((part) => this.repairMetaDraftDisclosure(part, input.plan))
+      .filter((part) => part.trim().length > 0);
+
+    const questionSafe = this.limitQuestionsAcrossParts(sanitizedParts, input.plan);
+    const sentenceSafe = this.limitSentencesAcrossParts(questionSafe, input.plan.maxSentences);
+    const punctuationSafe = sentenceSafe
+      .map((part) => this.normalizeCasualPunctuation(part, input.plan))
+      .filter((part) => part.trim().length > 0);
+
+    return punctuationSafe.length > 0 ? punctuationSafe : [this.createFallback(input.plan)];
+  }
+
+  private sanitizePart(input: ValidateInput): string {
+    const echoSafe = this.removeEchoedContext(input.text, input.latestUserMessage, input.recentMessages);
+    const normalized = this.normalizeWhitespace(echoSafe);
+    const withoutTemplates = this.removeSocialTemplates(normalized);
+    const scopeSafe = input.conversationScope === 'personal_chat' ? this.sanitizePersonalScope(withoutTemplates) : withoutTemplates;
+
+    return this.limitSelfDisclosure(scopeSafe, input.plan);
   }
 
   private removeSocialTemplates(text: string): string {
@@ -101,6 +139,43 @@ export class ResponseValidatorService {
     );
   }
 
+  private limitQuestionsAcrossParts(parts: string[], plan: RoleplayResponsePlan): string[] {
+    if (parts.length === 0) {
+      return parts;
+    }
+
+    if (!plan.questionAllowed) {
+      const withoutQuestions = parts
+        .map((part) => this.splitSentences(part).filter((sentence) => !sentence.trim().endsWith('?')).join(' '))
+        .map((part) => this.normalizeWhitespace(part))
+        .filter(Boolean);
+
+      return withoutQuestions.length > 0 ? withoutQuestions : [this.createFallback(plan)];
+    }
+
+    let questionUsed = false;
+
+    return parts
+      .map((part) =>
+        this.splitSentences(part)
+          .filter((sentence) => {
+            if (!sentence.trim().endsWith('?')) {
+              return true;
+            }
+
+            if (questionUsed) {
+              return false;
+            }
+
+            questionUsed = true;
+            return true;
+          })
+          .join(' '),
+      )
+      .map((part) => this.normalizeWhitespace(part))
+      .filter(Boolean);
+  }
+
   private limitSentences(text: string, maxSentences: number): string {
     const sentences = this.splitSentences(text);
 
@@ -109,6 +184,29 @@ export class ResponseValidatorService {
     }
 
     return this.normalizeWhitespace(sentences.slice(0, maxSentences).join(' '));
+  }
+
+  private limitSentencesAcrossParts(parts: string[], maxSentences: number): string[] {
+    let remaining = maxSentences;
+    const limited: string[] = [];
+
+    for (const part of parts) {
+      if (remaining <= 0) {
+        break;
+      }
+
+      const sentences = this.splitSentences(part);
+
+      if (sentences.length === 0) {
+        continue;
+      }
+
+      const selected = sentences.slice(0, remaining);
+      remaining -= selected.length;
+      limited.push(this.normalizeWhitespace(selected.join(' ')));
+    }
+
+    return limited.filter(Boolean);
   }
 
   private removeEchoedContext(text: string, latestUserMessage: string, recentMessages: LlmMessage[]): string {
@@ -246,6 +344,58 @@ export class ResponseValidatorService {
       .replace(/\s+dong\b/giu, '')
       .replace(/\s{2,}/g, ' ')
       .trim();
+  }
+
+  private repairIncompleteTrailingFragment(text: string, plan: RoleplayResponsePlan): string {
+    const normalized = text.trim();
+
+    if (!this.endsWithDanglingConnector(normalized)) {
+      return text;
+    }
+
+    const trimmed = normalized
+      .replace(/(?:[,;:]\s*)?(?:cuma|tapi|soalnya|karena|kayak|terus|trus|malah|maksudku|maksudnya|yang|biar|kalau|kalo)\s*[.!?…]*$/iu, '')
+      .replace(/\s+([,.!?])/gu, '$1')
+      .replace(/[,\s]+$/u, '')
+      .trim();
+
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+
+    if (plan.replyShape === 'tease_deflect') {
+      return 'Ih, jangan mancing aku';
+    }
+
+    if (plan.replyShape === 'comfort_anchor') {
+      return 'Iya... aku ngerti';
+    }
+
+    return this.createFallback(plan);
+  }
+
+  private repairMetaDraftDisclosure(text: string, plan: RoleplayResponsePlan): string {
+    const normalized = text.trim();
+
+    if (!/\b(?:aku\s+)?tadinya\s+mau\s+(?:ngomong|bilang)\b/iu.test(normalized)) {
+      return text;
+    }
+
+    if (plan.replyShape === 'tease_deflect' || plan.mode === 'tease') {
+      return 'cuma bercanda, jangan langsung dipancing gitu';
+    }
+
+    if (plan.replyShape === 'explain_clarify') {
+      return 'maksudku tadi cuma bercanda dikit';
+    }
+
+    return this.createFallback(plan);
+  }
+
+  private endsWithDanglingConnector(text: string): boolean {
+    return /(?:^|[\s,.;!?])(?:cuma|tapi|soalnya|karena|kayak|terus|trus|malah|maksudku|maksudnya|yang|biar|kalau|kalo)\s*[.!?…]*$/iu.test(
+      text,
+    );
   }
 
   private isDeadEndAcknowledgement(text: string): boolean {

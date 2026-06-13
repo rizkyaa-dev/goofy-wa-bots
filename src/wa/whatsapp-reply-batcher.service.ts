@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Message } from 'whatsapp-web.js';
 import { BotOrchestratorService } from '../bot/bot-orchestrator.service';
-import { BotReply } from '../bot/domain/bot-reply';
+import { BotReply, BotReplyPart, resolveBotReplyParts } from '../bot/domain/bot-reply';
 import { AppEnv } from '../config/env.validation';
 import { IncomingMessage } from '../messages/domain/incoming-message';
 import { WhatsappTypingSimulatorService } from './whatsapp-typing-simulator.service';
@@ -152,17 +152,53 @@ export class WhatsappReplyBatcherService implements OnModuleDestroy {
     }
 
     const chat = await source.getChat();
-    const typingCompleted = await this.typingSimulator.simulate(chat, reply.text, shouldContinue);
+    const parts = resolveBotReplyParts(reply);
 
-    if (!typingCompleted || !shouldContinue()) {
-      return;
+    for (const part of parts) {
+      if (!shouldContinue()) {
+        return;
+      }
+
+      const delayCompleted = await this.delay(part.delayMs ?? 0, shouldContinue);
+
+      if (!delayCompleted || !shouldContinue()) {
+        return;
+      }
+
+      const typingCompleted = await this.typingSimulator.simulate(chat, part.text, shouldContinue);
+
+      if (!typingCompleted || !shouldContinue()) {
+        return;
+      }
+
+      await chat.sendMessage(part.text, this.createSendOptions(part));
     }
-
-    await chat.sendMessage(reply.text, this.createSendOptions(reply));
   }
 
-  private createSendOptions(reply: BotReply): { quotedMessageId?: string } | undefined {
-    return reply.quoteMessageId ? { quotedMessageId: reply.quoteMessageId } : undefined;
+  private createSendOptions(part: BotReplyPart): { quotedMessageId?: string } | undefined {
+    return part.quoteMessageId ? { quotedMessageId: part.quoteMessageId } : undefined;
+  }
+
+  private async delay(ms: number, shouldContinue: () => boolean): Promise<boolean> {
+    if (ms <= 0) {
+      return shouldContinue();
+    }
+
+    const stepMs = 250;
+    let elapsedMs = 0;
+
+    while (elapsedMs < ms) {
+      if (!shouldContinue()) {
+        return false;
+      }
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, Math.min(stepMs, ms - elapsedMs));
+      });
+      elapsedMs += stepMs;
+    }
+
+    return shouldContinue();
   }
 
   private calculateDelayMs(state: BatchState): number {

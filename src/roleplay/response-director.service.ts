@@ -129,6 +129,10 @@ export class ResponseDirectorService {
       return true;
     }
 
+    if (input.latestIsQuestion && input.conversationPlan.topic === 'personal_reciprocal_question') {
+      return input.recentQuestionCount === 0;
+    }
+
     if (input.latestIsQuestion) {
       return false;
     }
@@ -210,6 +214,10 @@ export class ResponseDirectorService {
   }
 
   private resolveRouteMode(route: RoleplayRoute, conversationPlan: RoleplayConversationPlan): RoleplayResponsePlan['mode'] | null {
+    if (conversationPlan.botMove === 'complete_previous_fragment') {
+      return 'tease';
+    }
+
     if (route === 'answer_identity') {
       return 'answer_with_texture';
     }
@@ -283,6 +291,10 @@ export class ResponseDirectorService {
       return 'explain_clarify';
     }
 
+    if (botMove === 'complete_previous_fragment') {
+      return 'tease_deflect';
+    }
+
     if (botMove === 'tease_lightly') {
       return 'tease_deflect';
     }
@@ -346,6 +358,7 @@ export class ResponseDirectorService {
       conversationPlan.botMove === 'comfort_briefly' ||
       conversationPlan.botMove === 'reassure_lightly' ||
       conversationPlan.botMove === 'explain_previous_casually' ||
+      conversationPlan.botMove === 'complete_previous_fragment' ||
       conversationPlan.botMove === 'playful_affection' ||
       conversationPlan.botMove === 'soft_boundary_affection'
     ) {
@@ -366,6 +379,10 @@ export class ResponseDirectorService {
 
     if (conversationPlan.botMove === 'explain_previous_casually') {
       return 'light';
+    }
+
+    if (conversationPlan.botMove === 'complete_previous_fragment') {
+      return 'medium';
     }
 
     if (this.countRecentPlayfulAssistantReplies(recentMessages) >= 2 && route !== 'tease_deflect') {
