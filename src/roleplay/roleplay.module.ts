@@ -27,6 +27,7 @@ import { RoleplayResetService } from './roleplay-reset.service';
 import { RoleplayRouterService } from './roleplay-router.service';
 import { RoleplayStateRepository } from './roleplay-state.repository';
 import { TimeContextService } from './time-context.service';
+import { RoleplayPreAnalyzerService } from './roleplay-pre-analyzer.service';
 
 @Module({
   imports: [ConversationsModule, LlmModule],
@@ -57,7 +58,8 @@ import { TimeContextService } from './time-context.service';
     RoleplayRouterService,
     RoleplayStateRepository,
     TimeContextService,
+    RoleplayPreAnalyzerService,
   ],
-  exports: [RoleplayChatService, RoleplayMemoryService, RoleplayResetService],
+  exports: [RoleplayChatService, RoleplayMemoryService, RoleplayResetService, RoleplayPreAnalyzerService],
 })
 export class RoleplayModule {}

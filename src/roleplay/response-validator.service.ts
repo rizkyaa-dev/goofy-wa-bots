@@ -452,7 +452,7 @@ export class ResponseValidatorService {
   }
 
   private splitSentences(text: string): string[] {
-    return text.match(/[^.!?]+[.!?]?/gu)?.map((sentence) => sentence.trim()).filter(Boolean) ?? [];
+    return text.match(/[^.!?]+(?:[.!?]+|$)/gu)?.map((sentence) => sentence.trim()).filter(Boolean) ?? [];
   }
 
   private createFallback(plan: RoleplayResponsePlan): string {

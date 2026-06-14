@@ -376,12 +376,18 @@ export class RoleplayMemoryService {
     return relevance * 3 + importance * 0.7 + confidence * 0.3;
   }
 
+  private readonly stopWords = new Set([
+    'aku', 'kamu', 'dia', 'saya', 'lu', 'lo', 'gua', 'gue', 'mereka', 'kita', 'kami',
+    'yang', 'dan', 'atau', 'tapi', 'ada', 'ini', 'itu', 'lagi', 'dari', 'pada', 'buat',
+    'bisa', 'sama', 'oleh', 'ke', 'di', 'dari', 'untuk', 'dengan', 'sih', 'dong', 'deh'
+  ]);
+
   private tokenize(text: string): string[] {
     return text
       .toLowerCase()
       .replace(/[^\p{L}\p{N}\s]/gu, ' ')
       .split(/\s+/)
-      .filter((word) => word.length > 2);
+      .filter((word) => word.length > 2 && !this.stopWords.has(word));
   }
 
   private addDays(days: number): Date {

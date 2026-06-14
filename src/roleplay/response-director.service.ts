@@ -83,14 +83,14 @@ export class ResponseDirectorService {
   }
 
   private resolveMode(input: ResolveModeInput): RoleplayResponsePlan['mode'] {
+    if (input.quoteIntent === 'evidence') {
+      return 'quote_evidence';
+    }
+
     const routeMode = this.resolveRouteMode(input.route, input.conversationPlan);
 
     if (routeMode) {
       return routeMode;
-    }
-
-    if (input.quoteIntent === 'evidence') {
-      return 'quote_evidence';
     }
 
     if (input.isNameQuestion || input.latestIsQuestion) {

@@ -25,13 +25,7 @@ export class ContinuityGuardService {
       return input.text;
     }
 
-    const sanitized = this.removeUnsupportedContinuityClaims(input.text);
-
-    if (this.isCharacterNameQuestion(input.latestUserMessage) && !this.containsCharacterName(sanitized, input.characterName)) {
-      return `Aku ${input.characterName}.`;
-    }
-
-    return sanitized || this.createFallbackReply(input);
+    return this.createFallbackReply(input);
   }
 
   private hasClaimEvidence(input: ContinuityGuardInput): boolean {
@@ -48,38 +42,12 @@ export class ContinuityGuardService {
     return input.memories.some((memory) => memory.content.trim().length > 0);
   }
 
-  private removeUnsupportedContinuityClaims(text: string): string {
-    return text
-      .split(/(?<=[.!?])\s+/u)
-      .map((sentence) => this.removeContinuityClause(sentence))
-      .filter((sentence) => sentence.trim().length > 0)
-      .join(' ')
-      .replace(/\s{2,}/g, ' ')
-      .trim();
-  }
-
-  private removeContinuityClause(sentence: string): string {
-    const riskyClausePatterns = [
-      /\b(?:kan\s+)?(?:udah|sudah)\s+(?:aku\s+bilang|kubilang(?:in)?)\s+(?:tadi|barusan)?\s*(?:loh|lho|ya|kok|kan|hehe|wkwk)?[,.!?\s]*/giu,
-      /\b(?:kan\s+)?tadi\s+(?:aku\s+)?(?:bilang|nyebut|sebutin)\s*(?:loh|lho|ya|kok|kan|hehe|wkwk)?[,.!?\s]*/giu,
-      /\b(?:dulu|tadi|barusan)\s+(?:kamu|aku)\s+(?:pernah\s+)?(?:bilang|nyebut|cerita)\s*(?:loh|lho|ya|kok|kan|hehe|wkwk)?[,.!?\s]*/giu,
-      /\b(?:aku\s+)?(?:ingat|inget)\s+(?:kamu\s+)?(?:pernah\s+)?(?:bilang|cerita)\s*(?:loh|lho|ya|kok|kan|hehe|wkwk)?[,.!?\s]*/giu,
-    ];
-
-    return riskyClausePatterns
-      .reduce((current, pattern) => current.replace(pattern, ''), sentence)
-      .replace(/\s+([,.!?])/gu, '$1')
-      .replace(/^[,.\s]+/gu, '')
-      .replace(/\s{2,}/g, ' ')
-      .trim();
-  }
-
   private createFallbackReply(input: ContinuityGuardInput): string {
     if (this.isCharacterNameQuestion(input.latestUserMessage)) {
       return `Aku ${input.characterName}.`;
     }
 
-    return 'Oh iya, maksudku gitu.';
+    return 'Eh, emang iya ya? Lupa aku.';
   }
 
   private hasContinuityClaim(text: string): boolean {

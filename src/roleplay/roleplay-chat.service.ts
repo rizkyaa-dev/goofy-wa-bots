@@ -13,20 +13,18 @@ import { ConversationBuilderService } from './conversation/conversation-builder.
 import { ContinuityGuardService } from './continuity-guard.service';
 import { RecentMessageContextService } from './context/recent-message-context.service';
 import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
-import { EmotionClassifierService } from './emotion-classifier.service';
 import { EmotionEngineService } from './emotion-engine.service';
 import { RoleplayMemoryService } from './memory/roleplay-memory.service';
 import { ExpertPromptRegistryService } from './prompt/expert-prompt-registry.service';
 import { RoleplayPromptCompilerService } from './prompt/roleplay-prompt-compiler.service';
 import { ConversationalProsodyPlannerService } from './prosody/conversational-prosody-planner.service';
 import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retriever.service';
-import { QuoteDecisionService } from './quote/quote-decision.service';
 import { QuotePolicyService } from './quote/quote-policy.service';
 import { ResponseDirectorService } from './response-director.service';
 import { ResponseValidatorService } from './response-validator.service';
-import { RoleplayRouterService } from './roleplay-router.service';
 import { RoleplayStateRepository } from './roleplay-state.repository';
 import { TimeContextService } from './time-context.service';
+import { RoleplayPreAnalyzerService } from './roleplay-pre-analyzer.service';
 
 @Injectable()
 export class RoleplayChatService {
@@ -39,7 +37,6 @@ export class RoleplayChatService {
     private readonly conversationBuilder: ConversationBuilderService,
     private readonly continuityGuard: ContinuityGuardService,
     private readonly conversations: ConversationsService,
-    private readonly emotionClassifier: EmotionClassifierService,
     private readonly emotionEngine: EmotionEngineService,
     private readonly llm: LlmService,
     private readonly memories: RoleplayMemoryService,
@@ -47,47 +44,54 @@ export class RoleplayChatService {
     private readonly promptCompiler: RoleplayPromptCompilerService,
     private readonly prosodyPlanner: ConversationalProsodyPlannerService,
     private readonly quoteCandidates: QuoteCandidateRetrieverService,
-    private readonly quoteDecisions: QuoteDecisionService,
     private readonly quotePolicy: QuotePolicyService,
     private readonly recentContext: RecentMessageContextService,
     private readonly responseDirector: ResponseDirectorService,
     private readonly responseValidator: ResponseValidatorService,
-    private readonly router: RoleplayRouterService,
     private readonly states: RoleplayStateRepository,
     private readonly timeContext: TimeContextService,
+    private readonly preAnalyzer: RoleplayPreAnalyzerService,
   ) {}
 
   async generateReply(message: IncomingMessage, settings: ContactSetting): Promise<BotReply> {
     const previousState = await this.states.getOrCreate(message.chatId);
     const recentMessages = await this.recentContext.build(message.chatId);
-    const analysis = await this.emotionClassifier.analyze(message, this.formatRecentContext(recentMessages));
+    const conversationScope = message.isGroup ? 'group_chat' : 'personal_chat';
+
+    // 1. Capture and retrieve long-term memories first
+    await this.memories.captureFromInbound(message, this.formatRecentContext(recentMessages));
+    const memories = await this.memories.retrieve(message.chatId, message.body);
+
+    // 2. Fetch candidates for WhatsApp quotes
+    const quoteCandidates = await this.quoteCandidates.retrieve(message.chatId);
+
+    // 3. Unified Single LLM Pre-Analysis (Emotions, Quotes, and Routing)
+    const preAnalysis = await this.preAnalyzer.analyze({
+      message,
+      latestUserMessage: message.body,
+      recentContext: this.formatRecentContext(recentMessages),
+      recentMessages,
+      candidates: quoteCandidates,
+      memories,
+      conversationScope,
+    });
+
+    const analysis = preAnalysis.analysis;
+    const rawQuoteDecision = preAnalysis.quoteDecision;
+    const routeDecision = preAnalysis.routeDecision;
+
+    // 4. Evaluate and apply state/emotional updates
     const nextStatePatch = this.applyAnalysis(this.emotionEngine.evaluateInbound(previousState, message), analysis);
     const state = await this.states.updateAfterInbound(message.chatId, nextStatePatch);
 
-    await this.memories.captureFromInbound(message, this.formatRecentContext(recentMessages));
-
-    const memories = await this.memories.retrieve(message.chatId, message.body);
-    const quoteCandidates = await this.quoteCandidates.retrieve(message.chatId);
+    // 5. Apply the WhatsApp quote policy
     const quoteDecision = this.quotePolicy.apply(
-      await this.quoteDecisions.decide({
-        latestUserTurn: message.body,
-        recentContext: this.formatRecentContext(recentMessages),
-        candidates: quoteCandidates,
-        memories,
-      }),
+      rawQuoteDecision,
       quoteCandidates,
       message.id,
     );
     const quoteTarget = quoteCandidates.find((candidate) => candidate.messageId === quoteDecision.targetMessageId);
-    const conversationScope = message.isGroup ? 'group_chat' : 'personal_chat';
-    const routeDecision = await this.router.route({
-      latestUserMessage: message.body,
-      recentMessages,
-      memories,
-      analysis,
-      conversationScope,
-      quoteIntent: quoteDecision.intent,
-    });
+
     const conversationPlan = this.conversationBuilder.create({
       latestUserMessage: message.body,
       recentMessages,

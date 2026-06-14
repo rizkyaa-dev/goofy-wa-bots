@@ -487,6 +487,9 @@ export class ConversationBuilderService {
   }
 
   private isDailyUpdate(text: string): boolean {
+    if (text.trim().endsWith('?')) {
+      return false;
+    }
     return this.hasAny(text, [
       'udah',
       'sudah',
