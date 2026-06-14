@@ -58,6 +58,14 @@ export class ConversationalProsodyPlannerService {
       return 3;
     }
 
+    if (
+      input.responsePlan.questionAllowed &&
+      input.responsePlan.topicDevelopment !== 'none' &&
+      (input.responsePlan.selfDisclosure !== 'none' || input.responsePlan.emotionalTexture !== 'none')
+    ) {
+      return 3;
+    }
+
     if (input.responsePlan.topicDevelopment !== 'none' || input.responsePlan.questionAllowed) {
       return 2;
     }
@@ -81,9 +89,9 @@ export class ConversationalProsodyPlannerService {
 
   private recentAssistantWasBusy(recentMessages: LlmMessage[]): boolean {
     const recentAssistant = recentMessages.filter((message) => message.role === 'assistant').slice(-2);
-    const recentLongReplies = recentAssistant.filter((message) => this.countMessageChunks(message.content) >= 2).length;
+    const busyReplies = recentAssistant.filter((message) => this.isBusyAssistantReply(message.content)).length;
 
-    return recentLongReplies >= 1;
+    return busyReplies >= 2 || this.isVeryBusyAssistantReply(recentAssistant.at(-1)?.content ?? '');
   }
 
   private countMessageChunks(text: string): number {
@@ -91,6 +99,17 @@ export class ConversationalProsodyPlannerService {
       .split(/\n+/u)
       .map((part) => part.trim())
       .filter(Boolean).length;
+  }
+
+  private isBusyAssistantReply(text: string): boolean {
+    return this.countMessageChunks(text) >= 2;
+  }
+
+  private isVeryBusyAssistantReply(text: string): boolean {
+    const chunks = this.countMessageChunks(text);
+    const normalizedLength = text.replace(/\s+/g, ' ').trim().length;
+
+    return chunks >= 3 || (chunks >= 2 && normalizedLength >= 180);
   }
 
   private resolveRhythm(input: CreateInput, maxBubbles: number): RoleplayProsodyRhythm {
