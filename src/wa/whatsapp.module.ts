@@ -15,5 +15,6 @@ import { WhatsappWebClientService } from './whatsapp-web-client.service';
     WhatsappTypingSimulatorService,
     WhatsappWebClientService,
   ],
+  exports: [WhatsappWebClientService],
 })
 export class WhatsappModule {}

@@ -249,6 +249,21 @@ export class ResponseValidatorService {
       if (line.toLowerCase().startsWith(trimmedCandidate.toLowerCase())) {
         return line.slice(trimmedCandidate.length).replace(/^[\s,.:;-]+/u, '').trim();
       }
+
+      // Coba mencocokkan jika gema terbungkus tanda kutip
+      const quotePairs = [
+        ['"', '"'],
+        ["'", "'"],
+        ['“', '”'],
+        ['‘', '’'],
+      ];
+
+      for (const [startQuote, endQuote] of quotePairs) {
+        const wrapped = `${startQuote}${trimmedCandidate}${endQuote}`;
+        if (line.toLowerCase().startsWith(wrapped.toLowerCase())) {
+          return line.slice(wrapped.length).replace(/^[\s,.:;-]+/u, '').trim();
+        }
+      }
     }
 
     return line;

@@ -57,6 +57,16 @@ const thinkingType = z.preprocess((value) => {
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().min(1).default('file:./dev.db'),
+  APP_URL: z.string().url().default('http://localhost:3000'),
+  DASHBOARD_ENABLED: z
+    .string()
+    .default('true')
+    .transform((value) => value.toLowerCase() !== 'false'),
+  DASHBOARD_PORT: z
+    .string()
+    .default('3000')
+    .transform((value) => Number(value))
+    .pipe(z.number().int().positive()),
   WHATSAPP_CLIENT_ID: z.string().min(1).default('personal'),
   WHATSAPP_DATA_PATH: z.string().min(1).default('.wwebjs_auth'),
   WHATSAPP_HEADLESS: z
@@ -226,6 +236,20 @@ const envSchema = z.object({
   ROLEPLAY_MEMORY_EXTRACTOR_MAX_MEMORIES: z
     .string()
     .default('3')
+    .transform((value) => Number(value))
+    .pipe(z.number().int().positive()),
+  PROACTIVE_ENABLED: z
+    .string()
+    .default('true')
+    .transform((value) => value.toLowerCase() !== 'false'),
+  PROACTIVE_CHECK_INTERVAL_MINS: z
+    .string()
+    .default('15')
+    .transform((value) => Number(value))
+    .pipe(z.number().int().positive()),
+  PROACTIVE_INACTIVITY_HOURS: z
+    .string()
+    .default('24')
     .transform((value) => Number(value))
     .pipe(z.number().int().positive()),
 });

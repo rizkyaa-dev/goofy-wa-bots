@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alya Bot - Dashboard Kendali Lokal</title>
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="main-header">
+      <div class="brand">
+        <div class="logo-container">
+          <i class="fa-solid fa-robot pulse-icon"></i>
+        </div>
+        <div class="brand-text">
+          <h1><span class="gradient-text" id="character-name">Alya</span> Bot</h1>
+          <p>Dashboard Pengendali Kepribadian & Sesi WhatsApp</p>
+        </div>
+      </div>
+      
+      <div class="system-summary">
+        <div class="summary-item" style="justify-content: center; align-items: center; margin-right: 12px;">
+          <a href="/Sandbox" class="btn btn-primary" style="border-radius: 8px; text-decoration: none; padding: 8px 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;" title="Buka Sandbox untuk Pengujian Obrolan Terisolasi">
+            <i class="fa-solid fa-flask"></i> Uji Sandbox
+          </a>
+        </div>
+        <div class="summary-item" style="justify-content: center; align-items: center; margin-right: 8px;">
+          <button class="btn btn-secondary" id="btn-theme-toggle" style="border-radius: 50%; width: 36px; height: 36px; padding: 0; display: flex; align-items: center; justify-content: center;" title="Ubah Tema Terang/Gelap">
+            <i class="fa-solid fa-moon" id="theme-toggle-icon"></i>
+          </button>
+        </div>
+        <div class="summary-item">
+          <span class="label">LLM Provider</span>
+          <span class="value badge-info" id="llm-provider">Loading...</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Total Kontak</span>
+          <span class="value" id="total-contacts">0</span>
+        </div>
+        <div class="summary-item">
+          <span class="label">Status Koneksi</span>
+          <span class="connection-badge" id="conn-status-badge">
+            <span class="status-dot"></span>
+            <span id="conn-status-text">DISCONNECTED</span>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="main-content">
+      <!-- Left Column: WA Status & Controls -->
+      <section class="card glass-card" id="wa-connection-card">
+        <div class="card-header">
+          <h2><i class="fa-brands fa-whatsapp text-success"></i> WhatsApp Sesi</h2>
+          <button class="btn btn-secondary btn-sm" id="btn-restart-wa" title="Putuskan dan hubungkan ulang sesi WhatsApp">
+            <i class="fa-solid fa-arrows-rotate"></i> Restart Sesi
+          </button>
+        </div>
+        <div class="card-body connection-body">
+          <div id="connection-status-panel">
+            <div class="status-visual disconnected" id="status-visual">
+              <i class="fa-solid fa-qrcode icon-status"></i>
+            </div>
+            <p class="status-desc" id="status-desc">Menunggu inisialisasi client...</p>
+          </div>
+
+          <!-- QR Code Display -->
+          <div class="qr-container hidden" id="qr-panel">
+            <p class="qr-instruction">Pindai QR Code di bawah menggunakan WhatsApp di HP Anda untuk login:</p>
+            <div class="qr-wrapper">
+              <div id="qrcode"></div>
+            </div>
+            <p class="qr-expiry-info"><i class="fa-solid fa-circle-info"></i> Kode QR akan diperbarui otomatis jika kedaluwarsa.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Center Column: Contacts List -->
+      <section class="card glass-card" id="contacts-card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-address-book"></i> Kontak Aktif</h2>
+          <span class="badge" id="auto-reply-count">0 Auto-Reply</span>
+        </div>
+        <div class="card-body">
+          <div class="table-container">
+            <table class="contacts-table">
+              <thead>
+                <tr>
+                  <th>Kontak</th>
+                  <th>Mode Bot</th>
+                  <th>Hubungan (A / T / E)</th>
+                  <th>Mood</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="contacts-list-tbody">
+                <!-- Kontak akan dirender via JS -->
+                <tr class="placeholder-row">
+                  <td colspan="5" class="text-center">Memuat data kontak...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Detail, State Tuner & Memory Explorer -->
+      <section class="card glass-card hidden" id="details-card">
+        <div class="card-header">
+          <h2><i class="fa-solid fa-circle-info"></i> Detail & Memori: <span id="current-contact-name">User</span></h2>
+          <button class="btn btn-close" id="btn-close-details"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        
+        <div class="card-body scrollable-body">
+          <!-- State Tuner -->
+          <div class="details-section">
+            <h3>Tuning Hubungan & Mood</h3>
+            <form id="state-tuner-form">
+              <input type="hidden" id="tuner-chat-id">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="tuner-mood">Mood Karakter</label>
+                  <select id="tuner-mood" class="form-control">
+                    <option value="neutral">Neutral (Biasa)</option>
+                    <option value="happy">Happy (Senang)</option>
+                    <option value="sad">Sad (Sedih)</option>
+                    <option value="annoyed">Annoyed (Kesal)</option>
+                    <option value="warm">Warm (Hangat)</option>
+                    <option value="playful">Playful (Bercanda)</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="sliders-grid">
+                <div class="slider-group">
+                  <div class="slider-label">
+                    <span>Affection (Kasih Sayang)</span>
+                    <span class="slider-value" id="val-affection">50</span>
+                  </div>
+                  <input type="range" id="tuner-affection" min="0" max="100" value="50" class="slider">
+                </div>
+                
+                <div class="slider-group">
+                  <div class="slider-label">
+                    <span>Trust (Kepercayaan)</span>
+                    <span class="slider-value" id="val-trust">50</span>
+                  </div>
+                  <input type="range" id="tuner-trust" min="0" max="100" value="50" class="slider">
+                </div>
+                
+                <div class="slider-group">
+                  <div class="slider-label">
+                    <span>Energy (Energi)</span>
+                    <span class="slider-value" id="val-energy">70</span>
+                  </div>
+                  <input type="range" id="tuner-energy" min="0" max="100" value="70" class="slider">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-label">
+                    <span>Tension (Ketegangan)</span>
+                    <span class="slider-value" id="val-tension">0</span>
+                  </div>
+                  <input type="range" id="tuner-tension" min="0" max="100" value="0" class="slider">
+                </div>
+              </div>
+
+              <div class="form-group margin-top-md">
+                <label for="tuner-summary">Ringkasan Hubungan / Konteks</label>
+                <textarea id="tuner-summary" class="form-control" rows="2" placeholder="Tulis ringkasan relasi saat ini..."></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary btn-block margin-top-sm" id="btn-save-state">
+                <i class="fa-solid fa-floppy-disk"></i> Simpan Variabel Hubungan
+              </button>
+            </form>
+          </div>
+
+          <hr class="section-divider">
+
+          <!-- Memory Explorer -->
+          <div class="details-section">
+            <div class="section-header-flex">
+              <h3>Memori Karakter</h3>
+              <button class="btn btn-secondary btn-xs" id="btn-toggle-add-memory">
+                <i class="fa-solid fa-plus"></i> Tambah Memori
+              </button>
+            </div>
+
+            <!-- Add Memory Form -->
+            <form id="add-memory-form" class="hidden margin-top-sm glass-form">
+              <div class="form-group">
+                <label for="mem-kind">Jenis Memori</label>
+                <select id="mem-kind" class="form-control form-control-sm" required>
+                  <option value="user_fact">User Fact (Fakta User)</option>
+                  <option value="preference">Preference (Kesukaan)</option>
+                  <option value="relationship">Relationship (Relasi)</option>
+                  <option value="episode">Episode (Peristiwa)</option>
+                  <option value="boundary">Boundary (Batasan/Sensitif)</option>
+                  <option value="goal">Goal (Tujuan Obrolan)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="mem-content">Isi Memori</label>
+                <input type="text" id="mem-content" class="form-control form-control-sm" placeholder="Contoh: Menyukai kucing persia" required>
+              </div>
+              <div class="form-group">
+                <label for="mem-importance">Skor Penting (0 - 100)</label>
+                <input type="number" id="mem-importance" class="form-control form-control-sm" min="0" max="100" value="80" required>
+              </div>
+              <div class="form-actions-row">
+                <button type="button" class="btn btn-secondary btn-xs" id="btn-cancel-memory">Batal</button>
+                <button type="submit" class="btn btn-success btn-xs">Simpan Memori</button>
+              </div>
+            </form>
+
+            <!-- Memory List -->
+            <div class="memory-list margin-top-md" id="memory-items-container">
+              <!-- Memori akan dirender via JS -->
+              <p class="text-muted text-center font-sm">Pilih kontak untuk melihat memori</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Drawer Backdrop Overlay -->
+      <div class="drawer-backdrop" onclick="document.getElementById('btn-close-details').click()"></div>
+
+      <!-- Welcome Placeholder Card when no contact is selected -->
+      <section class="card glass-card flex-center" id="details-placeholder-card">
+        <div class="placeholder-content">
+          <i class="fa-solid fa-brain placeholder-large-icon"></i>
+          <h3>Explorasi Memori & Tuning Karakter</h3>
+          <p>Klik nama kontak di tabel Kontak Aktif untuk melihat memori, memodifikasi tingkat kasih sayang (affection), kepercayaan (trust), serta mengubah kepribadian bot secara dinamis.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- CDN QRCode Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- Frontend Logic -->
+  <script src="/app.js"></script>
+</body>
+</html>

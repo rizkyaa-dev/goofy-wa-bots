@@ -1,4 +1,4 @@
-# Bot WA Personal
+# Bot WA Personal
 
 Bot WhatsApp personal berbasis TypeScript, NestJS, Prisma SQLite, dan `whatsapp-web.js`.
 
@@ -14,6 +14,8 @@ Project ini adalah modular monolith. Adapter WhatsApp dibuat tipis, sedangkan lo
 - `llm`: provider Gemini, OpenAI, dan DeepSeek.
 - `roleplay`: runtime karakter, router, prompt compiler, memory, quote, emotion, dan response guard.
 - `infra/prisma`: Prisma client dan database SQLite.
+- `dashboard`: panel kendali lokal berbasis web (REST API & static frontend).
+- `proactive`: penjadwal sapaan proaktif (pagi/malam/inaktivitas).
 
 ## Setup
 
@@ -270,6 +272,117 @@ panggil aku sayang
 Nickname normal juga disimpan dari pesan seperti:
 
 ```txt
+
+Provider yang tersedia:
+
+- `gemini`
+- `openai`
+- `deepseek`
+
+Per chat, provider/model bisa diubah lewat `/provider` dan `/model`.
+
+## Roleplay Runtime
+
+Aktifkan roleplay untuk chat:
+
+```txt
+/mode auto_reply
+```
+
+Roleplay runtime menyusun balasan dari beberapa layer:
+
+1. `RecentMessageContextService`: mengambil recent chat dan membuang command noise.
+2. `EmotionClassifierService`: membaca tone, intent, delta affection/trust/tension/energy, dan avoid-question.
+3. `EmotionEngineService`: update state relasi dan mood dari pesan terbaru.
+4. `RoleplayMemoryService`: extract dan retrieve memory relevan.
+5. `QuoteDecisionService`: menentukan apakah perlu quote reply.
+6. `RoleplayRouterService`: memilih route seperti `smalltalk_continue`, `emotional_care`, `factual_answer`, `meta_testing`, dan lain-lain.
+7. `ConversationBuilderService`: membuat social move turn ini, misalnya factual utility, apology repair, affection/flirt, atau clarification.
+8. `RoleplayAddressPlannerService`: menentukan apakah boleh menyapa user dengan nickname atau alias mesra.
+9. `ResponseDirectorService`: menentukan reply shape, max sentences, question policy, self-disclosure, texture, dan playfulness.
+10. `ConversationalProsodyPlannerService`: memberi izin ritme 1-3 bubble WhatsApp tanpa mengunci template skenario.
+11. `RoleplayPromptCompilerService`: menyusun prompt final.
+12. `ContinuityGuardService` dan `ResponseValidatorService`: membersihkan echo, pertanyaan terlarang, self-disclosure, punctuation, dan output yang tidak natural.
+
+### Konfigurasi Roleplay
+
+```env
+ROLEPLAY_CHARACTER_NAME=Alya
+ROLEPLAY_CHARACTER_PROFILE=Karakter fiksi untuk ngobrol santai di WhatsApp. Hangat, responsif, dan punya rasa ingin tahu.
+ROLEPLAY_RECENT_MESSAGE_LIMIT=14
+ROLEPLAY_MEMORY_LIMIT=8
+
+ROLEPLAY_QUOTE_ENGINE_ENABLED=true
+ROLEPLAY_QUOTE_CANDIDATE_LIMIT=40
+ROLEPLAY_QUOTE_MIN_CONFIDENCE=0.74
+ROLEPLAY_QUOTE_PROVIDER=deepseek
+ROLEPLAY_QUOTE_MODEL=deepseek-v4-flash
+
+ROLEPLAY_ROUTER_ENABLED=false
+ROLEPLAY_ROUTER_PROVIDER=deepseek
+ROLEPLAY_ROUTER_MODEL=deepseek-v4-flash
+ROLEPLAY_ROUTER_MIN_CONFIDENCE=0.58
+
+ROLEPLAY_DEBUG_LOG_ENABLED=false
+ROLEPLAY_MULTI_BUBBLE_ENABLED=true
+ROLEPLAY_MULTI_BUBBLE_MAX_PARTS=3
+
+ROLEPLAY_EMOTION_CLASSIFIER_ENABLED=true
+ROLEPLAY_EMOTION_CLASSIFIER_PROVIDER=deepseek
+ROLEPLAY_EMOTION_CLASSIFIER_MODEL=deepseek-v4-flash
+
+ROLEPLAY_MEMORY_EXTRACTOR_ENABLED=true
+ROLEPLAY_MEMORY_EXTRACTOR_PROVIDER=deepseek
+ROLEPLAY_MEMORY_EXTRACTOR_MODEL=deepseek-v4-flash
+ROLEPLAY_MEMORY_EXTRACTOR_MIN_CONFIDENCE=0.65
+ROLEPLAY_MEMORY_EXTRACTOR_MAX_MEMORIES=3
+```
+
+`ROLEPLAY_MULTI_BUBBLE_ENABLED=true` mengizinkan roleplay runtime mengirim satu balasan sebagai beberapa bubble WhatsApp. Ini bukan template intent; LLM tetap memilih 1-3 bubble berdasarkan ritme chat, sementara sistem membatasi spam, total pertanyaan, total kalimat, quote reply, dan command/error tetap single reply.
+
+`ROLEPLAY_CHARACTER_NAME` dan `ROLEPLAY_CHARACTER_PROFILE` benar-benar masuk ke prompt karakter. Style, language register, linguistic profile, dan boundaries dasar saat ini berasal dari `src/roleplay/domain/default-roleplay-character.ts`.
+
+Contoh profile yang rapi:
+
+```env
+ROLEPLAY_CHARACTER_PROFILE=Seorang wanita yang berasal dari Bandung, sangat ramah, hangat, responsif, dan punya rasa ingin tahu tinggi.
+```
+
+### Memory
+
+Memory extractor berjalan kalau pesan punya sinyal seperti:
+
+- nama atau panggilan
+- preferensi
+- boundary
+- project atau goal
+- "ingat" atau "jangan lupa"
+
+Memory yang tersimpan bisa dilihat dengan:
+
+```txt
+/rp_memory
+```
+
+Memory dan history bisa dibersihkan dengan:
+
+```txt
+/rp_reset
+/rp_reset memory
+/rp_reset history
+```
+
+### Address dan Panggilan
+
+Bot tidak otomatis boleh memanggil user `sayang/syg` hanya karena user menyapa karakter dengan `ay`. Alias mesra seharusnya dipakai kalau user eksplisit mengizinkan, misalnya:
+
+```txt
+panggil aku sayang
+```
+
+Nickname normal juga disimpan dari pesan seperti:
+
+```txt
 nama ku Riski, dipanggil Ki
 ```
 
@@ -292,6 +405,60 @@ Matikan dengan:
 ```env
 TEMP_HAI_REPLY_ENABLED=false
 ```
+
+## Dashboard Lokal
+
+Bot ini dilengkapi dengan Dashboard lokal berbasis web (*localhost*) untuk mempermudah monitoring status WhatsApp, peninjauan kontak, serta manipulasi memori dan hubungan *roleplay* secara langsung tanpa membuka SQLite.
+
+### Konfigurasi Dashboard
+
+Tambahkan variabel berikut pada file `.env`:
+
+```env
+DASHBOARD_ENABLED=true
+DASHBOARD_PORT=3000
+APP_URL=http://localhost:3000
+```
+
+Dashboard dapat diakses melalui browser Anda di alamat: `http://localhost:3000/Dashboard`.
+
+---
+
+## Sandbox Testing Panel
+
+Halaman Sandbox Testing Panel dapat diakses di `http://localhost:3000/Sandbox` untuk melakukan simulasi chat dan pengujian *roleplay engine* Alya secara real-time.
+
+Untuk menjaga integritas obrolan WhatsApp produksi Anda, sesi Sandbox berjalan pada basis data terisolasi (`prisma/sandbox.db`) yang terpisah dari database utama (`prisma/dev.db`).
+
+### Fitur Sandbox
+* **Isolated Environment**: Chat history, relational states (*affection/trust*), dan ingatan memori yang diperbarui selama simulasi Sandbox disimpan sepenuhnya di database terpisah (`sandbox.db`).
+* **Visual Relation Inspector**: Panel sisi kanan menyajikan diagram batang tingkat kemesraan (*affection*), kepercayaan (*trust*), energi (*energy*), dan ketegangan (*tension*) serta daftar ingatan memori aktif dari database sandbox secara *real-time* setelah setiap respons chat.
+* **Sandbox Data Reset**: Tombol sekali klik untuk mereset seluruh data, emosi, dan memori di database sandbox agar Anda dapat memulai pengujian dari awal lagi dengan cepat.
+
+---
+
+## Proactive Messaging (Inisiatif Bot)
+
+Fitur ini memungkinkan bot untuk secara proaktif menyapa pengguna terlebih dahulu berdasarkan rentang waktu tertentu atau kondisi durasi keheningan (inaktivitas). 
+
+### Pemicu Sapaan Proaktif
+1. **Sapaan Pagi**: Pukul 07.00 - 08.30 WIB (hanya terpicu sekali dalam sehari).
+2. **Sapaan Malam**: Pukul 22.00 - 23.30 WIB (hanya terpicu sekali dalam sehari).
+3. **Inaktivitas (Kerinduan)**: Terpicu jika pengguna tidak membalas chat selama minimal 24 jam (atau durasi yang dikonfigurasi).
+
+### Konfigurasi Proactive Messaging
+
+```env
+PROACTIVE_ENABLED=true
+PROACTIVE_CHECK_INTERVAL_MINS=15
+PROACTIVE_INACTIVITY_HOURS=24
+```
+
+### Mekanisme Pengaman (Interlocking Check)
+Untuk mencegah sapaan proaktif mengganggu obrolan aktif atau mengirim pesan di waktu yang salah, sistem mengimplementasikan validasi pengaman berlapis:
+- **Pengecekan Komposisi (Typing State)**: Bot tidak akan mengirim sapaan jika mendeteksi target pengguna sedang mengetik (`COMPOSING`).
+- **Cooldown Interaksi**: Bot tidak akan mengirim sapaan jika ada pesan masuk/keluar baru dalam 10 menit terakhir.
+- **Log Rate Limit**: Menyimpan data log di tabel `ProactiveLog` untuk membatasi pengiriman satu jenis sapaan per rentang cooldown (maksimal sekali per hari untuk pagi/malam, dan sekali per 24 jam untuk inaktivitas).
 
 ## Pengembangan
 

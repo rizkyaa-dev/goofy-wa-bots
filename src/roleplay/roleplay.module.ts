@@ -60,6 +60,12 @@ import { RoleplayPreAnalyzerService } from './roleplay-pre-analyzer.service';
     TimeContextService,
     RoleplayPreAnalyzerService,
   ],
-  exports: [RoleplayChatService, RoleplayMemoryService, RoleplayResetService, RoleplayPreAnalyzerService],
+  exports: [
+    RoleplayChatService,
+    RoleplayMemoryService,
+    RoleplayResetService,
+    RoleplayPreAnalyzerService,
+    CharacterProfileService,
+  ],
 })
 export class RoleplayModule {}

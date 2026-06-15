@@ -291,9 +291,7 @@ export class RoleplayChatService {
   }
 
   private cleanReply(text: string, recentMessages: Array<{ role: string; content: string }>): string {
-    const cleaned = text
-      .trim()
-      .replace(/^["']|["']$/g, '')
+    const cleaned = this.stripOuterQuotes(text)
       .replace(/<<<NEXT>>>/gu, ' ')
       .replace(/^\s*(?:[-*]|\d+[.)])\s+/u, '')
       .replace(/^\s*[\w .-]{1,32}:\s*/, '')
@@ -474,6 +472,19 @@ export class RoleplayChatService {
       .filter((message) => message.role === 'assistant')
       .slice(-2)
       .some((message) => message.content.trim().endsWith('?'));
+  }
+
+  private stripOuterQuotes(str: string): string {
+    const trimmed = str.trim();
+    if (
+      (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+      (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+      (trimmed.startsWith('“') && trimmed.endsWith('”')) ||
+      (trimmed.startsWith('‘') && trimmed.endsWith('’'))
+    ) {
+      return trimmed.slice(1, -1).trim();
+    }
+    return trimmed;
   }
 }
 

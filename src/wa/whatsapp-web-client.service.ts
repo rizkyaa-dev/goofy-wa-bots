@@ -13,9 +13,14 @@ import { WhatsappMessageNormalizerService } from './whatsapp-message-normalizer.
 import { WhatsappReplyBatcherService } from './whatsapp-reply-batcher.service';
 import { WhatsappTypingSimulatorService } from './whatsapp-typing-simulator.service';
 
+export type WhatsappConnectionStatus = 'DISCONNECTED' | 'SCAN_QR' | 'AUTHENTICATING' | 'LOADING' | 'READY';
+
 @Injectable()
 export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(WhatsappWebClientService.name);
+  private connectionStatus: WhatsappConnectionStatus = 'DISCONNECTED';
+  private lastQrCode: string | null = null;
+  private readonly typingUsers = new Map<string, number>();
   private readonly reconnectDelayMs = 5_000;
   private readonly expectedNavigationErrorWindowMs = 15_000;
   private readonly transientNavigationLogCooldownMs = 10_000;
@@ -59,6 +64,7 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    this.connectionStatus = 'AUTHENTICATING';
     this.initializing = true;
     const generation = ++this.clientGeneration;
     const client = this.createClient();
@@ -127,6 +133,8 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      this.connectionStatus = 'SCAN_QR';
+      this.lastQrCode = qr;
       this.logger.log('Scan this QR code using WhatsApp mobile app.');
       qrcode.generate(qr, { small: true });
     });
@@ -136,6 +144,8 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      this.connectionStatus = 'AUTHENTICATING';
+      this.lastQrCode = null;
       authenticatedLogged = true;
       this.logger.log('WhatsApp session authenticated.');
     });
@@ -145,6 +155,8 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      this.connectionStatus = 'READY';
+      this.lastQrCode = null;
       readyLogged = true;
       this.logger.log(`WhatsApp client is ready as ${client.info?.wid?._serialized ?? 'unknown account'}.`);
     });
@@ -154,6 +166,7 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      this.connectionStatus = 'LOADING';
       this.logger.log(`WhatsApp loading ${percent}%: ${message}`);
     });
 
@@ -180,6 +193,17 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
 
       void this.handleMessage(message);
     });
+
+    client.on('chat_state_change', (chatState: any) => {
+      if (!this.isCurrentClient(client, generation)) {
+        return;
+      }
+      if (chatState.state === 'COMPOSING') {
+        this.typingUsers.set(chatState.chatId, Date.now());
+      } else {
+        this.typingUsers.delete(chatState.chatId);
+      }
+    });
   }
 
   private async handleDisconnected(client: Client, generation: number, reason: string): Promise<void> {
@@ -187,6 +211,8 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    this.connectionStatus = 'DISCONNECTED';
+    this.lastQrCode = null;
     this.markExpectedNavigationError();
     this.retireClient(client);
     this.logger.warn(`WhatsApp client disconnected: ${reason}`);
@@ -209,6 +235,8 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    this.connectionStatus = 'DISCONNECTED';
+    this.lastQrCode = null;
     this.markExpectedNavigationError();
     this.retireClient(client);
     this.logger.error(`WhatsApp authentication failed: ${message}`);
@@ -226,6 +254,8 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
     if (message.fromMe || !message.body.trim()) {
       return;
     }
+
+    this.typingUsers.delete(message.from);
 
     try {
       const incoming = await this.normalizer.normalize(message);
@@ -430,6 +460,58 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
 
   private retireClient(client: Client): void {
     this.retiredClients.add(client);
+  }
+
+  async sendMessage(chatId: string, text: string): Promise<void> {
+    if (!this.client || this.connectionStatus !== 'READY') {
+      throw new Error('WhatsApp client is not ready.');
+    }
+
+    try {
+      const chat = await this.client.getChatById(chatId);
+      await this.typingSimulator.simulate(chat, text);
+      await chat.sendMessage(text);
+    } catch (error) {
+      this.logger.error(`Failed to send proactive message to ${chatId}: ${this.getErrorMessage(error)}`);
+      throw error;
+    }
+  }
+
+  isUserTyping(chatId: string): boolean {
+    const lastTyping = this.typingUsers.get(chatId);
+    if (!lastTyping) {
+      return false;
+    }
+    // Consider active composing expired after 2 minutes (120,000 ms)
+    if (Date.now() - lastTyping < 120_000) {
+      return true;
+    }
+    this.typingUsers.delete(chatId);
+    return false;
+  }
+
+  getConnectionStatus(): WhatsappConnectionStatus {
+    return this.connectionStatus;
+  }
+
+  getLastQrCode(): string | null {
+    return this.lastQrCode;
+  }
+
+  async restartClient(): Promise<void> {
+    this.logger.log('Force restarting WhatsApp client via dashboard...');
+    this.connectionStatus = 'DISCONNECTED';
+    this.lastQrCode = null;
+    this.clearReconnectTimer();
+
+    if (this.client) {
+      this.retireClient(this.client);
+      await this.destroyClient(this.client);
+      this.client = undefined;
+    }
+
+    await this.cleanupLocalAuthSession();
+    await this.initializeClient();
   }
 }
 

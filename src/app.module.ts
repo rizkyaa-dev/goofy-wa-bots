@@ -6,6 +6,9 @@ import { ContactsModule } from './contacts/contacts.module';
 import { ConversationsModule } from './conversations/conversations.module';
 import { PrismaModule } from './infra/prisma/prisma.module';
 import { WhatsappModule } from './wa/whatsapp.module';
+import { DashboardModule } from './dashboard/dashboard.module';
+import { ProactiveModule } from './proactive/proactive.module';
+import { SandboxModule } from './sandbox/sandbox.module';
 
 @Module({
   imports: [
@@ -19,6 +22,9 @@ import { WhatsappModule } from './wa/whatsapp.module';
     ConversationsModule,
     BotModule,
     WhatsappModule,
+    DashboardModule,
+    ProactiveModule,
+    SandboxModule,
   ],
 })
 export class AppModule {}
