@@ -32,6 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const energyBar = document.getElementById('energyBar');
   const tensionVal = document.getElementById('tensionVal');
   const tensionBar = document.getElementById('tensionBar');
+  const intimacyVal = document.getElementById('intimacyVal');
+  const intimacyBar = document.getElementById('intimacyBar');
+  const shynessVal = document.getElementById('shynessVal');
+  const shynessBar = document.getElementById('shynessBar');
   const moodBadge = document.getElementById('moodBadge');
   const memoryList = document.getElementById('memoryList');
   
@@ -161,6 +165,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Tension
     tensionVal.innerText = `${state.tension}/100`;
     tensionBar.style.width = `${state.tension}%`;
+
+    // Intimacy
+    intimacyVal.innerText = `${state.intimacy ?? 10}/100`;
+    intimacyBar.style.width = `${state.intimacy ?? 10}%`;
+
+    // Shyness
+    shynessVal.innerText = `${state.shyness ?? 15}/100`;
+    shynessBar.style.width = `${state.shyness ?? 15}%`;
 
     // Mood badge class
     moodBadge.innerText = state.mood;

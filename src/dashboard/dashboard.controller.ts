@@ -96,7 +96,7 @@ export class DashboardController {
   @Post('/api/dashboard/contacts/:chatId/state')
   async updateContactRoleplayState(
     @Param('chatId') chatId: string,
-    @Body() body: { mood?: RoleplayMood; affection?: number; trust?: number; energy?: number; tension?: number; summary?: string },
+    @Body() body: { mood?: RoleplayMood; affection?: number; trust?: number; energy?: number; tension?: number; intimacy?: number; shyness?: number; summary?: string },
   ) {
     return this.dashboardService.updateContactRoleplayState(chatId, body);
   }

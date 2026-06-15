@@ -94,7 +94,7 @@ export class DashboardService {
 
   async updateContactRoleplayState(
     chatId: string,
-    data: { mood?: RoleplayMood; affection?: number; trust?: number; energy?: number; tension?: number; summary?: string },
+    data: { mood?: RoleplayMood; affection?: number; trust?: number; energy?: number; tension?: number; intimacy?: number; shyness?: number; summary?: string },
   ) {
     this.logger.log(`Updating roleplay state for ${chatId}`);
     return this.prisma.roleplayState.upsert({
@@ -106,6 +106,8 @@ export class DashboardService {
         trust: data.trust ?? 50,
         energy: data.energy ?? 70,
         tension: data.tension ?? 0,
+        intimacy: data.intimacy ?? 10,
+        shyness: data.shyness ?? 15,
         summary: data.summary ?? '',
       },
       update: data,

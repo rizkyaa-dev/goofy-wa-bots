@@ -15,6 +15,8 @@ export type RoleplayEmotionAnalysis = {
   trustDelta: number;
   tensionDelta: number;
   energyDelta: number;
+  intimacyDelta: number;
+  shynessDelta: number;
   avoidQuestion: boolean;
   replyDirective: string;
 };

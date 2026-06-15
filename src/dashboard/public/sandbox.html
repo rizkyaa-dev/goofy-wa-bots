@@ -421,6 +421,16 @@
       box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
     }
 
+    .intimacy-fill {
+      background: linear-gradient(90deg, #ff7e5f, #feb47b);
+      box-shadow: 0 0 8px rgba(254, 180, 123, 0.4);
+    }
+
+    .shyness-fill {
+      background: linear-gradient(90deg, #e0c3fc, #8ec5fc);
+      box-shadow: 0 0 8px rgba(142, 197, 252, 0.4);
+    }
+
     .mood-badge {
       display: inline-block;
       padding: 6px 12px;
@@ -627,6 +637,28 @@
             </div>
             <div class="metric-bar-bg">
               <div class="metric-bar-fill tension-fill" id="tensionBar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <!-- Intimacy -->
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Intimacy (Keintiman)</span>
+              <span class="metric-value" id="intimacyVal">10/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill intimacy-fill" id="intimacyBar" style="width: 10%;"></div>
+            </div>
+          </div>
+
+          <!-- Shyness -->
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Shyness (Salah Tingkah)</span>
+              <span class="metric-value" id="shynessVal">15/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill shyness-fill" id="shynessBar" style="width: 15%;"></div>
             </div>
           </div>
 

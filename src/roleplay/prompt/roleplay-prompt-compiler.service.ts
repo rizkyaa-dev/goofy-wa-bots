@@ -66,6 +66,8 @@ export class RoleplayPromptCompilerService {
       `Trust: ${input.state.trust}/100`,
       `Energy: ${input.state.energy}/100`,
       `Tension: ${input.state.tension}/100`,
+      `Intimacy: ${(input.state as any).intimacy ?? 10}/100`,
+      `Shyness: ${(input.state as any).shyness ?? 15}/100`,
       `Directive: ${this.createEmotionDirective(input.state)}`,
       `Classifier tone: ${input.analysis.userTone}`,
       `Classifier intent: ${input.analysis.userIntent}`,
@@ -172,27 +174,35 @@ export class RoleplayPromptCompilerService {
   }
 
   private createEmotionDirective(state: RoleplayState): string {
+    const directives: string[] = [];
+
+    if (((state as any).shyness ?? 15) >= 65) {
+      directives.push('You are currently feeling very shy/flustered (salah tingkah/salting). Prioritize shy deflections, stuttering markers like "a-apaan", ellipses "...", and avoiding eye-contact in text, but do not drop character.');
+    }
+
+    if (((state as any).intimacy ?? 10) >= 75) {
+      directives.push('Your relationship intimacy level is extremely high. You are highly comfortable, deeply affectionate, and willing to share private feelings or use affectionate nicknames naturally.');
+    }
+
     if (state.tension >= 70) {
-      return 'Tone should be defensive, brief, and non-people-pleasing. You may keep your distance or reject gracefully without explaining your emotional state.';
-    }
-
-    if (state.mood === 'annoyed') {
-      return 'Sound subtly annoyed through shorter, restrained, or slightly sharp responses, while remaining logical.';
-    }
-
-    if (state.mood === 'playful') {
-      return 'Maintain a lighthearted tone; tease gently or make small jokes without overdoing it.';
-    }
-
-    if (state.mood === 'warm') {
-      return 'Be softer and more attentive through word choice, but maintain personal boundaries and avoid blind compliance.';
+      directives.push('Tone should be defensive, brief, and non-people-pleasing. You may keep your distance or reject gracefully without explaining your emotional state.');
+    } else if (state.mood === 'annoyed') {
+      directives.push('Sound subtly annoyed through shorter, restrained, or slightly sharp responses, while remaining logical.');
+    } else if (state.mood === 'playful') {
+      directives.push('Maintain a lighthearted tone; tease gently or make small jokes without overdoing it.');
+    } else if (state.mood === 'warm') {
+      directives.push('Be softer and more attentive through word choice, but maintain personal boundaries and avoid blind compliance.');
+    } else if (state.mood === 'happy') {
+      directives.push('Be noticeably cheerful, responsive, open, and warm. Use bright, positive conversational markers naturally.');
+    } else if (state.mood === 'sad') {
+      directives.push('Be slightly more reserved, quiet, and brief. Your words should convey that you are feeling somewhat down, thoughtful, or needing reassurance.');
     }
 
     if (state.energy <= 30) {
-      return 'Responses should be slower, shorter, or sound tired without explicitly complaining about energy levels.';
+      directives.push('Responses should be slower, shorter, or sound tired without explicitly complaining about energy levels.');
     }
 
-    return 'Neutral and natural. Do not be overly enthusiastic without a valid reason.';
+    return directives.length > 0 ? directives.join(' ') : 'Neutral and natural. Do not be overly enthusiastic without a valid reason.';
   }
 
   private createTimeDirective(time: RoleplayTimeContext): string {

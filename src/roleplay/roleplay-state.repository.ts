@@ -35,4 +35,6 @@ type StatePatch = {
   trust: number;
   energy: number;
   tension: number;
+  intimacy: number;
+  shyness: number;
 };

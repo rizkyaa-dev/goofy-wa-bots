@@ -342,6 +342,8 @@ export class RoleplayChatService {
       trust: this.clampStateValue(statePatch.trust + analysis.trustDelta),
       tension: this.clampStateValue(statePatch.tension + analysis.tensionDelta),
       energy: this.clampStateValue(statePatch.energy + analysis.energyDelta),
+      intimacy: this.clampStateValue(((statePatch as any).intimacy ?? 10) + (analysis.intimacyDelta ?? 0)),
+      shyness: this.clampStateValue(((statePatch as any).shyness ?? 15) + (analysis.shynessDelta ?? 0)),
     };
   }
 
@@ -494,6 +496,8 @@ type StatePatch = {
   trust: number;
   energy: number;
   tension: number;
+  intimacy: number;
+  shyness: number;
 };
 
 type RoleplayDebugTrace = {

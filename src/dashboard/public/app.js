@@ -29,11 +29,15 @@ const elTunerAffection = document.getElementById('tuner-affection');
 const elTunerTrust = document.getElementById('tuner-trust');
 const elTunerEnergy = document.getElementById('tuner-energy');
 const elTunerTension = document.getElementById('tuner-tension');
+const elTunerIntimacy = document.getElementById('tuner-intimacy');
+const elTunerShyness = document.getElementById('tuner-shyness');
 const elTunerSummary = document.getElementById('tuner-summary');
 const elValAffection = document.getElementById('val-affection');
 const elValTrust = document.getElementById('val-trust');
 const elValEnergy = document.getElementById('val-energy');
 const elValTension = document.getElementById('val-tension');
+const elValIntimacy = document.getElementById('val-intimacy');
+const elValShyness = document.getElementById('val-shyness');
 const elStateTunerForm = document.getElementById('state-tuner-form');
 
 // Memory Elements
@@ -84,6 +88,8 @@ function setupEventListeners() {
   elTunerTrust.addEventListener('input', (e) => elValTrust.textContent = e.target.value);
   elTunerEnergy.addEventListener('input', (e) => elValEnergy.textContent = e.target.value);
   elTunerTension.addEventListener('input', (e) => elValTension.textContent = e.target.value);
+  elTunerIntimacy.addEventListener('input', (e) => elValIntimacy.textContent = e.target.value);
+  elTunerShyness.addEventListener('input', (e) => elValShyness.textContent = e.target.value);
 
   // State Tuner Form Submit
   elStateTunerForm.addEventListener('submit', handleTunerSubmit);
@@ -280,7 +286,7 @@ async function inspectContact(chatId) {
   const contact = currentContacts.find(c => c.chatId === chatId);
   if (!contact) return;
 
-  const state = contact.roleplayState || { affection: 50, trust: 50, energy: 70, tension: 0, mood: 'neutral', summary: '' };
+  const state = contact.roleplayState || { affection: 50, trust: 50, energy: 70, tension: 0, intimacy: 10, shyness: 15, mood: 'neutral', summary: '' };
   
   // Update Details Header
   const cleanNum = contact.chatId.replace('@c.us', '');
@@ -301,6 +307,12 @@ async function inspectContact(chatId) {
 
   elTunerTension.value = state.tension ?? 0;
   elValTension.textContent = state.tension ?? 0;
+
+  elTunerIntimacy.value = state.intimacy ?? 10;
+  elValIntimacy.textContent = state.intimacy ?? 10;
+
+  elTunerShyness.value = state.shyness ?? 15;
+  elValShyness.textContent = state.shyness ?? 15;
 
   elTunerSummary.value = state.summary || '';
 
@@ -422,6 +434,8 @@ async function handleTunerSubmit(e) {
         trust: parseInt(elTunerTrust.value),
         energy: parseInt(elTunerEnergy.value),
         tension: parseInt(elTunerTension.value),
+        intimacy: parseInt(elTunerIntimacy.value),
+        shyness: parseInt(elTunerShyness.value),
         summary: elTunerSummary.value
       })
     });

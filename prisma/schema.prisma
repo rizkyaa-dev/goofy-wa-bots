@@ -82,6 +82,8 @@ model RoleplayState {
   trust             Int          @default(50)
   energy            Int          @default(70)
   tension           Int          @default(0)
+  intimacy          Int          @default(10)
+  shyness           Int          @default(15)
   summary           String?
   lastInteractionAt DateTime?
   createdAt         DateTime     @default(now())

@@ -12,6 +12,8 @@ const fallbackAnalysis: RoleplayEmotionAnalysis = {
   trustDelta: 0,
   tensionDelta: 0,
   energyDelta: 0,
+  intimacyDelta: 0,
+  shynessDelta: 0,
   avoidQuestion: false,
   replyDirective: 'Read the user literally and respond naturally.',
 };
@@ -58,6 +60,8 @@ export class EmotionClassifierService {
                 trustDelta: 'integer -5..5',
                 tensionDelta: 'integer -5..5',
                 energyDelta: 'integer -5..5',
+                intimacyDelta: 'integer -5..5',
+                shynessDelta: 'integer -5..5',
                 avoidQuestion: 'boolean',
                 replyDirective: 'short instruction for the reply generator',
               },
@@ -83,6 +87,8 @@ export class EmotionClassifierService {
       trustDelta: this.clampDelta(parsed.trustDelta),
       tensionDelta: this.clampDelta(parsed.tensionDelta),
       energyDelta: this.clampDelta(parsed.energyDelta),
+      intimacyDelta: this.clampDelta(parsed.intimacyDelta),
+      shynessDelta: this.clampDelta(parsed.shynessDelta),
       avoidQuestion: Boolean(parsed.avoidQuestion),
       replyDirective:
         typeof parsed.replyDirective === 'string' && parsed.replyDirective
