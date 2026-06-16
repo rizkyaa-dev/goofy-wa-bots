@@ -11,7 +11,10 @@ import { AppEnv } from '../config/env.validation';
 @Injectable()
 export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ProactiveSchedulerService.name);
-  private checkInterval?: NodeJS.Timeout;
+  private checkTimer?: NodeJS.Timeout;
+  private startupTimer?: NodeJS.Timeout;
+  private isCheckingInitiatives = false;
+  private readonly activeTriggerKeys = new Set<string>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -35,23 +38,26 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
 
     this.logger.log(`Initializing proactive scheduler. Running check every ${intervalMins} minute(s).`);
 
-    // Run first check after a short delay (e.g. 30 seconds) to let systems settle
-    setTimeout(() => {
-      void this.checkInitiatives();
+    // Run first check after a short delay to let systems settle.
+    this.startupTimer = setTimeout(() => {
+      this.startupTimer = undefined;
+      void this.runInitiativesCycle();
     }, 30000);
-
-    this.checkInterval = setInterval(() => {
-      void this.checkInitiatives();
-    }, intervalMs);
   }
 
   onModuleDestroy() {
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-    }
+    this.clearStartupTimer();
+    this.clearCheckTimer();
   }
 
   async checkInitiatives(): Promise<void> {
+    if (this.isCheckingInitiatives) {
+      this.logger.warn('Skipping proactive check because a previous cycle is still running.');
+      return;
+    }
+
+    this.isCheckingInitiatives = true;
+
     try {
       const status = this.waClient.getConnectionStatus();
       if (status !== 'READY') {
@@ -69,6 +75,8 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
       }
     } catch (error) {
       this.logger.error(`Error in checkInitiatives cycle: ${error instanceof Error ? error.stack : error}`);
+    } finally {
+      this.isCheckingInitiatives = false;
     }
   }
 
@@ -220,6 +228,14 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
     triggerType: 'morning_greeting' | 'night_greeting' | 'inactivity',
   ): Promise<void> {
     const chatId = contact.chatId;
+    const triggerKey = `${chatId}:${triggerType}`;
+
+    if (this.activeTriggerKeys.has(triggerKey)) {
+      this.logger.warn(`Skipping duplicate proactive trigger attempt for ${triggerKey}.`);
+      return;
+    }
+
+    this.activeTriggerKeys.add(triggerKey);
     this.logger.log(`Triggering proactive greeting of type "${triggerType}" for ${chatId}`);
 
     try {
@@ -281,15 +297,52 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
         data: {
           chatId,
           direction: 'outbound',
-          body: `[Proactive: ${triggerType}]`,
-          responseText: cleanText,
+          body: cleanText,
         },
       });
 
       this.logger.log(`Proactive greeting "${triggerType}" successfully sent to ${chatId}.`);
     } catch (error) {
       this.logger.error(`Failed to generate/send proactive greeting for ${chatId}: ${error instanceof Error ? error.stack : error}`);
+    } finally {
+      this.activeTriggerKeys.delete(triggerKey);
     }
+  }
+
+  private async runInitiativesCycle(): Promise<void> {
+    try {
+      await this.checkInitiatives();
+    } finally {
+      this.scheduleNextCheck();
+    }
+  }
+
+  private scheduleNextCheck(): void {
+    this.clearCheckTimer();
+
+    const intervalMs = this.config.get('PROACTIVE_CHECK_INTERVAL_MINS') * 60 * 1000;
+    this.checkTimer = setTimeout(() => {
+      this.checkTimer = undefined;
+      void this.runInitiativesCycle();
+    }, intervalMs);
+  }
+
+  private clearStartupTimer(): void {
+    if (!this.startupTimer) {
+      return;
+    }
+
+    clearTimeout(this.startupTimer);
+    this.startupTimer = undefined;
+  }
+
+  private clearCheckTimer(): void {
+    if (!this.checkTimer) {
+      return;
+    }
+
+    clearTimeout(this.checkTimer);
+    this.checkTimer = undefined;
   }
 
   private stripOuterQuotes(str: string): string {

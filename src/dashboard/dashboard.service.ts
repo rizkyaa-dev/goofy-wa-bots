@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { BotMode, Prisma, RoleplayMemoryKind, RoleplayMood } from '@prisma/client';
 import { PrismaService } from '../infra/prisma/prisma.service';
 import { WhatsappWebClientService, WhatsappConnectionStatus } from '../wa/whatsapp-web-client.service';
 import { AppEnv } from '../config/env.validation';
-import { BotMode, RoleplayMood, RoleplayMemoryKind } from '@prisma/client';
+import { AddContactMemoryInput, UpdateContactRoleplayStateInput } from './dashboard.validation';
 
 @Injectable()
 export class DashboardService {
@@ -63,8 +64,10 @@ export class DashboardService {
     });
   }
 
-  async addContactMemory(chatId: string, data: { kind: RoleplayMemoryKind; content: string; importance: number }) {
+  async addContactMemory(chatId: string, data: AddContactMemoryInput) {
     this.logger.log(`Manually adding memory for contact ${chatId}: [${data.kind}] ${data.content}`);
+    await this.ensureContactSetting(chatId);
+
     return this.prisma.roleplayMemory.create({
       data: {
         chatId,
@@ -79,24 +82,35 @@ export class DashboardService {
 
   async deleteMemory(memoryId: string) {
     this.logger.log(`Deleting memory with ID: ${memoryId}`);
-    return this.prisma.roleplayMemory.delete({
-      where: { id: memoryId },
-    });
+    try {
+      return await this.prisma.roleplayMemory.delete({
+        where: { id: memoryId },
+      });
+    } catch (error) {
+      if (this.isNotFoundError(error)) {
+        throw new NotFoundException(`Memory ${memoryId} not found.`);
+      }
+
+      throw error;
+    }
   }
 
   async updateContactMode(chatId: string, mode: BotMode) {
     this.logger.log(`Updating bot mode for ${chatId} to ${mode}`);
-    return this.prisma.contactSetting.update({
+    return this.prisma.contactSetting.upsert({
       where: { chatId },
-      data: { mode },
+      update: { mode },
+      create: {
+        chatId,
+        mode,
+      },
     });
   }
 
-  async updateContactRoleplayState(
-    chatId: string,
-    data: { mood?: RoleplayMood; affection?: number; trust?: number; energy?: number; tension?: number; intimacy?: number; shyness?: number; summary?: string },
-  ) {
+  async updateContactRoleplayState(chatId: string, data: UpdateContactRoleplayStateInput) {
     this.logger.log(`Updating roleplay state for ${chatId}`);
+    await this.ensureContactSetting(chatId);
+
     return this.prisma.roleplayState.upsert({
       where: { chatId },
       create: {
@@ -120,5 +134,20 @@ export class DashboardService {
       this.logger.error(`Failed to restart WhatsApp Client: ${error.message}`, error.stack);
     });
     return { success: true, message: 'Restart triggered successfully.' };
+  }
+
+  private async ensureContactSetting(chatId: string) {
+    return this.prisma.contactSetting.upsert({
+      where: { chatId },
+      update: {},
+      create: {
+        chatId,
+        mode: this.config.get('BOT_DEFAULT_MODE'),
+      },
+    });
+  }
+
+  private isNotFoundError(error: unknown): boolean {
+    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025';
   }
 }

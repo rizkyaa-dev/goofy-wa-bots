@@ -2,7 +2,13 @@ import { Controller, Get, Res, Param, Delete, Post, Body, HttpStatus } from '@ne
 import { join } from 'path';
 import { readFileSync, existsSync } from 'fs';
 import { DashboardService } from './dashboard.service';
-import { BotMode, RoleplayMood, RoleplayMemoryKind } from '@prisma/client';
+import {
+  parseAddContactMemoryInput,
+  parseChatId,
+  parseMemoryId,
+  parseUpdateContactModeInput,
+  parseUpdateContactRoleplayStateInput,
+} from './dashboard.validation';
 
 @Controller()
 export class DashboardController {
@@ -72,33 +78,31 @@ export class DashboardController {
 
   @Get('/api/dashboard/contacts/:chatId/memory')
   async getContactMemory(@Param('chatId') chatId: string) {
-    return this.dashboardService.getContactMemory(chatId);
+    return this.dashboardService.getContactMemory(parseChatId(chatId));
   }
 
   @Post('/api/dashboard/contacts/:chatId/memory')
-  async addContactMemory(
-    @Param('chatId') chatId: string,
-    @Body() body: { kind: RoleplayMemoryKind; content: string; importance: number },
-  ) {
-    return this.dashboardService.addContactMemory(chatId, body);
+  async addContactMemory(@Param('chatId') chatId: string, @Body() body: unknown) {
+    return this.dashboardService.addContactMemory(parseChatId(chatId), parseAddContactMemoryInput(body));
   }
 
   @Delete('/api/dashboard/memory/:id')
   async deleteMemory(@Param('id') id: string) {
-    return this.dashboardService.deleteMemory(id);
+    return this.dashboardService.deleteMemory(parseMemoryId(id));
   }
 
   @Post('/api/dashboard/contacts/:chatId/mode')
-  async updateContactMode(@Param('chatId') chatId: string, @Body() body: { mode: BotMode }) {
-    return this.dashboardService.updateContactMode(chatId, body.mode);
+  async updateContactMode(@Param('chatId') chatId: string, @Body() body: unknown) {
+    const parsedBody = parseUpdateContactModeInput(body);
+    return this.dashboardService.updateContactMode(parseChatId(chatId), parsedBody.mode);
   }
 
   @Post('/api/dashboard/contacts/:chatId/state')
-  async updateContactRoleplayState(
-    @Param('chatId') chatId: string,
-    @Body() body: { mood?: RoleplayMood; affection?: number; trust?: number; energy?: number; tension?: number; intimacy?: number; shyness?: number; summary?: string },
-  ) {
-    return this.dashboardService.updateContactRoleplayState(chatId, body);
+  async updateContactRoleplayState(@Param('chatId') chatId: string, @Body() body: unknown) {
+    return this.dashboardService.updateContactRoleplayState(
+      parseChatId(chatId),
+      parseUpdateContactRoleplayStateInput(body),
+    );
   }
 
   @Post('/api/dashboard/wa/restart')

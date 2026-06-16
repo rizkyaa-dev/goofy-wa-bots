@@ -14,12 +14,19 @@ import { RoleplayMemoryExtractorService } from './memory/roleplay-memory-extract
 import { RoleplayMemoryService } from './memory/roleplay-memory.service';
 import { RoleplayMemoryTriggerService } from './memory/roleplay-memory-trigger.service';
 import { RoleplayMemoryValidatorService } from './memory/roleplay-memory-validator.service';
+import { CharacterFoundationPromptBuilder } from './prompt/builders/character-foundation-prompt.builder';
+import { ConversationContextPromptBuilder } from './prompt/builders/conversation-context-prompt.builder';
+import { EmotionStatePromptBuilder } from './prompt/builders/emotion-state-prompt.builder';
+import { MemoryQuoteOutputPromptBuilder } from './prompt/builders/memory-quote-output-prompt.builder';
+import { ResponseStylePromptBuilder } from './prompt/builders/response-style-prompt.builder';
+import { TimeContextPromptBuilder } from './prompt/builders/time-context-prompt.builder';
 import { ExpertPromptRegistryService } from './prompt/expert-prompt-registry.service';
 import { RoleplayPromptCompilerService } from './prompt/roleplay-prompt-compiler.service';
 import { ConversationalProsodyPlannerService } from './prosody/conversational-prosody-planner.service';
 import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retriever.service';
 import { QuoteDecisionService } from './quote/quote-decision.service';
 import { QuotePolicyService } from './quote/quote-policy.service';
+import { RoleplayReplyPostProcessorService } from './response/roleplay-reply-post-processor.service';
 import { ResponseDirectorService } from './response/response-director.service';
 import { ResponseValidatorService } from './validation/response-validator.service';
 import { RoleplayChatService } from './roleplay-chat.service';
@@ -46,12 +53,19 @@ import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.ser
     RoleplayMemoryService,
     RoleplayMemoryTriggerService,
     RoleplayMemoryValidatorService,
+    CharacterFoundationPromptBuilder,
+    EmotionStatePromptBuilder,
+    TimeContextPromptBuilder,
+    ConversationContextPromptBuilder,
+    ResponseStylePromptBuilder,
+    MemoryQuoteOutputPromptBuilder,
     ExpertPromptRegistryService,
     RoleplayPromptCompilerService,
     ConversationalProsodyPlannerService,
     QuoteCandidateRetrieverService,
     QuoteDecisionService,
     QuotePolicyService,
+    RoleplayReplyPostProcessorService,
     ResponseDirectorService,
     ResponseValidatorService,
     RoleplayResetService,

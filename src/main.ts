@@ -5,6 +5,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
   const dashboardEnabled = process.env.DASHBOARD_ENABLED !== 'false';
+  const dashboardHost = process.env.DASHBOARD_HOST?.trim() || '127.0.0.1';
   const port = process.env.DASHBOARD_PORT ? Number(process.env.DASHBOARD_PORT) : 3000;
 
   const logger = new Logger('Bootstrap');
@@ -12,9 +13,9 @@ async function bootstrap(): Promise<void> {
 
   if (dashboardEnabled) {
     app = await NestFactory.create(AppModule);
-    await app.listen(port);
+    await app.listen(port, dashboardHost);
     logger.log(`Personal WhatsApp bot is starting. Scan the QR code when it appears.`);
-    const appUrl = process.env.APP_URL ? process.env.APP_URL.replace(/\/$/, '') : `http://localhost:${port}`;
+    const appUrl = process.env.APP_URL ? process.env.APP_URL.replace(/\/$/, '') : `http://${dashboardHost}:${port}`;
     logger.log(`Dashboard is running at ${appUrl}/Dashboard`);
   } else {
     app = await NestFactory.createApplicationContext(AppModule);
