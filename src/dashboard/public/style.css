@@ -594,6 +594,10 @@ body.light-theme .contacts-table tbody tr:hover {
 .mood-badge.annoyed { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
 .mood-badge.warm { background: rgba(244, 63, 94, 0.15); color: #f43f5e; }
 .mood-badge.playful { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+.mood-badge.sleepy { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+.mood-badge.excited { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.mood-badge.jealous { background: rgba(236, 72, 153, 0.15); color: #f472b6; }
+.mood-badge.worried { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; }
 
 /* Placeholder Card */
 .flex-center {

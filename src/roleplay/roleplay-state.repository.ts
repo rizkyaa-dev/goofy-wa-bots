@@ -14,15 +14,19 @@ export class RoleplayStateRepository {
   }
 
   async updateAfterInbound(chatId: string, statePatch: StatePatch) {
+    const patch = {
+      ...statePatch,
+      mood: statePatch.mood as any,
+    };
     return this.prisma.roleplayState.upsert({
       where: { chatId },
       update: {
-        ...statePatch,
+        ...patch,
         lastInteractionAt: new Date(),
       },
       create: {
         chatId,
-        ...statePatch,
+        ...patch,
         lastInteractionAt: new Date(),
       },
     });
@@ -30,7 +34,7 @@ export class RoleplayStateRepository {
 }
 
 type StatePatch = {
-  mood: 'neutral' | 'happy' | 'sad' | 'annoyed' | 'warm' | 'playful';
+  mood: 'neutral' | 'happy' | 'sad' | 'annoyed' | 'warm' | 'playful' | 'sleepy' | 'excited' | 'jealous' | 'worried';
   affection: number;
   trust: number;
   energy: number;

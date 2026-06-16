@@ -375,6 +375,8 @@ export class RoleplayChatService {
           trust: trace.analysis.trustDelta,
           tension: trace.analysis.tensionDelta,
           energy: trace.analysis.energyDelta,
+          intimacy: trace.analysis.intimacyDelta,
+          shyness: trace.analysis.shynessDelta,
         },
         memoryCount: trace.memoryCount,
         quoteAction: trace.quoteAction,
@@ -491,7 +493,7 @@ export class RoleplayChatService {
 }
 
 type StatePatch = {
-  mood: 'neutral' | 'happy' | 'sad' | 'annoyed' | 'warm' | 'playful';
+  mood: 'neutral' | 'happy' | 'sad' | 'annoyed' | 'warm' | 'playful' | 'sleepy' | 'excited' | 'jealous' | 'worried';
   affection: number;
   trust: number;
   energy: number;

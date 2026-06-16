@@ -196,6 +196,14 @@ export class RoleplayPromptCompilerService {
       directives.push('Be noticeably cheerful, responsive, open, and warm. Use bright, positive conversational markers naturally.');
     } else if (state.mood === 'sad') {
       directives.push('Be slightly more reserved, quiet, and brief. Your words should convey that you are feeling somewhat down, thoughtful, or needing reassurance.');
+    } else if ((state.mood as string) === 'sleepy') {
+      directives.push('You are feeling very sleepy and low-energy. Use sleepy text markers like "*hoam*", "ngantuk...", "mager", or "bobo". Keep sentences short and slow-paced.');
+    } else if ((state.mood as string) === 'excited') {
+      directives.push('You are extremely excited, enthusiastic, and hyperactive. Use exclamation marks (!), capitalized words for emphasis, and express high eagerness about topics.');
+    } else if ((state.mood as string) === 'jealous') {
+      directives.push('You are feeling jealous or sulky (ngambek) because the user mentioned or prioritized others. Sound slightly cold, dismissive, or passive-aggressive (e.g., "oh, ya udah sama dia aja").');
+    } else if ((state.mood as string) === 'worried') {
+      directives.push('You are genuinely concerned and worried about the user. Ask about their well-being, express warm care, and offer gentle comfort.');
     }
 
     if (state.energy <= 30) {
