@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from 'fs';
 import { PrismaService, prismaStorage } from '../infra/prisma/prisma.service';
 import { SandboxPrismaService } from '../infra/prisma/sandbox-prisma.service';
 import { RoleplayChatService } from '../roleplay/roleplay-chat.service';
-import { RoleplayResetService } from '../roleplay/roleplay-reset.service';
+import { RoleplayResetService } from '../roleplay/state/roleplay-reset.service';
 import { ConversationsService } from '../conversations/conversations.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
 import { resolveBotReplyParts } from '../bot/domain/bot-reply';

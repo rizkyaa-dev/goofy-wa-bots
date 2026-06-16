@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../infra/prisma/prisma.service';
 import { WhatsappWebClientService } from '../wa/whatsapp-web-client.service';
 import { LlmService } from '../llm/llm.service';
-import { CharacterProfileService } from '../roleplay/character-profile.service';
+import { CharacterProfileService } from '../roleplay/identity/character-profile.service';
 import { RoleplayMemoryService } from '../roleplay/memory/roleplay-memory.service';
 import { ProactivePromptCompilerService } from './proactive-prompt-compiler.service';
 import { AppEnv } from '../config/env.validation';

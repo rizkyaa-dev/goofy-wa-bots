@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppEnv } from '../config/env.validation';
-import { defaultRoleplayCharacter } from './domain/default-roleplay-character';
-import { RoleplayCharacterProfile } from './domain/roleplay-character-profile';
+import { AppEnv } from '../../config/env.validation';
+import { defaultRoleplayCharacter } from '../domain/default-roleplay-character';
+import { RoleplayCharacterProfile } from '../domain/roleplay-character-profile';
 
 @Injectable()
 export class CharacterProfileService {

@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RoleplayMemory } from '@prisma/client';
-import { AppEnv } from '../config/env.validation';
-import { LlmMessage } from '../llm/domain/llm.types';
-import { LlmService } from '../llm/llm.service';
-import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
-import { RoleplayRoute, RoleplayRouteDecision, roleplayRoutes } from './domain/roleplay-route';
-import { RoleplayIdentityQuestionDetectorService } from './identity/roleplay-identity-question-detector.service';
+import { AppEnv } from '../../config/env.validation';
+import { LlmMessage } from '../../llm/domain/llm.types';
+import { LlmService } from '../../llm/llm.service';
+import { RoleplayEmotionAnalysis } from '../domain/roleplay-emotion-analysis';
+import { RoleplayRoute, RoleplayRouteDecision, roleplayRoutes } from '../domain/roleplay-route';
+import { RoleplayIdentityQuestionDetectorService } from '../identity/roleplay-identity-question-detector.service';
 
 type RouteInput = {
   latestUserMessage: string;

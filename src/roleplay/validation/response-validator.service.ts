@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { LlmMessage } from '../llm/domain/llm.types';
-import { RoleplayResponsePlan } from './domain/roleplay-response-plan';
+import { LlmMessage } from '../../llm/domain/llm.types';
+import { RoleplayResponsePlan } from '../domain/roleplay-response-plan';
 
 type ValidateInput = {
   text: string;

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { RoleplayResetScope, RoleplayResetService } from '../../roleplay/roleplay-reset.service';
+import { RoleplayResetScope, RoleplayResetService } from '../../roleplay/state/roleplay-reset.service';
 import { BotReply } from '../domain/bot-reply';
 import { CommandContext } from '../domain/command-context';
 import { CommandHandler } from '../domain/command-handler';

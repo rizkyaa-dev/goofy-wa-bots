@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { RoleplayMemory } from '@prisma/client';
-import { LlmMessage } from '../llm/domain/llm.types';
-import { RoleplayIdentityQuestionDetectorService } from './identity/roleplay-identity-question-detector.service';
+import { LlmMessage } from '../../llm/domain/llm.types';
+import { RoleplayIdentityQuestionDetectorService } from '../identity/roleplay-identity-question-detector.service';
 
 type ContinuityGuardInput = {
   text: string;

@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { LlmMessage } from '../llm/domain/llm.types';
-import { RoleplayBotMove, RoleplayConversationPlan } from './domain/roleplay-conversation-plan';
-import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
-import { RoleplayResponsePlan } from './domain/roleplay-response-plan';
-import { RoleplayRoute, RoleplayRouteDecision } from './domain/roleplay-route';
-import { RoleplayIdentityQuestionDetectorService } from './identity/roleplay-identity-question-detector.service';
+import { LlmMessage } from '../../llm/domain/llm.types';
+import { RoleplayBotMove, RoleplayConversationPlan } from '../domain/roleplay-conversation-plan';
+import { RoleplayEmotionAnalysis } from '../domain/roleplay-emotion-analysis';
+import { RoleplayResponsePlan } from '../domain/roleplay-response-plan';
+import { RoleplayRoute, RoleplayRouteDecision } from '../domain/roleplay-route';
+import { RoleplayIdentityQuestionDetectorService } from '../identity/roleplay-identity-question-detector.service';
 
 type CreatePlanInput = {
   latestUserMessage: string;
@@ -270,6 +270,7 @@ export class ResponseDirectorService {
       conversationPlan.botMove === 'react_then_continue' ||
       conversationPlan.botMove === 'answer_then_warm_texture' ||
       conversationPlan.botMove === 'comfort_briefly' ||
+      conversationPlan.botMove === 'reassure_lightly' ||
       conversationPlan.followUpPolicy !== 'none'
     );
   }

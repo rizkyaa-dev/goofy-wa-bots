@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RoleplayState } from '@prisma/client';
-import { RoleplayTimeContext } from './domain/roleplay-time-context';
+import { RoleplayTimeContext } from '../domain/roleplay-time-context';
 
 @Injectable()
 export class TimeContextService {

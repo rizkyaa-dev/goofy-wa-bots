@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RoleplayMood, RoleplayState } from '@prisma/client';
-import { IncomingMessage } from '../messages/domain/incoming-message';
+import { IncomingMessage } from '../../messages/domain/incoming-message';
 
 @Injectable()
 export class EmotionEngineService {

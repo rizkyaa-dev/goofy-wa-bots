@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppEnv } from '../config/env.validation';
-import { LlmService } from '../llm/llm.service';
-import { IncomingMessage } from '../messages/domain/incoming-message';
-import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
+import { AppEnv } from '../../config/env.validation';
+import { LlmService } from '../../llm/llm.service';
+import { IncomingMessage } from '../../messages/domain/incoming-message';
+import { RoleplayEmotionAnalysis } from '../domain/roleplay-emotion-analysis';
 
 const fallbackAnalysis: RoleplayEmotionAnalysis = {
   userTone: 'neutral',

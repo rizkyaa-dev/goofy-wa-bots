@@ -8,23 +8,23 @@ import { LlmProviderError } from '../llm/errors/llm-provider.error';
 import { LlmService } from '../llm/llm.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
 import { RoleplayAddressPlannerService } from './address/roleplay-address-planner.service';
-import { CharacterProfileService } from './character-profile.service';
+import { CharacterProfileService } from './identity/character-profile.service';
 import { ConversationBuilderService } from './conversation/conversation-builder.service';
-import { ContinuityGuardService } from './continuity-guard.service';
+import { ContinuityGuardService } from './validation/continuity-guard.service';
 import { RecentMessageContextService } from './context/recent-message-context.service';
 import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
-import { EmotionEngineService } from './emotion-engine.service';
+import { EmotionEngineService } from './emotion/emotion-engine.service';
 import { RoleplayMemoryService } from './memory/roleplay-memory.service';
 import { ExpertPromptRegistryService } from './prompt/expert-prompt-registry.service';
 import { RoleplayPromptCompilerService } from './prompt/roleplay-prompt-compiler.service';
 import { ConversationalProsodyPlannerService } from './prosody/conversational-prosody-planner.service';
 import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retriever.service';
 import { QuotePolicyService } from './quote/quote-policy.service';
-import { ResponseDirectorService } from './response-director.service';
-import { ResponseValidatorService } from './response-validator.service';
-import { RoleplayStateRepository } from './roleplay-state.repository';
-import { TimeContextService } from './time-context.service';
-import { RoleplayPreAnalyzerService } from './roleplay-pre-analyzer.service';
+import { ResponseDirectorService } from './response/response-director.service';
+import { ResponseValidatorService } from './validation/response-validator.service';
+import { RoleplayStateRepository } from './state/roleplay-state.repository';
+import { TimeContextService } from './context/time-context.service';
+import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.service';
 
 @Injectable()
 export class RoleplayChatService {

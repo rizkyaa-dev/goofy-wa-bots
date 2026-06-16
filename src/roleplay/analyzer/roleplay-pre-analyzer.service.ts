@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { RoleplayMemory } from '@prisma/client';
-import { AppEnv } from '../config/env.validation';
-import { LlmService } from '../llm/llm.service';
-import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
-import { QuoteCandidate } from './quote/domain/quote-candidate';
-import { QuoteDecision, noQuoteDecision, QuoteIntent } from './quote/domain/quote-decision';
-import { RoleplayRouteDecision, roleplayRoutes, RoleplayRoute } from './domain/roleplay-route';
-import { RoleplayIdentityQuestionDetectorService } from './identity/roleplay-identity-question-detector.service';
-import { IncomingMessage } from '../messages/domain/incoming-message';
+import { AppEnv } from '../../config/env.validation';
+import { LlmService } from '../../llm/llm.service';
+import { RoleplayEmotionAnalysis } from '../domain/roleplay-emotion-analysis';
+import { QuoteCandidate } from '../quote/domain/quote-candidate';
+import { QuoteDecision, noQuoteDecision, QuoteIntent } from '../quote/domain/quote-decision';
+import { RoleplayRouteDecision, roleplayRoutes, RoleplayRoute } from '../domain/roleplay-route';
+import { RoleplayIdentityQuestionDetectorService } from '../identity/roleplay-identity-question-detector.service';
+import { IncomingMessage } from '../../messages/domain/incoming-message';
 
 export type PreAnalysisInput = {
   message: IncomingMessage;
