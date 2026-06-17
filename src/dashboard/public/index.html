@@ -77,9 +77,10 @@
           <!-- QR Code Display -->
           <div class="qr-container hidden" id="qr-panel">
             <p class="qr-instruction">Pindai QR Code di bawah menggunakan WhatsApp di HP Anda untuk login:</p>
-            <div class="qr-wrapper">
+            <button type="button" class="qr-wrapper qr-open-trigger" id="qr-open-trigger" aria-label="Perbesar QR Code">
               <div id="qrcode"></div>
-            </div>
+              <span class="qr-zoom-hint"><i class="fa-solid fa-up-right-and-down-left-from-center"></i> Klik untuk perbesar</span>
+            </button>
             <p class="qr-expiry-info"><i class="fa-solid fa-circle-info"></i> Kode QR akan diperbarui otomatis jika kedaluwarsa.</p>
           </div>
         </div>
@@ -354,6 +355,23 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div class="qr-lightbox hidden" id="qr-lightbox" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="qr-lightbox-title">
+    <button type="button" class="qr-lightbox-backdrop" id="qr-lightbox-backdrop" aria-label="Tutup QR Code"></button>
+    <div class="qr-lightbox-panel" role="document">
+      <div class="qr-lightbox-header">
+        <div>
+          <p class="eyebrow">WhatsApp Login</p>
+          <h3 id="qr-lightbox-title">Pindai QR Code</h3>
+        </div>
+        <button type="button" class="qr-lightbox-close" id="qr-lightbox-close" aria-label="Tutup QR Code">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="qr-lightbox-code" id="qrcode-lightbox"></div>
+      <p class="qr-lightbox-help">Buka WhatsApp di HP, masuk ke Perangkat Tertaut, lalu pindai kode ini.</p>
+    </div>
   </div>
 
   <!-- CDN QRCode Library -->

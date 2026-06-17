@@ -15,6 +15,10 @@ const elConnStatusText = document.getElementById('conn-status-text');
 const elStatusVisual = document.getElementById('status-visual');
 const elStatusDesc = document.getElementById('status-desc');
 const elQrPanel = document.getElementById('qr-panel');
+const elQrOpenTrigger = document.getElementById('qr-open-trigger');
+const elQrLightbox = document.getElementById('qr-lightbox');
+const elQrLightboxBackdrop = document.getElementById('qr-lightbox-backdrop');
+const elQrLightboxClose = document.getElementById('qr-lightbox-close');
 const elBtnRestartWa = document.getElementById('btn-restart-wa');
 
 const elContactsListTbody = document.getElementById('contacts-list-tbody');
@@ -95,10 +99,19 @@ function setupEventListeners() {
     const isLight = document.body.classList.toggle('light-theme');
     localStorage.setItem('theme', isLight ? 'light' : 'dark');
     elThemeIcon.className = isLight ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+    rerenderVisibleQrCodes();
   });
 
   // Restart WA
   elBtnRestartWa.addEventListener('click', restartWaClient);
+
+  // QR lightbox
+  elQrOpenTrigger?.addEventListener('click', openQrLightbox);
+  elQrLightboxBackdrop?.addEventListener('click', closeQrLightbox);
+  elQrLightboxClose?.addEventListener('click', closeQrLightbox);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeQrLightbox();
+  });
 
   // Close Details Panel
   elBtnCloseDetails.addEventListener('click', closeDetailsPanel);
@@ -160,6 +173,7 @@ async function fetchStatus() {
       elStatusDesc.innerHTML = '<span class="text-success font-semibold">Bot Aktif & Siap Menerima Pesan</span>';
       elQrPanel.classList.add('hidden');
       currentQrCode = null;
+      closeQrLightbox();
     } else if (status === 'SCAN_QR') {
       elConnStatusBadge.classList.add('connecting');
       elStatusVisual.classList.add('loading');
@@ -179,6 +193,7 @@ async function fetchStatus() {
       elStatusDesc.textContent = status === 'LOADING' ? 'Menyiapkan Data WhatsApp Web...' : 'Sedang Mengautentikasi Sesi...';
       elQrPanel.classList.add('hidden');
       currentQrCode = null;
+      closeQrLightbox();
     } else {
       // DISCONNECTED
       elStatusVisual.classList.add('disconnected');
@@ -186,6 +201,7 @@ async function fetchStatus() {
       elStatusDesc.textContent = 'WhatsApp Terputus.';
       elQrPanel.classList.add('hidden');
       currentQrCode = null;
+      closeQrLightbox();
     }
 
   } catch (error) {
@@ -203,10 +219,66 @@ function renderQrCode(qrText) {
     text: qrText,
     width: 220,
     height: 220,
-    colorDark: '#080c14',
-    colorLight: '#ffffff',
+    colorDark: getQrDarkColor(),
+    colorLight: getQrLightColor(),
     correctLevel: QRCode.CorrectLevel.H
   });
+
+  if (isQrLightboxOpen()) {
+    renderQrCodeLightbox(qrText);
+  }
+}
+
+function renderQrCodeLightbox(qrText) {
+  const qrcodeContainer = document.getElementById('qrcode-lightbox');
+  if (!qrcodeContainer) return;
+
+  const qrSize = Math.min(Math.floor(window.innerWidth * 0.58), Math.floor(window.innerHeight * 0.42), 380);
+  qrcodeContainer.innerHTML = '';
+  new QRCode(qrcodeContainer, {
+    text: qrText,
+    width: Math.max(qrSize, 260),
+    height: Math.max(qrSize, 260),
+    colorDark: getQrDarkColor(),
+    colorLight: getQrLightColor(),
+    correctLevel: QRCode.CorrectLevel.H
+  });
+}
+
+function getQrDarkColor() {
+  return document.body.classList.contains('light-theme') ? '#080c14' : '#02040a';
+}
+
+function getQrLightColor() {
+  return document.body.classList.contains('light-theme') ? '#ffffff' : '#766b57';
+}
+
+function rerenderVisibleQrCodes() {
+  if (!currentQrCode) return;
+
+  renderQrCode(currentQrCode);
+}
+
+function openQrLightbox() {
+  if (!currentQrCode || !elQrLightbox) return;
+
+  renderQrCodeLightbox(currentQrCode);
+  elQrLightbox.classList.remove('hidden');
+  elQrLightbox.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+  elQrLightboxClose?.focus();
+}
+
+function closeQrLightbox() {
+  if (!elQrLightbox || elQrLightbox.classList.contains('hidden')) return;
+
+  elQrLightbox.classList.add('hidden');
+  elQrLightbox.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+}
+
+function isQrLightboxOpen() {
+  return Boolean(elQrLightbox && !elQrLightbox.classList.contains('hidden'));
 }
 
 // Fetch Contacts Table

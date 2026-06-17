@@ -34,6 +34,7 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
   private initializing = false;
   private isShuttingDown = false;
   private lastTransientNavigationErrorLoggedAt = 0;
+  private lifecycleOperation: Promise<void> = Promise.resolve();
   private reconnectTimer?: ReturnType<typeof setTimeout>;
   private readonly retiredClients = new WeakSet<Client>();
 
@@ -48,7 +49,7 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit(): Promise<void> {
     process.on('unhandledRejection', this.unhandledRejectionHandler);
-    await this.initializeClient();
+    await this.enqueueLifecycleOperation('module_init', () => this.initializeClient());
   }
 
   async onModuleDestroy(): Promise<void> {
@@ -223,7 +224,7 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
       this.client = undefined;
     }
 
-    if (reason.toUpperCase() === 'LOGOUT') {
+    if (this.shouldCleanupSessionAfterDisconnect(reason)) {
       await this.cleanupLocalAuthSession();
     }
 
@@ -332,7 +333,9 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = undefined;
-      void this.initializeClient();
+      void this.enqueueLifecycleOperation('scheduled_reconnect', () => this.initializeClient()).catch((error) => {
+        this.logger.error(`Scheduled WhatsApp reconnect failed: ${this.getErrorDetail(error)}`);
+      });
     }, this.reconnectDelayMs);
   }
 
@@ -462,6 +465,29 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
     this.retiredClients.add(client);
   }
 
+  private enqueueLifecycleOperation(operationName: string, operation: () => Promise<void>): Promise<void> {
+    const run = this.lifecycleOperation
+      .catch(() => undefined)
+      .then(async () => {
+        if (this.isShuttingDown) {
+          return;
+        }
+
+        await operation();
+      });
+
+    this.lifecycleOperation = run.catch((error) => {
+      this.logger.error(`WhatsApp lifecycle operation ${operationName} failed: ${this.getErrorDetail(error)}`);
+    });
+
+    return run;
+  }
+
+  private shouldCleanupSessionAfterDisconnect(reason: string): boolean {
+    const normalizedReason = reason.toUpperCase();
+    return normalizedReason === 'LOGOUT' || normalizedReason.startsWith('UNPAIRED');
+  }
+
   async sendMessage(chatId: string, text: string): Promise<void> {
     if (!this.client || this.connectionStatus !== 'READY') {
       throw new Error('WhatsApp client is not ready.');
@@ -499,6 +525,10 @@ export class WhatsappWebClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   async restartClient(): Promise<void> {
+    await this.enqueueLifecycleOperation('manual_restart', () => this.restartClientInternal());
+  }
+
+  private async restartClientInternal(): Promise<void> {
     this.logger.log('Force restarting WhatsApp client via dashboard...');
     this.connectionStatus = 'DISCONNECTED';
     this.lastQrCode = null;
