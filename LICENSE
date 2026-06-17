@@ -49,7 +49,37 @@ or other revenue-generating activity.
 fork, plugin, integration, wrapper, service, compiled build, container image,
 or other work based on or incorporating all or part of the Software.
 
-2. Limited Permission
+2. Third-Party Components
+
+The Software may depend on, interface with, import, call, bundle, or document
+third-party libraries, packages, APIs, SDKs, models, services, platforms, or
+other components that are not owned by the Licensor ("Third-Party Components").
+
+Third-Party Components are licensed, governed, and restricted by their own
+separate licenses, notices, terms of service, acceptable use policies, model
+terms, API terms, platform terms, and other applicable agreements.
+
+This License applies only to the original code, documentation, configuration,
+assets, and materials authored by rizkyaa-dev, and does not attempt to
+relicense, restrict, expand, supersede, or replace any rights or obligations
+that apply to Third-Party Components.
+
+Nothing in this License grants You any rights to use Third-Party Components
+beyond the rights granted by their respective owners. Nothing in this License
+removes, weakens, or waives any obligation You may have under any Third-Party
+Component license or terms.
+
+You are solely responsible for identifying and complying with all applicable
+Third-Party Component licenses, copyright notices, attribution requirements,
+source availability requirements, API terms, model terms, platform rules, usage
+limits, privacy terms, data processing terms, and legal restrictions.
+
+If this License conflicts with the license or terms of a Third-Party Component,
+then the Third-Party Component's license or terms govern Your use of that
+Third-Party Component, and this License continues to govern the Software
+authored by rizkyaa-dev.
+
+3. Limited Permission
 
 Subject to full compliance with this License, the Licensor grants You a limited,
 revocable, non-exclusive, non-transferable, non-sublicensable, royalty-free
@@ -67,7 +97,7 @@ conditions are met:
 
 No other rights are granted.
 
-3. Prohibited Uses
+4. Prohibited Uses
 
 Unless You have prior written permission from rizkyaa-dev, You must not, and
 must not permit any third party to:
@@ -111,7 +141,7 @@ must not permit any third party to:
 - help, enable, induce, or instruct another party to do anything prohibited by
   this License.
 
-4. No Circumvention
+5. No Circumvention
 
 You may not avoid this License by using an intermediary, contractor, affiliate,
 subsidiary, parent company, customer, vendor, consultant, employee, agency,
@@ -123,7 +153,7 @@ If the Software, a Derivative Work, or a substantially similar work derived from
 the Software is used to benefit a commercial entity, that use is Commercial Use
 and is prohibited without prior written permission from the Licensor.
 
-5. Derivative Works and Forks
+6. Derivative Works and Forks
 
 All Derivative Works remain subject to this License.
 
@@ -137,7 +167,7 @@ to another programming language, file restructuring, renaming, formatting, or
 build-system changes to claim that a Derivative Work is independent of this
 License.
 
-6. Distribution Requirements
+7. Distribution Requirements
 
 Any permitted copy, fork, or Derivative Work must include:
 
@@ -149,7 +179,7 @@ Any permitted copy, fork, or Derivative Work must include:
 You must not imply that the Licensor endorses You, Your fork, Your organization,
 or Your use of the Software.
 
-7. Commercial Licensing
+8. Commercial Licensing
 
 Any Commercial Use, Corporate Use, Enterprise Use, resale, paid hosting, paid
 support, paid integration, commercial deployment, use by a for-profit entity,
@@ -161,7 +191,7 @@ by rizkyaa-dev. Silence, repository access, issue participation, pull request
 acceptance, or public availability of the source code does not grant commercial
 permission.
 
-8. Termination
+9. Termination
 
 Your rights under this License terminate automatically and immediately if You
 violate any term of this License.
@@ -172,19 +202,19 @@ possession or control, unless otherwise required by law.
 
 Termination does not limit any rights or remedies available to the Licensor.
 
-9. No Trademark Rights
+10. No Trademark Rights
 
 This License does not grant any rights to use the names, logos, trademarks,
 service marks, branding, domain names, or public identity of rizkyaa-dev except
 as strictly necessary for reasonable attribution.
 
-10. No Patent License
+11. No Patent License
 
 No patent rights are granted by this License. If You require patent rights or
 commercial certainty, You must obtain a separate written license from the
 Licensor.
 
-11. No Warranty
+12. No Warranty
 
 THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY
 KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
@@ -194,7 +224,7 @@ SECURITY, ACCURACY, AVAILABILITY, OR ERROR-FREE OPERATION.
 The Licensor does not warrant that the Software will meet Your requirements,
 operate without interruption, be secure, be free of defects, or remain available.
 
-12. Limitation of Liability
+13. Limitation of Liability
 
 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE
 LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGE, LOSS, LIABILITY, COST, EXPENSE, OR
@@ -206,7 +236,7 @@ RELATING TO THE SOFTWARE OR THIS LICENSE, WHETHER IN CONTRACT, TORT, STRICT
 LIABILITY, NEGLIGENCE, OR OTHERWISE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
 
-13. Interpretation
+14. Interpretation
 
 If any provision of this License is held to be unenforceable, the remaining
 provisions remain in effect. The unenforceable provision shall be interpreted
@@ -216,6 +246,6 @@ Any ambiguity in this License must not be interpreted as granting Commercial
 Use, Corporate Use, Enterprise Use, sublicensing rights, ownership rights, or
 rights beyond the limited Non-Commercial Use permission expressly stated above.
 
-14. Reservation of Rights
+15. Reservation of Rights
 
 All rights not expressly granted in this License are reserved by rizkyaa-dev.
