@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Personal WhatsApp chatbot using whatsapp-web.js with an expandable modular architecture.",
-  "license": "UNLICENSED",
+  "license": "SEE LICENSE IN LICENSE",
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
