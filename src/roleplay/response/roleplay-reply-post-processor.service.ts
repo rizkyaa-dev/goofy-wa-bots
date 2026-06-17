@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { RoleplayMemory } from '@prisma/client';
 import { BotReply, BotReplyPart } from '../../bot/domain/bot-reply';
 import { LlmMessage } from '../../llm/domain/llm.types';
+import { LlmTokenUsage } from '../../llm/domain/llm.types';
 import { RoleplayResponsePlan } from '../domain/roleplay-response-plan';
 import { ContinuityGuardService } from '../validation/continuity-guard.service';
 import { ResponseValidatorService } from '../validation/response-validator.service';
@@ -20,6 +21,7 @@ type ProcessReplyInput = {
   quoteMessageId?: string;
   responsePlan: RoleplayResponsePlan;
   conversationScope: 'personal_chat' | 'group_chat';
+  usage?: LlmTokenUsage;
 };
 
 @Injectable()
@@ -68,6 +70,7 @@ export class RoleplayReplyPostProcessorService {
       text: parts.map((part) => part.text).join('\n'),
       quoteMessageId: parts[0]?.quoteMessageId,
       parts,
+      usage: input.usage,
     };
   }
 

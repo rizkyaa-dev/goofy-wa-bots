@@ -47,6 +47,7 @@ export class DashboardService {
     return this.prisma.contactSetting.findMany({
       include: {
         roleplayState: true,
+        roleplayPresenceState: true,
       },
       orderBy: {
         updatedAt: 'desc',
@@ -123,6 +124,11 @@ export class DashboardService {
         intimacy: data.intimacy ?? 10,
         shyness: data.shyness ?? 15,
         curiosity: data.curiosity ?? 55,
+        volatility: data.volatility ?? 15,
+        desire: data.desire ?? 20,
+        inhibition: data.inhibition ?? 55,
+        comfort: data.comfort ?? 55,
+        compliance: data.compliance ?? 40,
         summary: data.summary ?? '',
       },
       update: data,

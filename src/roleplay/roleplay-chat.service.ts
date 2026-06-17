@@ -14,9 +14,11 @@ import { TimeContextService } from './context/time-context.service';
 import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
 import { EmotionEngineService } from './emotion/emotion-engine.service';
 import { CharacterProfileService } from './identity/character-profile.service';
+import { RoleplayIntimacyPolicyService } from './intimacy/roleplay-intimacy-policy.service';
 import { RoleplayMemoryService } from './memory/roleplay-memory.service';
 import { ExpertPromptRegistryService } from './prompt/expert-prompt-registry.service';
 import { RoleplayPromptCompilerService } from './prompt/roleplay-prompt-compiler.service';
+import { RoleplayPresenceService } from './presence/roleplay-presence.service';
 import { ConversationalProsodyPlannerService } from './prosody/conversational-prosody-planner.service';
 import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retriever.service';
 import { QuotePolicyService } from './quote/quote-policy.service';
@@ -37,7 +39,9 @@ export class RoleplayChatService {
     private readonly llm: LlmService,
     private readonly memories: RoleplayMemoryService,
     private readonly expertPrompts: ExpertPromptRegistryService,
+    private readonly intimacyPolicy: RoleplayIntimacyPolicyService,
     private readonly promptCompiler: RoleplayPromptCompilerService,
+    private readonly presence: RoleplayPresenceService,
     private readonly prosodyPlanner: ConversationalProsodyPlannerService,
     private readonly quoteCandidates: QuoteCandidateRetrieverService,
     private readonly quotePolicy: QuotePolicyService,
@@ -74,6 +78,20 @@ export class RoleplayChatService {
 
     const nextStatePatch = this.applyAnalysis(this.emotionEngine.evaluateInbound(previousState, message), analysis);
     const state = await this.states.updateAfterInbound(message.chatId, nextStatePatch);
+    const intimacyPolicy = this.intimacyPolicy.create({
+      state,
+      latestUserMessage: message.body,
+      analysis,
+      routeDecision,
+      conversationScope,
+    });
+    const presence = await this.presence.syncForConversation({
+      chatId: message.chatId,
+      state,
+      latestUserMessage: message.body,
+      recentMessages,
+      analysis,
+    });
 
     const quoteDecision = this.quotePolicy.apply(rawQuoteDecision, quoteCandidates, message.id);
     const quoteTarget = quoteCandidates.find((candidate) => candidate.messageId === quoteDecision.targetMessageId);
@@ -84,6 +102,7 @@ export class RoleplayChatService {
       memories,
       analysis,
       routeDecision,
+      intimacyPolicy,
       quoteIntent: quoteDecision.intent,
       conversationScope,
     });
@@ -116,12 +135,14 @@ export class RoleplayChatService {
     const prompt = this.promptCompiler.compile({
       profile,
       state,
+      presence,
       time: this.timeContext.create(previousState),
       memories,
       latestUserTurn: message.body,
       recentMessages,
       addressPlan,
       conversationPlan,
+      intimacyPolicy,
       analysis,
       conversationScope,
       responsePlan,
@@ -156,6 +177,11 @@ export class RoleplayChatService {
       maxBubbles: prosodyPlan.maxBubbles,
       questionAllowed: responsePlan.questionAllowed,
       selfDisclosure: responsePlan.selfDisclosure,
+      presenceActivity: presence.activityType,
+      presenceSource: presence.source,
+      presenceStatus: presence.statusText,
+      intimacyExplicitness: intimacyPolicy.explicitness,
+      intimacyTone: intimacyPolicy.tone,
     });
 
     try {
@@ -179,6 +205,7 @@ export class RoleplayChatService {
         quoteMessageId: quoteDecision.action === 'quote_reply' ? quoteDecision.targetMessageId : undefined,
         responsePlan,
         conversationScope,
+        usage: result.usage,
       });
     } catch (error) {
       if (error instanceof LlmProviderError) {
@@ -199,6 +226,11 @@ export class RoleplayChatService {
       intimacy: this.clampStateValue(((statePatch as any).intimacy ?? 10) + (analysis.intimacyDelta ?? 0)),
       shyness: this.clampStateValue(((statePatch as any).shyness ?? 15) + (analysis.shynessDelta ?? 0)),
       curiosity: this.clampStateValue(((statePatch as any).curiosity ?? 55) + (analysis.curiosityDelta ?? 0)),
+      volatility: this.clampStateValue(((statePatch as any).volatility ?? 15) + (analysis.volatilityDelta ?? 0)),
+      desire: this.clampStateValue(((statePatch as any).desire ?? 20) + (analysis.desireDelta ?? 0)),
+      inhibition: this.clampStateValue(((statePatch as any).inhibition ?? 55) + (analysis.inhibitionDelta ?? 0)),
+      comfort: this.clampStateValue(((statePatch as any).comfort ?? 55) + (analysis.comfortDelta ?? 0)),
+      compliance: this.clampStateValue(((statePatch as any).compliance ?? 40) + (analysis.complianceDelta ?? 0)),
     };
   }
 
@@ -233,6 +265,11 @@ export class RoleplayChatService {
           intimacy: trace.analysis.intimacyDelta,
           shyness: trace.analysis.shynessDelta,
           curiosity: trace.analysis.curiosityDelta,
+          volatility: trace.analysis.volatilityDelta,
+          desire: trace.analysis.desireDelta,
+          inhibition: trace.analysis.inhibitionDelta,
+          comfort: trace.analysis.comfortDelta,
+          compliance: trace.analysis.complianceDelta,
         },
         memoryCount: trace.memoryCount,
         quoteAction: trace.quoteAction,
@@ -256,13 +293,33 @@ export class RoleplayChatService {
         maxBubbles: trace.maxBubbles,
         questionAllowed: trace.questionAllowed,
         selfDisclosure: trace.selfDisclosure,
+        presenceActivity: trace.presenceActivity,
+        presenceSource: trace.presenceSource,
+        presenceStatus: trace.presenceStatus,
+        intimacyExplicitness: trace.intimacyExplicitness,
+        intimacyTone: trace.intimacyTone,
       }),
     );
   }
 }
 
 type StatePatch = {
-  mood: 'neutral' | 'happy' | 'sad' | 'annoyed' | 'warm' | 'playful' | 'sleepy' | 'excited' | 'jealous' | 'worried';
+  mood:
+    | 'neutral'
+    | 'happy'
+    | 'sad'
+    | 'annoyed'
+    | 'warm'
+    | 'playful'
+    | 'sleepy'
+    | 'excited'
+    | 'jealous'
+    | 'worried'
+    | 'swing'
+    | 'sensual'
+    | 'flirty'
+    | 'aroused'
+    | 'needy';
   affection: number;
   trust: number;
   energy: number;
@@ -270,6 +327,11 @@ type StatePatch = {
   intimacy: number;
   shyness: number;
   curiosity: number;
+  volatility: number;
+  desire: number;
+  inhibition: number;
+  comfort: number;
+  compliance: number;
 };
 
 type RoleplayDebugTrace = {
@@ -297,4 +359,9 @@ type RoleplayDebugTrace = {
   maxBubbles: number;
   questionAllowed: boolean;
   selfDisclosure: string;
+  presenceActivity: string;
+  presenceSource: string;
+  presenceStatus: string;
+  intimacyExplicitness: string;
+  intimacyTone: string;
 };

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { LlmMessage } from '../../llm/domain/llm.types';
 import { RoleplayResponsePlan } from '../domain/roleplay-response-plan';
+import { InternalDisclosureGuardService } from './internal-disclosure-guard.service';
 
 type ValidateInput = {
   text: string;
@@ -16,6 +17,8 @@ type ValidatePartsInput = Omit<ValidateInput, 'text'> & {
 
 @Injectable()
 export class ResponseValidatorService {
+  constructor(private readonly internalDisclosureGuard: InternalDisclosureGuardService) {}
+
   apply(input: ValidateInput): string {
     const disclosureSafe = this.sanitizePart(input);
     const questionSafe = this.limitQuestions(disclosureSafe, input.plan);
@@ -25,7 +28,8 @@ export class ResponseValidatorService {
     const textureSafe = this.repairDeadEndAcknowledgement(clarificationSafe, input.plan);
     const completeSafe = this.repairIncompleteTrailingFragment(textureSafe, input.plan);
     const draftSafe = this.repairMetaDraftDisclosure(completeSafe, input.plan);
-    const punctuationSafe = this.normalizeCasualPunctuation(draftSafe, input.plan);
+    const leakageSafe = this.repairInternalMechanismLeak(draftSafe, input.plan);
+    const punctuationSafe = this.normalizeCasualPunctuation(leakageSafe, input.plan);
 
     return punctuationSafe || this.createFallback(input.plan);
   }
@@ -46,6 +50,7 @@ export class ResponseValidatorService {
       .map((part) => this.repairDeadEndAcknowledgement(part, input.plan))
       .map((part) => this.repairIncompleteTrailingFragment(part, input.plan))
       .map((part) => this.repairMetaDraftDisclosure(part, input.plan))
+      .map((part) => this.repairInternalMechanismLeak(part, input.plan))
       .filter((part) => part.trim().length > 0);
 
     const questionSafe = this.limitQuestionsAcrossParts(sanitizedParts, input.plan);
@@ -315,6 +320,15 @@ export class ResponseValidatorService {
       return text;
     }
 
+    if (
+      plan.route === 'smalltalk_react' ||
+      plan.route === 'smalltalk_continue' ||
+      plan.route === 'casual_default' ||
+      plan.route === 'tease_deflect'
+    ) {
+      return text;
+    }
+
     if (plan.replyShape === 'comfort_anchor') {
       return 'Iya... itu kerasa berat sih';
     }
@@ -407,6 +421,22 @@ export class ResponseValidatorService {
     return this.createFallback(plan);
   }
 
+  private repairInternalMechanismLeak(text: string, plan: RoleplayResponsePlan): string {
+    if (!this.internalDisclosureGuard.isInternalMechanismLeak(text)) {
+      return text;
+    }
+
+    if (plan.route === 'meta_testing' || plan.mode === 'deflect' || plan.mode === 'tease') {
+      return this.internalDisclosureGuard.repairForChat(text, 'deflect');
+    }
+
+    if (plan.questionAllowed) {
+      return this.internalDisclosureGuard.repairForChat(text, 'question');
+    }
+
+    return this.internalDisclosureGuard.repairForChat(text, 'statement');
+  }
+
   private endsWithDanglingConnector(text: string): boolean {
     return /(?:^|[\s,.;!?])(?:cuma|tapi|soalnya|karena|kayak|terus|trus|malah|maksudku|maksudnya|yang|biar|kalau|kalo)\s*[.!?…]*$/iu.test(
       text,
@@ -484,7 +514,11 @@ export class ResponseValidatorService {
     }
 
     if (plan.mode === 'react_expand') {
-      return plan.emotionalTexture === 'medium' ? 'Iya... aku nangkep kok.' : 'Oh oke, aku nangkep.';
+      if (plan.route === 'smalltalk_react' || plan.route === 'smalltalk_continue' || plan.route === 'casual_default') {
+        return plan.questionAllowed ? 'iyaa, terus?' : 'iyaa juga ya';
+      }
+
+      return plan.emotionalTexture === 'medium' ? 'Iya... aku paham kok.' : 'oke, aku paham';
     }
 
     if (plan.replyShape === 'reassure_repair') {

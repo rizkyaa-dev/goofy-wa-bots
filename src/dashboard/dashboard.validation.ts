@@ -27,6 +27,11 @@ const updateContactRoleplayStateSchema = z
     intimacy: stateValueSchema.optional(),
     shyness: stateValueSchema.optional(),
     curiosity: stateValueSchema.optional(),
+    volatility: stateValueSchema.optional(),
+    desire: stateValueSchema.optional(),
+    inhibition: stateValueSchema.optional(),
+    comfort: stateValueSchema.optional(),
+    compliance: stateValueSchema.optional(),
     summary: z.string().trim().max(2000).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {

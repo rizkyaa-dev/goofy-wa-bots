@@ -20,6 +20,11 @@ type GeminiResponse = {
       parts?: GeminiPart[];
     };
   }>;
+  usageMetadata?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+  };
   error?: {
     message?: string;
   };
@@ -81,6 +86,11 @@ export class GeminiProvider implements LlmProvider {
       text,
       provider: this.name,
       model: input.model,
+      usage: {
+        inputTokens: data.usageMetadata?.promptTokenCount,
+        outputTokens: data.usageMetadata?.candidatesTokenCount,
+        totalTokens: data.usageMetadata?.totalTokenCount,
+      },
     };
   }
 

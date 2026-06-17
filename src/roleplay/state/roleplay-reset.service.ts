@@ -12,11 +12,13 @@ export class RoleplayResetService {
 
     return this.prisma.$transaction(async (tx) => {
       const state = shouldResetState ? await tx.roleplayState.deleteMany({ where: { chatId } }) : { count: 0 };
+      const presence = shouldResetState ? await tx.roleplayPresenceState.deleteMany({ where: { chatId } }) : { count: 0 };
       const memories = shouldResetMemory ? await tx.roleplayMemory.deleteMany({ where: { chatId } }) : { count: 0 };
       const history = shouldResetHistory ? await tx.conversationMessage.deleteMany({ where: { chatId } }) : { count: 0 };
 
       return {
         state: state.count,
+        presence: presence.count,
         memories: memories.count,
         history: history.count,
       };
@@ -28,6 +30,7 @@ export type RoleplayResetScope = 'all' | 'state' | 'memory' | 'history';
 
 export type RoleplayResetResult = {
   state: number;
+  presence: number;
   memories: number;
   history: number;
 };

@@ -1,7 +1,10 @@
+import { LlmTokenUsage } from '../../llm/domain/llm.types';
+
 export type BotReply = {
   text: string;
   quoteMessageId?: string;
   parts?: BotReplyPart[];
+  usage?: LlmTokenUsage;
 };
 
 export type BotReplyPart = {

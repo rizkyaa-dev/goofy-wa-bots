@@ -16,6 +16,8 @@ export class EmotionEngineService {
     const vulnerable = this.matches(text, ['capek', 'sedih', 'takut', 'sendiri', 'bingung', 'pusing', 'lelah']);
     const metaTesting = this.matches(text, ['bot', 'project', 'developer', 'develop', 'testing', 'tes', 'bikin', 'kode']);
     const teasing = this.matches(text, ['genit', 'modus', 'gombal', 'bawel', 'sok', 'yaelah', 'ye']);
+    const sensualCue = this.matches(text, ['mesra', 'manja', 'peluk', 'cium', 'kangen badan', 'seksi', 'sange', 'horny', 'napsu', 'turn on', 'menggoda']);
+    const explicitPressure = this.matches(text, ['pap', 'bugil', 'telanjang', 'vcs', 'coli', 'ngentot', 'nude', 'kirimin foto']);
     const sleepy = this.matches(text, ['ngantuk', 'tidur', 'mager', 'bobo', 'hoam']);
     const excited = this.matches(text, ['heboh', 'seru', 'keren', 'gila', 'mantap', 'gacha', 'game', 'hobi', 'asik', 'excited']);
     const jealous = this.matches(text, ['cewek lain', 'cowok lain', 'mantan', 'pacar orang', 'selingkuh', 'dia lebih', 'cewe lain', 'cowo lain']);
@@ -88,10 +90,85 @@ export class EmotionEngineService {
         (pressure ? -2 : 0) +
         (metaTesting && trimmedText.length < 24 ? -1 : 0),
     );
+    const volatility = this.clamp(
+      ((state as any).volatility ?? 15) +
+        (negative ? 6 : 0) +
+        (pressure ? 5 : 0) +
+        (boundaryCrossing ? 8 : 0) +
+        (teasing ? 2 : 0) +
+        (sensualCue ? 2 : 0) +
+        (apology ? -3 : 0) +
+        (positive && !pressure ? -1 : 0),
+    );
+    const desire = this.clamp(
+      ((state as any).desire ?? 20) +
+        (sensualCue && state.trust >= 35 ? 7 : 0) +
+        (teasing && state.intimacy >= 35 ? 3 : 0) +
+        (positive && state.intimacy >= 55 ? 2 : 0) +
+        (explicitPressure ? -8 : 0) +
+        (negative || boundaryCrossing ? -6 : 0) +
+        (state.tension >= 65 ? -4 : 0),
+    );
+    const inhibition = this.clamp(
+      ((state as any).inhibition ?? 55) +
+        (explicitPressure ? 10 : 0) +
+        (pressure ? 5 : 0) +
+        (negative ? 5 : 0) +
+        (boundaryCrossing ? 12 : 0) +
+        (teasing || sensualCue ? -2 : 0) +
+        (state.trust >= 65 && state.intimacy >= 55 ? -3 : 0),
+    );
+    const comfort = this.clamp(
+      ((state as any).comfort ?? 55) +
+        (positive ? 2 : 0) +
+        (apology ? 2 : 0) +
+        (vulnerable ? 1 : 0) +
+        (sensualCue && !explicitPressure && state.trust >= 45 ? 2 : 0) +
+        (pressure ? -5 : 0) +
+        (negative ? -7 : 0) +
+        (boundaryCrossing ? -12 : 0),
+    );
+    const compliance = this.clamp(
+      ((state as any).compliance ?? 40) +
+        (positive ? 2 : 0) +
+        (apology ? 1 : 0) +
+        (vulnerable && state.trust >= 45 ? 1 : 0) +
+        (state.trust >= 65 && comfort >= 55 ? 2 : 0) +
+        (state.affection >= 65 && intimacy >= 45 ? 1 : 0) +
+        (pressure ? -6 : 0) +
+        (explicitPressure ? -10 : 0) +
+        (boundaryCrossing ? -12 : 0) +
+        (negative ? -6 : 0) +
+        (tension >= 65 ? -4 : 0) +
+        (volatility >= 70 ? -2 : 0),
+    );
 
     return {
       mood: this.selectMood(
-        { positive, negative, apology, question, pressure, boundaryCrossing, vulnerable, metaTesting, teasing, sleepy, excited, jealous, worried, tension },
+        {
+          positive,
+          negative,
+          apology,
+          question,
+          pressure,
+          boundaryCrossing,
+          vulnerable,
+          metaTesting,
+          teasing,
+          sensualCue,
+          explicitPressure,
+          sleepy,
+          excited,
+          jealous,
+          worried,
+          tension,
+          volatility,
+          desire,
+          inhibition,
+          comfort,
+          compliance,
+          intimacy,
+        },
         state,
       ),
       affection,
@@ -101,6 +178,11 @@ export class EmotionEngineService {
       intimacy,
       shyness,
       curiosity,
+      volatility,
+      desire,
+      inhibition,
+      comfort,
+      compliance,
     };
   }
 
@@ -115,14 +197,31 @@ export class EmotionEngineService {
       vulnerable: boolean;
       metaTesting: boolean;
       teasing: boolean;
+      sensualCue: boolean;
+      explicitPressure: boolean;
       sleepy: boolean;
       excited: boolean;
       jealous: boolean;
       worried: boolean;
       tension: number;
+      volatility: number;
+      desire: number;
+      inhibition: number;
+      comfort: number;
+      compliance: number;
+      intimacy: number;
     },
     prevState: RoleplayState,
   ): RoleplayMood {
+    const readiness =
+      input.desire +
+      input.intimacy +
+      input.comfort +
+      Math.floor(input.compliance / 2) -
+      input.tension -
+      input.inhibition -
+      ((prevState as any).shyness ?? 15);
+
     // 1. INERTIA / MEMORY: Jika sebelumnya kesal (annoyed) atau cemburu (jealous) dan tension masih cukup tinggi,
     // pertahankan status mood tersebut kecuali ada permintaan maaf (apology) atau input positif.
     if ((prevState.mood as string) === 'annoyed' && prevState.tension > 45 && !input.apology && !input.positive) {
@@ -135,6 +234,10 @@ export class EmotionEngineService {
     // 2. ANNOYED (Agresi / Tekanan Tinggi)
     if (input.negative || input.boundaryCrossing || input.tension > 70 || input.pressure) {
       return RoleplayMood.annoyed;
+    }
+
+    if (input.volatility >= 75 && input.tension >= 35) {
+      return 'swing' as any;
     }
 
     // 3. JEALOUS (Cemburu / Ngambek)
@@ -162,6 +265,26 @@ export class EmotionEngineService {
     // Dipicu jika user curhat (vulnerable) saat Alya percaya padanya, atau jika user meminta maaf (apology).
     if (input.vulnerable || input.apology) {
       return RoleplayMood.warm;
+    }
+
+    if (input.sensualCue && input.explicitPressure) {
+      return input.teasing ? 'flirty' as any : RoleplayMood.annoyed;
+    }
+
+    if (readiness >= 95 && prevState.trust >= 55 && input.comfort >= 55) {
+      return 'aroused' as any;
+    }
+
+    if (input.desire >= 70 && input.inhibition <= 45 && prevState.affection >= 55) {
+      return 'needy' as any;
+    }
+
+    if (input.sensualCue && input.desire >= 45 && prevState.trust >= 35) {
+      return 'sensual' as any;
+    }
+
+    if ((input.teasing || input.sensualCue) && input.comfort >= 40 && input.tension < 55) {
+      return 'flirty' as any;
     }
 
     // 7. SLEEPY (Mengantuk)

@@ -238,6 +238,23 @@ const envSchema = z.object({
     .default('3')
     .transform((value) => Number(value))
     .pipe(z.number().int().positive()),
+  ROLEPLAY_PRESENCE_AGENT_ENABLED: z
+    .string()
+    .default('true')
+    .transform((value) => value.toLowerCase() !== 'false'),
+  ROLEPLAY_PRESENCE_AGENT_PROVIDER: z.string().optional().default(''),
+  ROLEPLAY_PRESENCE_AGENT_MODEL: z.string().optional().default(''),
+  ROLEPLAY_PRESENCE_AGENT_TEMPERATURE: optionalNumber(z.number().min(0).max(2)),
+  ROLEPLAY_PRESENCE_AGENT_MAX_TOKENS: z
+    .string()
+    .default('700')
+    .transform((value) => Number(value))
+    .pipe(z.number().int().positive()),
+  ROLEPLAY_PRESENCE_AGENT_TIMEOUT_MS: z
+    .string()
+    .default('6000')
+    .transform((value) => Number(value))
+    .pipe(z.number().int().positive()),
   PROACTIVE_ENABLED: z
     .string()
     .default('true')

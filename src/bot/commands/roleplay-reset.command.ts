@@ -28,6 +28,7 @@ export class RoleplayResetCommand implements CommandHandler {
       text: [
         `Roleplay reset (${scope}) selesai.`,
         `State: ${result.state}`,
+        `Presence: ${result.presence}`,
         `Memory: ${result.memories}`,
         `History: ${result.history}`,
       ].join('\n'),

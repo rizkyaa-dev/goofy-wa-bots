@@ -99,6 +99,7 @@
                   <th>Kontak</th>
                   <th>Mode Bot</th>
                   <th>Hubungan (A / T / E)</th>
+                  <th>Presence</th>
                   <th>Mood</th>
                   <th>Aksi</th>
                 </tr>
@@ -106,7 +107,7 @@
               <tbody id="contacts-list-tbody">
                 <!-- Kontak akan dirender via JS -->
                 <tr class="placeholder-row">
-                  <td colspan="5" class="text-center">Memuat data kontak...</td>
+                  <td colspan="6" class="text-center">Memuat data kontak...</td>
                 </tr>
               </tbody>
             </table>
@@ -122,9 +123,44 @@
         </div>
         
         <div class="card-body scrollable-body">
+          <!-- Off-chat Presence -->
+          <div class="details-section">
+            <h3>Off-Chat Presence</h3>
+            <div class="presence-summary-card" id="presence-summary-card">
+              <div class="presence-summary-main">
+                <span class="presence-status" id="presence-status-text">Belum ada aktivitas aktif.</span>
+                <span class="presence-source" id="presence-source-text">-</span>
+              </div>
+              <div class="presence-meta-grid">
+                <div>
+                  <span class="meta-label">Activity</span>
+                  <span class="meta-value" id="presence-activity-type">-</span>
+                </div>
+                <div>
+                  <span class="meta-label">Lokasi</span>
+                  <span class="meta-value" id="presence-location">-</span>
+                </div>
+                <div>
+                  <span class="meta-label">Social</span>
+                  <span class="meta-value" id="presence-social">-</span>
+                </div>
+                <div>
+                  <span class="meta-label">Availability</span>
+                  <span class="meta-value" id="presence-interruptibility">-</span>
+                </div>
+                <div class="full">
+                  <span class="meta-label">Until</span>
+                  <span class="meta-value" id="presence-expires">-</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="section-divider">
+
           <!-- State Tuner -->
           <div class="details-section">
-            <h3>Tuning Hubungan & Mood</h3>
+            <h3>Tuning Hubungan, Mood, & Drive</h3>
             <form id="state-tuner-form">
               <input type="hidden" id="tuner-chat-id">
               <div class="form-row">
@@ -141,6 +177,11 @@
                     <option value="excited">Excited (Antusias)</option>
                     <option value="jealous">Jealous (Cemburu)</option>
                     <option value="worried">Worried (Khawatir)</option>
+                    <option value="swing">Swing (Mood Swing)</option>
+                    <option value="sensual">Sensual (Sensual)</option>
+                    <option value="flirty">Flirty (Genit)</option>
+                    <option value="aroused">Aroused (Terangsang)</option>
+                    <option value="needy">Needy (Butuh Perhatian)</option>
                   </select>
                 </div>
               </div>
@@ -200,6 +241,46 @@
                     <span class="slider-value" id="val-curiosity">55</span>
                   </div>
                   <input type="range" id="tuner-curiosity" min="0" max="100" value="55" class="slider">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-label">
+                    <span>Volatility (Mood Swing)</span>
+                    <span class="slider-value" id="val-volatility">15</span>
+                  </div>
+                  <input type="range" id="tuner-volatility" min="0" max="100" value="15" class="slider">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-label">
+                    <span>Desire (Dorongan Sensual)</span>
+                    <span class="slider-value" id="val-desire">20</span>
+                  </div>
+                  <input type="range" id="tuner-desire" min="0" max="100" value="20" class="slider">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-label">
+                    <span>Inhibition (Rem / Tahan Diri)</span>
+                    <span class="slider-value" id="val-inhibition">55</span>
+                  </div>
+                  <input type="range" id="tuner-inhibition" min="0" max="100" value="55" class="slider">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-label">
+                    <span>Comfort (Rasa Aman)</span>
+                    <span class="slider-value" id="val-comfort">55</span>
+                  </div>
+                  <input type="range" id="tuner-comfort" min="0" max="100" value="55" class="slider">
+                </div>
+
+                <div class="slider-group">
+                  <div class="slider-label">
+                    <span>Compliance (Kooperatif)</span>
+                    <span class="slider-value" id="val-compliance">40</span>
+                  </div>
+                  <input type="range" id="tuner-compliance" min="0" max="100" value="40" class="slider">
                 </div>
               </div>
 

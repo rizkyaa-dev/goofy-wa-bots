@@ -32,4 +32,11 @@ export type GenerateReplyResult = {
   text: string;
   provider: string;
   model: string;
+  usage?: LlmTokenUsage;
+};
+
+export type LlmTokenUsage = {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
 };

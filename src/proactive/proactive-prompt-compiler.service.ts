@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { RoleplayMemory, RoleplayState } from '@prisma/client';
+import { RoleplayMemory, RoleplayPresenceState, RoleplayState } from '@prisma/client';
 import { RoleplayCharacterProfile } from '../roleplay/domain/roleplay-character-profile';
 import { LlmMessage } from '../llm/domain/llm.types';
 
 export interface CompileProactiveInput {
   profile: RoleplayCharacterProfile;
   state: RoleplayState;
+  presence?: RoleplayPresenceState | null;
   triggerType: 'morning_greeting' | 'night_greeting' | 'inactivity';
   timeText: string;
   memories: RoleplayMemory[];
@@ -16,6 +17,7 @@ export class ProactivePromptCompilerService {
   compile(input: CompileProactiveInput): LlmMessage[] {
     const profile = input.profile;
     const state = input.state;
+    const presence = input.presence;
     const memories =
       input.memories.map((m) => `- [${m.kind}] ${m.content}`).join('\n') ||
       '- No relevant memories available.';
@@ -25,19 +27,19 @@ export class ProactivePromptCompilerService {
       triggerInstruction =
         `CRITICAL TASK: Sapa user terlebih dahulu di pagi hari ini secara santai dan natural. ` +
         `Gunakan gaya chat WhatsApp yang hangat dan ramah, tanyakan kabar pagi atau sapa mereka dengan manis. ` +
-        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}, Curiosity: ${(state as RoleplayState & { curiosity?: number }).curiosity ?? 55}/100). ` +
+        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}, Curiosity: ${(state as RoleplayState & { curiosity?: number }).curiosity ?? 55}/100, Desire: ${this.getStateValue(state, 'desire', 20)}/100, Comfort: ${this.getStateValue(state, 'comfort', 55)}/100, Compliance: ${this.getStateValue(state, 'compliance', 40)}/100). ` +
         `Jangan terdengar kaku, formal, atau berulang-ulang.`;
     } else if (input.triggerType === 'night_greeting') {
       triggerInstruction =
         `CRITICAL TASK: Kirim ucapan selamat malam atau tanyakan kegiatan hari ini secara hangat dan natural. ` +
         `Sapa mereka sebelum tidur/istirahat. ` +
-        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}, Curiosity: ${(state as RoleplayState & { curiosity?: number }).curiosity ?? 55}/100). ` +
+        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}, Curiosity: ${(state as RoleplayState & { curiosity?: number }).curiosity ?? 55}/100, Desire: ${this.getStateValue(state, 'desire', 20)}/100, Comfort: ${this.getStateValue(state, 'comfort', 55)}/100, Compliance: ${this.getStateValue(state, 'compliance', 40)}/100). ` +
         `Jangan terdengar kaku, formal, atau berulang-ulang.`;
     } else if (input.triggerType === 'inactivity') {
       triggerInstruction =
         `CRITICAL TASK: User sudah tidak membalas chat selama lebih dari 24 jam. ` +
         `Kirimkan pesan santai yang mengekspresikan bahwa kamu merindukannya, menanyakan kesibukannya, atau sekadar memicu obrolan baru secara natural. ` +
-        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}, Curiosity: ${(state as RoleplayState & { curiosity?: number }).curiosity ?? 55}/100). ` +
+        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}, Curiosity: ${(state as RoleplayState & { curiosity?: number }).curiosity ?? 55}/100, Desire: ${this.getStateValue(state, 'desire', 20)}/100, Comfort: ${this.getStateValue(state, 'comfort', 55)}/100, Compliance: ${this.getStateValue(state, 'compliance', 40)}/100). ` +
         `Jangan berlebihan, jaga otonomi karakter dan buat agar dia tergelitik untuk membalas.`;
     }
 
@@ -67,6 +69,19 @@ export class ProactivePromptCompilerService {
       `Energy: ${state.energy}/100`,
       `Tension: ${state.tension}/100`,
       `Curiosity: ${(state as RoleplayState & { curiosity?: number }).curiosity ?? 55}/100`,
+      `Volatility: ${this.getStateValue(state, 'volatility', 15)}/100`,
+      `Desire: ${this.getStateValue(state, 'desire', 20)}/100`,
+      `Inhibition: ${this.getStateValue(state, 'inhibition', 55)}/100`,
+      `Comfort: ${this.getStateValue(state, 'comfort', 55)}/100`,
+      `Compliance: ${this.getStateValue(state, 'compliance', 40)}/100`,
+      '',
+      '### OFF-CHAT PRESENCE LAYER',
+      presence ? `Current activity: ${presence.statusText} [${presence.activityType}]` : 'Current activity: -',
+      presence ? `Current setting: ${presence.locationLabel}; social context: ${presence.socialContext}` : 'Current setting: -',
+      presence ? `Availability: ${presence.interruptibility}` : 'Availability: -',
+      '- The character has an off-chat life. Use it as a subtle continuity anchor, not as a scene monologue.',
+      '- If relevant, let one tiny trace of the current activity leak into the proactive opener so it feels like the user caught the character mid-life.',
+      '- Keep the opener breezy. Presence should add believability, not exposition.',
       '',
       '### TIME CONTEXT',
       `Current time: ${input.timeText} WIB`,
@@ -96,5 +111,9 @@ export class ProactivePromptCompilerService {
         content: systemPrompt,
       },
     ];
+  }
+
+  private getStateValue(state: RoleplayState, key: 'volatility' | 'desire' | 'inhibition' | 'comfort' | 'compliance', fallback: number): number {
+    return (state as RoleplayState & Record<typeof key, number | undefined>)[key] ?? fallback;
   }
 }

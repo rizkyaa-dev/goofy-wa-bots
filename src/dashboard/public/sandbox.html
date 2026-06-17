@@ -7,71 +7,77 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="/style.css">
   <style>
     :root {
-      --primary-color: #8b5cf6; /* Violet */
-      --primary-glow: rgba(139, 92, 246, 0.15);
-      --accent-color: #ec4899; /* Pink */
+      --primary-color: #8b5cf6;
+      --primary-glow: rgba(139, 92, 246, 0.18);
+      --accent-color: #ec4899;
       --bg-dark: #090514;
-      --card-bg: rgba(20, 16, 35, 0.65);
+      --card-bg: rgba(20, 16, 35, 0.68);
       --border-color: rgba(139, 92, 246, 0.2);
     }
 
     body {
-      background: radial-gradient(circle at 50% 0%, #1d143c 0%, var(--bg-dark) 80%);
+      background: radial-gradient(circle at 50% 0%, #1d143c 0%, var(--bg-dark) 78%);
       font-family: 'Plus Jakarta Sans', sans-serif;
     }
 
-    h1, h2, h3, .nav-logo {
+    h1, h2, h3, h4, .nav-logo {
       font-family: 'Outfit', sans-serif;
     }
 
-    /* Light theme overrides for Sandbox */
     body.light-theme {
       --primary-color: #6d28d9;
-      --primary-glow: rgba(109, 40, 217, 0.1);
+      --primary-glow: rgba(109, 40, 217, 0.12);
       --accent-color: #db2777;
       --bg-dark: #f8fafc;
-      --card-bg: rgba(255, 255, 255, 0.85);
-      --border-color: rgba(109, 40, 217, 0.15);
+      --card-bg: rgba(255, 255, 255, 0.88);
+      --border-color: rgba(109, 40, 217, 0.14);
       color: #0f172a;
     }
+
     body.light-theme .msg-bubble.outbound {
       background: rgba(15, 23, 42, 0.05);
       color: #0f172a;
       border: 1px solid rgba(15, 23, 42, 0.08);
     }
+
     body.light-theme .msg-bubble.inbound {
       box-shadow: 0 4px 12px rgba(109, 40, 217, 0.2);
     }
+
     body.light-theme .chat-header,
-    body.light-theme .chat-input-area {
+    body.light-theme .chat-input-area,
+    body.light-theme .inspector-header {
       background: rgba(255, 255, 255, 0.5);
     }
+
     body.light-theme .chat-input,
-    body.light-theme .chat-selector select {
-      background: rgba(255, 255, 255, 0.9);
-      color: #0f172a;
-      border-color: rgba(15, 23, 42, 0.15);
-    }
-    body.light-theme .inspect-box h4,
-    body.light-theme .chat-title-wrapper h3,
-    body.light-theme .metric-value {
-      color: #0f172a;
-    }
+    body.light-theme .chat-selector select,
+    body.light-theme .presence-card,
+    body.light-theme .status-toast,
     body.light-theme .memory-item {
-      background: rgba(15, 23, 42, 0.02);
-      border-color: rgba(15, 23, 42, 0.04);
-      color: #475569;
-    }
-    body.light-theme .chat-status {
-      color: #6d28d9;
+      color: #0f172a;
     }
 
-    /* Navbar styling to match main-header */
+    body.light-theme .chat-input {
+      background: rgba(255, 255, 255, 0.92);
+      border-color: rgba(15, 23, 42, 0.12);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    body.light-theme .chat-input::placeholder {
+      color: rgba(15, 23, 42, 0.45);
+    }
+
+    body.light-theme .chat-input:focus {
+      background: #ffffff;
+      border-color: rgba(109, 40, 217, 0.45);
+      box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.12);
+    }
+
     .nav-bar {
       margin-bottom: 24px;
       padding: 14px 24px;
@@ -82,11 +88,12 @@
     }
 
     .nav-container {
-      max-width: 1400px;
+      max-width: 1440px;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 16px;
     }
 
     .nav-logo {
@@ -99,34 +106,63 @@
 
     .sandbox-container {
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr;
-      gap: 24px;
-      max-width: 1400px;
+      grid-template-columns: minmax(280px, 0.72fr) minmax(520px, 1.28fr) minmax(360px, 0.9fr);
+      align-items: start;
+      gap: 20px;
+      max-width: 1680px;
       margin: 0 auto;
-      height: calc(100vh - 120px);
-      padding: 0 20px;
+      min-height: calc(100vh - 120px);
+      padding: 0 20px 20px;
     }
 
-    /* Left Side: Chat Section */
-    .chat-card {
+    @media (max-width: 1320px) {
+      .sandbox-container {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .chat-card,
+      .status-card,
+      .cheat-card {
+        height: auto;
+        max-height: none;
+      }
+    }
+
+    .chat-card,
+    .status-card,
+    .cheat-card {
       display: flex;
       flex-direction: column;
-      height: 100%;
+      align-self: start;
       background: var(--card-bg);
       backdrop-filter: blur(20px);
       border: 1px solid var(--border-color);
-      border-radius: 20px;
+      border-radius: 22px;
       overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.18);
+      min-height: 0;
+    }
+
+    .chat-card,
+    .status-card,
+    .cheat-card {
+      height: calc(100vh - 160px);
+      max-height: calc(100vh - 160px);
+    }
+
+    .chat-header,
+    .inspector-header {
+      padding: 16px 22px;
+      background: rgba(15, 10, 28, 0.56);
+      border-bottom: 1px solid var(--border-color);
     }
 
     .chat-header {
-      padding: 16px 24px;
-      background: rgba(15, 10, 28, 0.6);
-      border-bottom: 1px solid var(--border-color);
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      align-items: center;
+      gap: 16px;
     }
 
     .chat-meta {
@@ -149,10 +185,14 @@
       box-shadow: 0 0 12px var(--primary-glow);
     }
 
-    .chat-title-wrapper h3 {
+    .chat-title-wrapper h3,
+    .inspector-header h3 {
       margin: 0;
-      color: #fff;
+      color: var(--text-main, #fff);
       font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .chat-status {
@@ -176,42 +216,66 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     .chat-selector select {
-      background: rgba(9, 5, 20, 0.8);
+      background: rgba(9, 5, 20, 0.82);
       border: 1px solid var(--border-color);
       color: #fff;
-      padding: 6px 12px;
-      border-radius: 8px;
+      padding: 8px 12px;
+      border-radius: 10px;
       outline: none;
       font-size: 13px;
     }
 
+    body.light-theme .chat-selector select {
+      background: rgba(255, 255, 255, 0.9);
+      color: #0f172a;
+      border-color: rgba(15, 23, 42, 0.15);
+    }
+
     .chat-messages {
       flex: 1;
-      padding: 24px;
+      min-height: 0;
+      padding: 22px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .msg-bubble {
-      max-width: 75%;
-      padding: 14px 20px;
-      border-radius: 20px;
+      display: inline-flex;
+      box-sizing: border-box;
+      flex: 0 0 auto;
+      width: fit-content;
+      height: auto;
+      min-width: 0;
+      min-height: 0;
+      max-width: min(72%, 520px);
+      padding: 9px 13px;
+      border-radius: 15px;
+      flex-direction: column;
+      gap: 4px;
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.42;
       position: relative;
-      animation: fadeIn 0.25s ease-out;
+      animation: fadeIn 0.22s ease-out;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    .msg-bubble .msg-text {
+      display: block;
+      max-width: 100%;
     }
 
     .msg-bubble.inbound {
       align-self: flex-end;
       background: linear-gradient(135deg, #8b5cf6, #7c3aed);
       color: #fff;
-      border-bottom-right-radius: 4px;
+      border-bottom-right-radius: 5px;
       box-shadow: 0 4px 15px rgba(139, 92, 246, 0.25);
     }
 
@@ -219,21 +283,27 @@
       align-self: flex-start;
       background: rgba(255, 255, 255, 0.08);
       color: #f1f5f9;
-      border-bottom-left-radius: 4px;
+      border-bottom-left-radius: 5px;
       border: 1px solid rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(10px);
     }
 
     .msg-bubble .msg-time {
       font-size: 10px;
-      color: rgba(255, 255, 255, 0.5);
-      margin-top: 4px;
+      color: rgba(255, 255, 255, 0.56);
+      line-height: 1;
+      margin-top: 2px;
       text-align: right;
+      align-self: flex-end;
+    }
+
+    body.light-theme .msg-bubble.outbound .msg-time {
+      color: rgba(15, 23, 42, 0.45);
     }
 
     .chat-input-area {
-      padding: 16px 24px;
-      background: rgba(15, 10, 28, 0.6);
+      padding: 16px 22px;
+      background: rgba(15, 10, 28, 0.56);
       border-top: 1px solid var(--border-color);
     }
 
@@ -244,14 +314,14 @@
 
     .chat-input {
       flex: 1;
-      background: rgba(9, 5, 20, 0.6);
+      background: rgba(9, 5, 20, 0.64);
       border: 1px solid var(--border-color);
       color: #fff;
-      padding: 16px 20px;
-      border-radius: 20px;
+      padding: 16px 18px;
+      border-radius: 18px;
       outline: none;
       font-size: 14.5px;
-      transition: all 0.3s;
+      transition: all 0.3s ease;
     }
 
     .chat-input:focus {
@@ -263,74 +333,61 @@
       background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
       color: #fff;
       border: none;
-      padding: 0 26px;
+      padding: 0 22px;
       border-radius: 18px;
       font-weight: 600;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 8px;
-      transition: all 0.3s;
+      transition: all 0.28s ease;
       box-shadow: 0 4px 12px var(--primary-glow);
+      min-height: 44px;
     }
 
     .btn-send:hover {
-      opacity: 0.9;
+      opacity: 0.94;
       transform: translateY(-1px);
     }
 
-    /* Right Side: Unified Relation Inspector Section */
-    .inspector-card.unified-card {
-      display: flex;
-      flex-direction: column;
-      background: var(--card-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-      height: 100%;
+    .btn-send:disabled {
+      opacity: 0.7;
+      transform: none;
+      cursor: wait;
     }
 
-    .inspector-header {
-      padding: 18px 24px;
-      background: rgba(15, 10, 28, 0.4);
-      border-bottom: 1px solid var(--border-color);
-    }
-    
-    body.light-theme .inspector-header {
-      background: rgba(255, 255, 255, 0.4);
-    }
-
-    .inspector-header h3 {
-      margin: 0;
-      font-size: 15px;
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       color: var(--text-main, #fff);
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      padding: 11px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.14);
+    }
+
+    body.light-theme .btn-ghost {
+      background: rgba(15, 23, 42, 0.04);
+      border-color: rgba(15, 23, 42, 0.08);
+      color: #0f172a;
     }
 
     .inspector-body {
-      padding: 24px;
+      padding: 22px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 18px;
       flex: 1;
+      min-height: 0;
       overflow-y: auto;
-    }
-
-    /* Custom Scrollbar for Inspector Body */
-    .inspector-body::-webkit-scrollbar {
-      width: 6px;
-    }
-    .inspector-body::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 3px;
-    }
-    body.light-theme .inspector-body::-webkit-scrollbar-thumb {
-      background: rgba(15, 23, 42, 0.1);
     }
 
     .inspector-section {
@@ -339,15 +396,8 @@
       gap: 12px;
     }
 
-    .inspector-section.flex-expand {
-      flex: 1;
-      min-height: 180px;
-      display: flex;
-      flex-direction: column;
-    }
-
     .inspector-section h4 {
-      margin: 0 0 8px 0;
+      margin: 0;
       font-size: 14px;
       color: var(--text-main, #fff);
       display: flex;
@@ -355,16 +405,22 @@
       gap: 8px;
     }
 
+    .section-note {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--text-dim, #64748b);
+    }
+
     .section-divider {
       border: none;
       height: 1px;
       background: var(--border-color);
-      margin: 4px 0;
+      margin: 0;
     }
 
-    /* Metrics display */
     .metric-row {
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
     .metric-row:last-child {
@@ -388,6 +444,10 @@
       font-weight: 600;
     }
 
+    body.light-theme .metric-value {
+      color: #0f172a;
+    }
+
     .metric-bar-bg {
       height: 8px;
       background: rgba(255, 255, 255, 0.06);
@@ -395,10 +455,14 @@
       overflow: hidden;
     }
 
+    body.light-theme .metric-bar-bg {
+      background: rgba(15, 23, 42, 0.08);
+    }
+
     .metric-bar-fill {
       height: 100%;
       border-radius: 4px;
-      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .affection-fill {
@@ -436,6 +500,31 @@
       box-shadow: 0 0 8px rgba(20, 184, 166, 0.4);
     }
 
+    .volatility-fill {
+      background: linear-gradient(90deg, #f97316, #ef4444);
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.35);
+    }
+
+    .desire-fill {
+      background: linear-gradient(90deg, #fb7185, #db2777);
+      box-shadow: 0 0 8px rgba(219, 39, 119, 0.35);
+    }
+
+    .inhibition-fill {
+      background: linear-gradient(90deg, #64748b, #475569);
+      box-shadow: 0 0 8px rgba(100, 116, 139, 0.35);
+    }
+
+    .comfort-fill {
+      background: linear-gradient(90deg, #2dd4bf, #22c55e);
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.35);
+    }
+
+    .compliance-fill {
+      background: linear-gradient(90deg, #38bdf8, #2563eb);
+      box-shadow: 0 0 8px rgba(37, 99, 235, 0.35);
+    }
+
     .mood-badge {
       display: inline-block;
       padding: 6px 12px;
@@ -457,8 +546,132 @@
     .mood-excited { background: #eab308; }
     .mood-jealous { background: #db2777; }
     .mood-worried { background: #14b8a6; }
+    .mood-swing { background: #f97316; }
+    .mood-sensual { background: #be185d; }
+    .mood-flirty { background: #f472b6; }
+    .mood-aroused { background: #dc2626; }
+    .mood-needy { background: #a855f7; }
 
-    /* Memory List styling */
+    .presence-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .presence-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-height: 74px;
+    }
+
+    .presence-card.full {
+      grid-column: 1 / -1;
+      min-height: 0;
+    }
+
+    body.light-theme .presence-card {
+      background: rgba(15, 23, 42, 0.03);
+      border-color: rgba(15, 23, 42, 0.06);
+    }
+
+    .presence-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim, #64748b);
+      font-weight: 700;
+    }
+
+    .presence-value {
+      font-size: 13px;
+      color: var(--text-main, #fff);
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    .presence-value.subtle {
+      font-weight: 500;
+      color: var(--text-muted, #cbd5e1);
+    }
+
+    .sandbox-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .sandbox-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .sandbox-grid .full {
+      grid-column: 1 / -1;
+    }
+
+    .form-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-stack label {
+      font-size: 12px;
+      color: var(--text-muted, #94a3b8);
+      font-weight: 600;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .status-toast {
+      display: none;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .status-toast.show {
+      display: block;
+    }
+
+    .status-toast.success {
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #34d399;
+    }
+
+    .status-toast.error {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+
+    .memory-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .memory-toolbar p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--text-dim, #64748b);
+      line-height: 1.45;
+    }
+
     .memory-list {
       display: flex;
       flex-direction: column;
@@ -468,36 +681,80 @@
     }
 
     .memory-item {
+      position: relative;
       background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
-      padding: 10px 14px;
-      font-size: 13px;
-      color: var(--text-muted, #cbd5e1);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
       transition: all 0.2s ease;
     }
 
     .memory-item:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(255, 255, 255, 0.11);
     }
 
     body.light-theme .memory-item {
-      background: rgba(15, 23, 42, 0.02);
-      border-color: rgba(15, 23, 42, 0.04);
-      color: #475569;
+      background: rgba(15, 23, 42, 0.03);
+      border-color: rgba(15, 23, 42, 0.06);
     }
 
-    body.light-theme .memory-item:hover {
-      background: rgba(15, 23, 42, 0.04);
+    .memory-item-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .memory-item .memory-kind {
-      font-size: 10px;
+    .memory-kind-badge {
+      align-self: flex-start;
+      font-size: 0.65rem;
+      font-weight: 700;
       text-transform: uppercase;
-      font-weight: 600;
-      color: #a78bfa;
-      margin-bottom: 2px;
+      letter-spacing: 0.05em;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .memory-kind-badge.user_fact { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .memory-kind-badge.preference { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .memory-kind-badge.relationship { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .memory-kind-badge.episode { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+    .memory-kind-badge.boundary { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+    .memory-kind-badge.goal { background: rgba(6, 182, 212, 0.15); color: #22d3ee; }
+
+    .memory-text {
+      font-size: 0.84rem;
+      font-weight: 400;
+      color: var(--text-main, #fff);
+      line-height: 1.45;
+    }
+
+    .memory-meta {
+      display: flex;
+      gap: 10px;
+      font-size: 0.72rem;
+      color: var(--text-dim, #64748b);
+      flex-wrap: wrap;
+    }
+
+    .btn-delete-memory {
+      color: var(--text-dim, #64748b);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 0.92rem;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-delete-memory:hover {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
     }
 
     .no-memories {
@@ -525,6 +782,26 @@
       border-color: rgba(239, 68, 68, 0.3);
     }
 
+    @media (max-width: 700px) {
+      .chat-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .presence-grid,
+      .sandbox-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chat-form {
+        flex-direction: column;
+      }
+
+      .msg-bubble {
+        max-width: 88%;
+      }
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(4px); }
       to { opacity: 1; transform: translateY(0); }
@@ -543,14 +820,193 @@
           <i class="fa-solid fa-moon" id="theme-toggle-icon"></i>
         </button>
         <a href="/Dashboard" class="btn-secondary" style="border-radius: 8px; padding: 8px 16px; text-decoration: none; font-size: 13px; font-weight: 600;">
-          ← Kembali ke Dashboard
+          <- Kembali ke Dashboard
         </a>
       </div>
     </div>
   </nav>
 
   <div class="sandbox-container">
-    <!-- Chat Area -->
+    <div class="status-card">
+      <div class="inspector-header">
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-color);"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+          Status & Presence
+        </h3>
+      </div>
+
+      <div class="inspector-body">
+        <div class="inspector-section">
+          <h4>State Runtime Saat Ini</h4>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Affection (Kasih Sayang)</span>
+              <span class="metric-value" id="affectionVal">50/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill affection-fill" id="affectionBar" style="width: 50%;"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Trust (Kepercayaan)</span>
+              <span class="metric-value" id="trustVal">50/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill trust-fill" id="trustBar" style="width: 50%;"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Energy (Energi)</span>
+              <span class="metric-value" id="energyVal">70/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill energy-fill" id="energyBar" style="width: 70%;"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Tension (Ketegangan)</span>
+              <span class="metric-value" id="tensionVal">0/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill tension-fill" id="tensionBar" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Intimacy (Keintiman)</span>
+              <span class="metric-value" id="intimacyVal">10/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill intimacy-fill" id="intimacyBar" style="width: 10%;"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Shyness (Salah Tingkah)</span>
+              <span class="metric-value" id="shynessVal">15/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill shyness-fill" id="shynessBar" style="width: 15%;"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Curiosity (Rasa Ingin Tahu)</span>
+              <span class="metric-value" id="curiosityVal">55/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill curiosity-fill" id="curiosityBar" style="width: 55%;"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Volatility (Mood Swing)</span>
+              <span class="metric-value" id="volatilityVal">15/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill volatility-fill" id="volatilityBar" style="width: 15%;"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Desire (Dorongan Sensual)</span>
+              <span class="metric-value" id="desireVal">20/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill desire-fill" id="desireBar" style="width: 20%;"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Inhibition (Rem / Tahan Diri)</span>
+              <span class="metric-value" id="inhibitionVal">55/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill inhibition-fill" id="inhibitionBar" style="width: 55%;"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Comfort (Rasa Aman)</span>
+              <span class="metric-value" id="comfortVal">55/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill comfort-fill" id="comfortBar" style="width: 55%;"></div>
+            </div>
+          </div>
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Compliance (Kooperatif/Nurut)</span>
+              <span class="metric-value" id="complianceVal">40/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill compliance-fill" id="complianceBar" style="width: 40%;"></div>
+            </div>
+          </div>
+          <div style="margin-top: 10px; display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 13px; color: var(--text-muted, #94a3b8); font-weight: 500;">Mood Karakter:</span>
+            <span class="mood-badge mood-neutral" id="moodBadge">neutral</span>
+          </div>
+        </div>
+
+        <hr class="section-divider">
+
+        <div class="inspector-section">
+          <h4>Off-Chat Presence Saat Ini</h4>
+          <div class="presence-grid">
+            <div class="presence-card full">
+              <span class="presence-label">Status</span>
+              <span class="presence-value" id="presenceStatusText">Belum ada aktivitas aktif.</span>
+            </div>
+            <div class="presence-card">
+              <span class="presence-label">Activity Type</span>
+              <span class="presence-value" id="presenceActivityType">-</span>
+            </div>
+            <div class="presence-card">
+              <span class="presence-label">Lokasi</span>
+              <span class="presence-value" id="presenceLocation">-</span>
+            </div>
+            <div class="presence-card">
+              <span class="presence-label">Social Context</span>
+              <span class="presence-value subtle" id="presenceSocialContext">-</span>
+            </div>
+            <div class="presence-card">
+              <span class="presence-label">Availability</span>
+              <span class="presence-value subtle" id="presenceInterruptibility">-</span>
+            </div>
+            <div class="presence-card">
+              <span class="presence-label">Source</span>
+              <span class="presence-value subtle" id="presenceSource">-</span>
+            </div>
+            <div class="presence-card">
+              <span class="presence-label">Until</span>
+              <span class="presence-value subtle" id="presenceExpiresAt">-</span>
+            </div>
+          </div>
+        </div>
+
+        <hr class="section-divider">
+
+        <div class="inspector-section" style="flex: 1;">
+          <div class="memory-toolbar">
+            <div>
+              <h4>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-color);"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                Memori Terdeteksi
+              </h4>
+              <p>Daftar memory aktif yang sedang ikut memengaruhi context dan callback.</p>
+            </div>
+          </div>
+          <div class="memory-list" id="memoryList">
+            <div class="no-memories">Belum ada memori terdeteksi.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="chat-card">
       <div class="chat-header">
         <div class="chat-meta">
@@ -559,7 +1015,7 @@
             <h3>Alya (Sandbox Session)</h3>
             <div class="chat-status">
               <span class="chat-status-dot"></span>
-              <span>Terisolasi & Mandiri</span>
+              <span id="sandboxTokenUsage">tok total in: 0 / out: 0 / all: 0</span>
             </div>
           </div>
         </div>
@@ -573,15 +1029,13 @@
         </div>
       </div>
 
-      <!-- Messages Viewport -->
       <div class="chat-messages" id="chatViewport">
         <div class="no-memories" style="margin: auto; text-align: center;">
           <p style="color: var(--text-muted, #94a3b8); font-weight: 500; font-size: 14px;">Kirimkan pesan pertama untuk memulai simulasi obrolan Alya.</p>
-          <p style="font-size: 12px; color: var(--text-dim, #64748b); margin-top: 4px;">Pesan yang dikirim tidak akan masuk ke WhatsApp asli dan disimpan di database sandbox.</p>
+          <p style="font-size: 12px; color: var(--text-dim, #64748b); margin-top: 4px;">Semua log disimpan di database sandbox dan tidak menyentuh WhatsApp produksi.</p>
         </div>
       </div>
 
-      <!-- Input Bar -->
       <div class="chat-input-area">
         <form class="chat-form" id="chatForm">
           <input type="text" class="chat-input" id="messageInput" placeholder="Ketik pesan untuk Alya..." required autocomplete="off">
@@ -593,120 +1047,268 @@
       </div>
     </div>
 
-    <!-- Inspector Area -->
-    <div class="inspector-card unified-card">
+    <div class="cheat-card">
       <div class="inspector-header">
         <h3>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-color);"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-          Status Hubungan (Sandbox)
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-color);"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+          Cheat Console
         </h3>
       </div>
-      
+
       <div class="inspector-body">
-        <!-- Relation States Section -->
+        <div class="status-toast" id="statusToast"></div>
+
         <div class="inspector-section">
-          <!-- Affection -->
-          <div class="metric-row">
-            <div class="metric-label-wrapper">
-              <span class="metric-label">Affection (Kasih Sayang)</span>
-              <span class="metric-value" id="affectionVal">50/100</span>
+          <h4>Cheat Roleplay State</h4>
+          <p class="section-note">Paksa hubungan, mood, dan summary agar cepat menguji branching percakapan tanpa menunggu state berkembang alami.</p>
+          <form id="stateCheatForm" class="sandbox-form">
+            <div class="sandbox-grid">
+              <div class="form-stack full">
+                <label for="cheatMood">Mood</label>
+                <select id="cheatMood" class="form-control">
+                  <option value="neutral">neutral</option>
+                  <option value="happy">happy</option>
+                  <option value="sad">sad</option>
+                  <option value="annoyed">annoyed</option>
+                  <option value="warm">warm</option>
+                  <option value="playful">playful</option>
+                  <option value="sleepy">sleepy</option>
+                  <option value="excited">excited</option>
+                  <option value="jealous">jealous</option>
+                  <option value="worried">worried</option>
+                  <option value="swing">swing</option>
+                  <option value="sensual">sensual</option>
+                  <option value="flirty">flirty</option>
+                  <option value="aroused">aroused</option>
+                  <option value="needy">needy</option>
+                </select>
+              </div>
+              <div class="slider-group">
+                <div class="slider-label">
+                  <span>Affection</span>
+                  <span class="slider-value" id="cheatValAffection">50</span>
+                </div>
+                <input type="range" id="cheatAffection" min="0" max="100" value="50" class="slider">
+              </div>
+              <div class="slider-group">
+                <div class="slider-label">
+                  <span>Trust</span>
+                  <span class="slider-value" id="cheatValTrust">50</span>
+                </div>
+                <input type="range" id="cheatTrust" min="0" max="100" value="50" class="slider">
+              </div>
+              <div class="slider-group">
+                <div class="slider-label">
+                  <span>Energy</span>
+                  <span class="slider-value" id="cheatValEnergy">70</span>
+                </div>
+                <input type="range" id="cheatEnergy" min="0" max="100" value="70" class="slider">
+              </div>
+              <div class="slider-group">
+                <div class="slider-label">
+                  <span>Tension</span>
+                  <span class="slider-value" id="cheatValTension">0</span>
+                </div>
+                <input type="range" id="cheatTension" min="0" max="100" value="0" class="slider">
+              </div>
+              <div class="slider-group">
+                <div class="slider-label">
+                  <span>Intimacy</span>
+                  <span class="slider-value" id="cheatValIntimacy">10</span>
+                </div>
+                <input type="range" id="cheatIntimacy" min="0" max="100" value="10" class="slider">
+              </div>
+              <div class="slider-group">
+                <div class="slider-label">
+                  <span>Shyness</span>
+                  <span class="slider-value" id="cheatValShyness">15</span>
+                </div>
+                <input type="range" id="cheatShyness" min="0" max="100" value="15" class="slider">
+              </div>
+              <div class="slider-group full">
+                <div class="slider-label">
+                  <span>Curiosity</span>
+                  <span class="slider-value" id="cheatValCuriosity">55</span>
+                </div>
+                <input type="range" id="cheatCuriosity" min="0" max="100" value="55" class="slider">
+              </div>
+              <div class="slider-group">
+                <div class="slider-label">
+                  <span>Volatility</span>
+                  <span class="slider-value" id="cheatValVolatility">15</span>
+                </div>
+                <input type="range" id="cheatVolatility" min="0" max="100" value="15" class="slider">
+              </div>
+              <div class="slider-group">
+                <div class="slider-label">
+                  <span>Desire</span>
+                  <span class="slider-value" id="cheatValDesire">20</span>
+                </div>
+                <input type="range" id="cheatDesire" min="0" max="100" value="20" class="slider">
+              </div>
+              <div class="slider-group">
+                <div class="slider-label">
+                  <span>Inhibition</span>
+                  <span class="slider-value" id="cheatValInhibition">55</span>
+                </div>
+                <input type="range" id="cheatInhibition" min="0" max="100" value="55" class="slider">
+              </div>
+              <div class="slider-group">
+                <div class="slider-label">
+                  <span>Comfort</span>
+                  <span class="slider-value" id="cheatValComfort">55</span>
+                </div>
+                <input type="range" id="cheatComfort" min="0" max="100" value="55" class="slider">
+              </div>
+              <div class="slider-group">
+                <div class="slider-label">
+                  <span>Compliance</span>
+                  <span class="slider-value" id="cheatValCompliance">40</span>
+                </div>
+                <input type="range" id="cheatCompliance" min="0" max="100" value="40" class="slider">
+              </div>
+              <div class="form-stack full">
+                <label for="cheatSummary">Summary</label>
+                <textarea id="cheatSummary" class="form-control" rows="3" placeholder="Ringkasan relasi/konteks untuk prompt runtime..."></textarea>
+              </div>
             </div>
-            <div class="metric-bar-bg">
-              <div class="metric-bar-fill affection-fill" id="affectionBar" style="width: 50%;"></div>
+            <div class="form-actions">
+              <button type="submit" class="btn-send" id="btnSaveStateCheat">
+                <span>Simpan State</span>
+              </button>
             </div>
-          </div>
-
-          <!-- Trust -->
-          <div class="metric-row">
-            <div class="metric-label-wrapper">
-              <span class="metric-label">Trust (Kepercayaan)</span>
-              <span class="metric-value" id="trustVal">50/100</span>
-            </div>
-            <div class="metric-bar-bg">
-              <div class="metric-bar-fill trust-fill" id="trustBar" style="width: 50%;"></div>
-            </div>
-          </div>
-
-          <!-- Energy -->
-          <div class="metric-row">
-            <div class="metric-label-wrapper">
-              <span class="metric-label">Energy (Energi)</span>
-              <span class="metric-value" id="energyVal">70/100</span>
-            </div>
-            <div class="metric-bar-bg">
-              <div class="metric-bar-fill energy-fill" id="energyBar" style="width: 70%;"></div>
-            </div>
-          </div>
-
-          <!-- Tension -->
-          <div class="metric-row">
-            <div class="metric-label-wrapper">
-              <span class="metric-label">Tension (Ketegangan)</span>
-              <span class="metric-value" id="tensionVal">0/100</span>
-            </div>
-            <div class="metric-bar-bg">
-              <div class="metric-bar-fill tension-fill" id="tensionBar" style="width: 0%;"></div>
-            </div>
-          </div>
-
-          <!-- Intimacy -->
-          <div class="metric-row">
-            <div class="metric-label-wrapper">
-              <span class="metric-label">Intimacy (Keintiman)</span>
-              <span class="metric-value" id="intimacyVal">10/100</span>
-            </div>
-            <div class="metric-bar-bg">
-              <div class="metric-bar-fill intimacy-fill" id="intimacyBar" style="width: 10%;"></div>
-            </div>
-          </div>
-
-          <!-- Shyness -->
-          <div class="metric-row">
-            <div class="metric-label-wrapper">
-              <span class="metric-label">Shyness (Salah Tingkah)</span>
-              <span class="metric-value" id="shynessVal">15/100</span>
-            </div>
-            <div class="metric-bar-bg">
-              <div class="metric-bar-fill shyness-fill" id="shynessBar" style="width: 15%;"></div>
-            </div>
-          </div>
-
-          <!-- Curiosity -->
-          <div class="metric-row">
-            <div class="metric-label-wrapper">
-              <span class="metric-label">Curiosity (Rasa Ingin Tahu)</span>
-              <span class="metric-value" id="curiosityVal">55/100</span>
-            </div>
-            <div class="metric-bar-bg">
-              <div class="metric-bar-fill curiosity-fill" id="curiosityBar" style="width: 55%;"></div>
-            </div>
-          </div>
-
-          <!-- Current Mood -->
-          <div style="margin-top: 10px; display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 13px; color: var(--text-muted, #94a3b8); font-weight: 500;">Mood Karakter:</span>
-            <span class="mood-badge mood-neutral" id="moodBadge">Neutral</span>
-          </div>
+          </form>
         </div>
 
         <hr class="section-divider">
 
-        <!-- Memories Section -->
-        <div class="inspector-section flex-expand">
-          <h4>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-color);"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-            Memori Karakter (Sandbox)
-          </h4>
-          <div class="memory-list" id="memoryList">
-            <div class="no-memories">Belum ada memori terdeteksi.</div>
-          </div>
+        <div class="inspector-section">
+          <h4>Cheat Presence Activity</h4>
+          <p class="section-note">Paksa aktivitas off-chat untuk mengetes jawaban seperti “lagi apa”, “di mana”, “kenapa lama bales”, atau continuity scene.</p>
+          <form id="presenceCheatForm" class="sandbox-form">
+            <div class="sandbox-grid">
+              <div class="form-stack">
+                <label for="presenceActivityInput">Activity Type</label>
+                <select id="presenceActivityInput" class="form-control">
+                  <option value="sleeping">sleeping</option>
+                  <option value="waking_up">waking_up</option>
+                  <option value="eating">eating</option>
+                  <option value="working">working</option>
+                  <option value="studying">studying</option>
+                  <option value="commuting">commuting</option>
+                  <option value="relaxing">relaxing</option>
+                  <option value="watching">watching</option>
+                  <option value="gaming">gaming</option>
+                  <option value="chatting_offline">chatting_offline</option>
+                  <option value="going_out">going_out</option>
+                  <option value="self_care">self_care</option>
+                  <option value="idle">idle</option>
+                </select>
+              </div>
+              <div class="form-stack">
+                <label for="presenceDurationInput">Durasi Aktif (menit)</label>
+                <input type="number" id="presenceDurationInput" class="form-control" min="5" max="720" value="60">
+              </div>
+              <div class="form-stack full">
+                <label for="presenceStatusInput">Status Text</label>
+                <textarea id="presenceStatusInput" class="form-control" rows="2" placeholder="Contoh: lagi rebahan sambil scroll-scroll random"></textarea>
+              </div>
+              <div class="form-stack">
+                <label for="presenceLocationInput">Lokasi</label>
+                <input type="text" id="presenceLocationInput" class="form-control" placeholder="kamar / rumah / jalan">
+              </div>
+              <div class="form-stack">
+                <label for="presenceSocialInput">Social Context</label>
+                <select id="presenceSocialInput" class="form-control">
+                  <option value="alone">alone</option>
+                  <option value="family">family</option>
+                  <option value="friends">friends</option>
+                  <option value="crowded">crowded</option>
+                  <option value="private">private</option>
+                </select>
+              </div>
+              <div class="form-stack">
+                <label for="presenceInterruptibilityInput">Interruptibility</label>
+                <select id="presenceInterruptibilityInput" class="form-control">
+                  <option value="low">low</option>
+                  <option value="medium" selected>medium</option>
+                  <option value="high">high</option>
+                </select>
+              </div>
+              <div class="form-stack">
+                <label for="presenceSourceInput">Source</label>
+                <select id="presenceSourceInput" class="form-control">
+                  <option value="manual" selected>manual</option>
+                  <option value="external">external</option>
+                  <option value="scheduled">scheduled</option>
+                  <option value="conversation">conversation</option>
+                </select>
+              </div>
+              <div class="form-stack">
+                <label for="presencePriorityInput">Priority</label>
+                <input type="number" id="presencePriorityInput" class="form-control" min="1" max="100" value="35">
+              </div>
+              <div class="form-stack">
+                <label for="presenceReasonInput">Reason Tag</label>
+                <input type="text" id="presenceReasonInput" class="form-control" placeholder="manual_sandbox_override">
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn-send" id="btnSavePresenceCheat">
+                <span>Simpan Presence</span>
+              </button>
+              <button type="button" class="btn-ghost" id="btnFillPresenceFromCurrent">Isi Dari Presence Sekarang</button>
+            </div>
+          </form>
         </div>
 
         <hr class="section-divider">
 
-        <!-- Reset Action Section -->
+        <div class="inspector-section" style="flex: 1;">
+          <div class="memory-toolbar">
+            <div>
+              <h4>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--primary-color);"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                Cheat Memory
+              </h4>
+              <p>Tambah memory manual untuk mengetes callback, recall, dan nuance memory extraction.</p>
+            </div>
+          </div>
+
+          <form id="memoryCheatForm" class="sandbox-form">
+            <div class="sandbox-grid">
+              <div class="form-stack">
+                <label for="memoryKindInput">Jenis Memory</label>
+                <select id="memoryKindInput" class="form-control">
+                  <option value="user_fact">user_fact</option>
+                  <option value="relationship">relationship</option>
+                  <option value="episode">episode</option>
+                  <option value="preference">preference</option>
+                  <option value="boundary">boundary</option>
+                  <option value="goal">goal</option>
+                </select>
+              </div>
+              <div class="form-stack">
+                <label for="memoryImportanceInput">Importance</label>
+                <input type="number" id="memoryImportanceInput" class="form-control" min="0" max="100" value="80">
+              </div>
+              <div class="form-stack full">
+                <label for="memoryContentInput">Konten Memory</label>
+                <textarea id="memoryContentInput" class="form-control" rows="2" placeholder="Contoh: User suka kucing oren dan mudah luluh kalau dipanggil pelan."></textarea>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn-send" id="btnAddMemoryCheat">
+                <span>Tambah Memory</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <hr class="section-divider">
+
         <div class="inspector-section">
-          <button class="btn-reset-sandbox" id="btnResetSandbox">Reset Obrolan & State Sandbox</button>
+          <button class="btn-reset-sandbox" id="btnResetSandbox">Reset Obrolan, State, Presence, & Memory Sandbox</button>
         </div>
       </div>
     </div>

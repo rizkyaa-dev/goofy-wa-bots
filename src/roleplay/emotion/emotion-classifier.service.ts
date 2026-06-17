@@ -15,6 +15,11 @@ const fallbackAnalysis: RoleplayEmotionAnalysis = {
   intimacyDelta: 0,
   shynessDelta: 0,
   curiosityDelta: 0,
+  volatilityDelta: 0,
+  desireDelta: 0,
+  inhibitionDelta: 0,
+  comfortDelta: 0,
+  complianceDelta: 0,
   avoidQuestion: false,
   replyDirective: 'Read the user literally and respond naturally.',
 };
@@ -36,7 +41,7 @@ export class EmotionClassifierService {
         providerName: this.config.get('ROLEPLAY_EMOTION_CLASSIFIER_PROVIDER'),
         model: this.config.get('ROLEPLAY_EMOTION_CLASSIFIER_MODEL') || null,
         thinkingType: 'disabled',
-        maxTokens: 220,
+        maxTokens: 320,
         messages: [
           {
             role: 'system',
@@ -64,6 +69,11 @@ export class EmotionClassifierService {
                 intimacyDelta: 'integer -5..5',
                 shynessDelta: 'integer -5..5',
                 curiosityDelta: 'integer -5..5',
+                volatilityDelta: 'integer -5..5',
+                desireDelta: 'integer -5..5',
+                inhibitionDelta: 'integer -5..5',
+                comfortDelta: 'integer -5..5',
+                complianceDelta: 'integer -5..5',
                 avoidQuestion: 'boolean',
                 replyDirective: 'short instruction for the reply generator',
               },
@@ -92,6 +102,11 @@ export class EmotionClassifierService {
       intimacyDelta: this.clampDelta(parsed.intimacyDelta),
       shynessDelta: this.clampDelta(parsed.shynessDelta),
       curiosityDelta: this.clampDelta(parsed.curiosityDelta),
+      volatilityDelta: this.clampDelta(parsed.volatilityDelta),
+      desireDelta: this.clampDelta(parsed.desireDelta),
+      inhibitionDelta: this.clampDelta(parsed.inhibitionDelta),
+      comfortDelta: this.clampDelta(parsed.comfortDelta),
+      complianceDelta: this.clampDelta(parsed.complianceDelta),
       avoidQuestion: Boolean(parsed.avoidQuestion),
       replyDirective:
         typeof parsed.replyDirective === 'string' && parsed.replyDirective

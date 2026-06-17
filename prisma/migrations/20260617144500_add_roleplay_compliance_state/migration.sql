@@ -1,0 +1,1 @@
+ALTER TABLE "RoleplayState" ADD COLUMN "compliance" INTEGER NOT NULL DEFAULT 40;

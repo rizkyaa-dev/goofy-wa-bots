@@ -10,6 +10,11 @@ type OpenAiCompatibleResponse = {
       content?: string;
     };
   }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
   error?: {
     message?: string;
   };
@@ -67,6 +72,11 @@ export abstract class OpenAiCompatibleProvider implements LlmProvider {
       text,
       provider: this.name,
       model: input.model,
+      usage: {
+        inputTokens: data.usage?.prompt_tokens,
+        outputTokens: data.usage?.completion_tokens,
+        totalTokens: data.usage?.total_tokens,
+      },
     };
   }
 

@@ -115,7 +115,7 @@ export class RoleplayAddressPlannerService {
   private extractAffectionateAlias(text: string): string | undefined {
     const lower = text.toLowerCase();
 
-    if (/\b(?:syg|sayang|ayang|ay)\b/u.test(lower)) {
+    if (/\b(?:syg|sayang|ayang)\b/u.test(lower)) {
       return /\bsyg\b/u.test(lower) ? 'syg' : 'sayang';
     }
 

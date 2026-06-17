@@ -562,6 +562,7 @@ body.light-theme .contacts-table tbody tr:hover {
 .relation-metrics-cell {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .metric-pill {
@@ -577,6 +578,8 @@ body.light-theme .contacts-table tbody tr:hover {
 .metric-pill.affection { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
 .metric-pill.trust { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
 .metric-pill.energy { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.metric-pill.drive { background: rgba(236, 72, 153, 0.1); color: #f472b6; }
+.metric-pill.presence { background: rgba(20, 184, 166, 0.1); color: #2dd4bf; }
 
 /* Mood Badge */
 .mood-badge {
@@ -598,6 +601,74 @@ body.light-theme .contacts-table tbody tr:hover {
 .mood-badge.excited { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
 .mood-badge.jealous { background: rgba(236, 72, 153, 0.15); color: #f472b6; }
 .mood-badge.worried { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; }
+.mood-badge.swing { background: rgba(249, 115, 22, 0.15); color: #fb923c; }
+.mood-badge.sensual { background: rgba(190, 24, 93, 0.15); color: #f472b6; }
+.mood-badge.flirty { background: rgba(244, 114, 182, 0.15); color: #f9a8d4; }
+.mood-badge.aroused { background: rgba(220, 38, 38, 0.15); color: #f87171; }
+.mood-badge.needy { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; }
+
+.presence-summary-card {
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+  padding: 14px;
+}
+
+.presence-summary-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.presence-status {
+  color: var(--text-main);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.presence-source {
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: rgba(20, 184, 166, 0.12);
+  color: #2dd4bf;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 8px;
+  text-transform: uppercase;
+}
+
+.presence-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.presence-meta-grid .full {
+  grid-column: 1 / -1;
+}
+
+.presence-meta-grid .meta-label,
+.presence-meta-grid .meta-value {
+  display: block;
+}
+
+.presence-meta-grid .meta-label {
+  color: var(--text-dim);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+
+.presence-meta-grid .meta-value {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
 
 /* Placeholder Card */
 .flex-center {
@@ -898,13 +969,68 @@ body.light-theme .btn-secondary:hover {
 }
 
 body.light-theme .contacts-table th {
-  background: rgba(15, 23, 42, 0.02);
-  color: #475569;
+  background: rgba(15, 23, 42, 0.045);
+  color: #334155;
+  font-weight: 700;
+}
+
+body.light-theme .table-container {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(15, 23, 42, 0.14);
+}
+
+body.light-theme .contacts-table td {
+  border-bottom-color: rgba(15, 23, 42, 0.1);
+}
+
+body.light-theme .contacts-table tbody tr {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 body.light-theme .contacts-table tbody tr.selected {
   background: rgba(124, 58, 237, 0.06);
 }
+
+body.light-theme .contact-name-cell .name {
+  color: #0f172a;
+}
+
+body.light-theme .contact-name-cell .chat-id {
+  color: #475569;
+}
+
+body.light-theme .mode-select-pill {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(71, 85, 105, 0.35);
+  color: #334155;
+}
+
+body.light-theme .mode-select-pill.silent {
+  border-color: rgba(71, 85, 105, 0.55);
+  color: #334155;
+}
+
+body.light-theme .metric-pill.affection { background: rgba(239, 68, 68, 0.14); color: #dc2626; }
+body.light-theme .metric-pill.trust { background: rgba(37, 99, 235, 0.14); color: #2563eb; }
+body.light-theme .metric-pill.energy { background: rgba(217, 119, 6, 0.16); color: #b45309; }
+body.light-theme .metric-pill.drive { background: rgba(219, 39, 119, 0.14); color: #db2777; }
+body.light-theme .metric-pill.presence { background: rgba(13, 148, 136, 0.16); color: #0f766e; }
+
+body.light-theme .mood-badge.neutral { background: rgba(71, 85, 105, 0.14); color: #334155; }
+body.light-theme .mood-badge.happy { background: rgba(5, 150, 105, 0.14); color: #047857; }
+body.light-theme .mood-badge.sad { background: rgba(37, 99, 235, 0.14); color: #1d4ed8; }
+body.light-theme .mood-badge.annoyed { background: rgba(220, 38, 38, 0.14); color: #b91c1c; }
+body.light-theme .mood-badge.warm { background: rgba(219, 39, 119, 0.14); color: #be185d; }
+body.light-theme .mood-badge.playful { background: rgba(124, 58, 237, 0.14); color: #6d28d9; }
+body.light-theme .mood-badge.sleepy { background: rgba(79, 70, 229, 0.14); color: #4338ca; }
+body.light-theme .mood-badge.excited { background: rgba(217, 119, 6, 0.16); color: #b45309; }
+body.light-theme .mood-badge.jealous { background: rgba(190, 24, 93, 0.14); color: #be185d; }
+body.light-theme .mood-badge.worried { background: rgba(13, 148, 136, 0.16); color: #0f766e; }
+body.light-theme .mood-badge.swing { background: rgba(234, 88, 12, 0.16); color: #c2410c; }
+body.light-theme .mood-badge.sensual { background: rgba(190, 24, 93, 0.16); color: #9d174d; }
+body.light-theme .mood-badge.flirty { background: rgba(219, 39, 119, 0.14); color: #be185d; }
+body.light-theme .mood-badge.aroused { background: rgba(220, 38, 38, 0.15); color: #991b1b; }
+body.light-theme .mood-badge.needy { background: rgba(124, 58, 237, 0.14); color: #6d28d9; }
 
 body.light-theme .form-control {
   background: rgba(255, 255, 255, 0.8);
@@ -1001,4 +1127,3 @@ body.light-theme .slider {
     right: -100%;
   }
 }
-

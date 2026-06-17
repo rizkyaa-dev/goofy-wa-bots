@@ -32,6 +32,11 @@ const elTunerTension = document.getElementById('tuner-tension');
 const elTunerIntimacy = document.getElementById('tuner-intimacy');
 const elTunerShyness = document.getElementById('tuner-shyness');
 const elTunerCuriosity = document.getElementById('tuner-curiosity');
+const elTunerVolatility = document.getElementById('tuner-volatility');
+const elTunerDesire = document.getElementById('tuner-desire');
+const elTunerInhibition = document.getElementById('tuner-inhibition');
+const elTunerComfort = document.getElementById('tuner-comfort');
+const elTunerCompliance = document.getElementById('tuner-compliance');
 const elTunerSummary = document.getElementById('tuner-summary');
 const elValAffection = document.getElementById('val-affection');
 const elValTrust = document.getElementById('val-trust');
@@ -40,7 +45,20 @@ const elValTension = document.getElementById('val-tension');
 const elValIntimacy = document.getElementById('val-intimacy');
 const elValShyness = document.getElementById('val-shyness');
 const elValCuriosity = document.getElementById('val-curiosity');
+const elValVolatility = document.getElementById('val-volatility');
+const elValDesire = document.getElementById('val-desire');
+const elValInhibition = document.getElementById('val-inhibition');
+const elValComfort = document.getElementById('val-comfort');
+const elValCompliance = document.getElementById('val-compliance');
 const elStateTunerForm = document.getElementById('state-tuner-form');
+
+const elPresenceStatusText = document.getElementById('presence-status-text');
+const elPresenceSourceText = document.getElementById('presence-source-text');
+const elPresenceActivityType = document.getElementById('presence-activity-type');
+const elPresenceLocation = document.getElementById('presence-location');
+const elPresenceSocial = document.getElementById('presence-social');
+const elPresenceInterruptibility = document.getElementById('presence-interruptibility');
+const elPresenceExpires = document.getElementById('presence-expires');
 
 // Memory Elements
 const elBtnToggleAddMemory = document.getElementById('btn-toggle-add-memory');
@@ -93,6 +111,11 @@ function setupEventListeners() {
   elTunerIntimacy.addEventListener('input', (e) => elValIntimacy.textContent = e.target.value);
   elTunerShyness.addEventListener('input', (e) => elValShyness.textContent = e.target.value);
   elTunerCuriosity.addEventListener('input', (e) => elValCuriosity.textContent = e.target.value);
+  elTunerVolatility.addEventListener('input', (e) => elValVolatility.textContent = e.target.value);
+  elTunerDesire.addEventListener('input', (e) => elValDesire.textContent = e.target.value);
+  elTunerInhibition.addEventListener('input', (e) => elValInhibition.textContent = e.target.value);
+  elTunerComfort.addEventListener('input', (e) => elValComfort.textContent = e.target.value);
+  elTunerCompliance.addEventListener('input', (e) => elValCompliance.textContent = e.target.value);
 
   // State Tuner Form Submit
   elStateTunerForm.addEventListener('submit', handleTunerSubmit);
@@ -204,7 +227,7 @@ function renderContactsTable(contacts) {
   if (contacts.length === 0) {
     elContactsListTbody.innerHTML = `
       <tr>
-        <td colspan="5" class="text-center text-muted">Belum ada obrolan terdaftar. Kirim pesan ke bot untuk mendaftarkan kontak.</td>
+        <td colspan="6" class="text-center text-muted">Belum ada obrolan terdaftar. Kirim pesan ke bot untuk mendaftarkan kontak.</td>
       </tr>
     `;
     return;
@@ -218,7 +241,8 @@ function renderContactsTable(contacts) {
     }
 
     // Ambil Data State Relasi
-    const state = contact.roleplayState || { affection: 50, trust: 50, energy: 70, curiosity: 55, mood: 'neutral' };
+    const state = withStateDefaults(contact.roleplayState);
+    const presence = contact.roleplayPresenceState;
     
     // Format nomor HP
     const cleanNum = contact.chatId.replace('@c.us', '');
@@ -243,7 +267,11 @@ function renderContactsTable(contacts) {
           <span class="metric-pill affection" title="Affection"><i class="fa-solid fa-heart"></i> ${state.affection}</span>
           <span class="metric-pill trust" title="Trust"><i class="fa-solid fa-shield-halved"></i> ${state.trust}</span>
           <span class="metric-pill energy" title="Energy"><i class="fa-solid fa-bolt"></i> ${state.energy}</span>
+          <span class="metric-pill drive" title="Desire / Comfort"><i class="fa-solid fa-fire"></i> ${state.desire}/${state.comfort}</span>
         </div>
+      </td>
+      <td>
+        ${renderPresenceCell(presence)}
       </td>
       <td>
         <span class="mood-badge ${state.mood}">${state.mood}</span>
@@ -289,7 +317,7 @@ async function inspectContact(chatId) {
   const contact = currentContacts.find(c => c.chatId === chatId);
   if (!contact) return;
 
-  const state = contact.roleplayState || { affection: 50, trust: 50, energy: 70, tension: 0, intimacy: 10, shyness: 15, curiosity: 55, mood: 'neutral', summary: '' };
+  const state = withStateDefaults(contact.roleplayState);
   
   // Update Details Header
   const cleanNum = contact.chatId.replace('@c.us', '');
@@ -320,7 +348,23 @@ async function inspectContact(chatId) {
   elTunerCuriosity.value = state.curiosity ?? 55;
   elValCuriosity.textContent = state.curiosity ?? 55;
 
+  elTunerVolatility.value = state.volatility ?? 15;
+  elValVolatility.textContent = state.volatility ?? 15;
+
+  elTunerDesire.value = state.desire ?? 20;
+  elValDesire.textContent = state.desire ?? 20;
+
+  elTunerInhibition.value = state.inhibition ?? 55;
+  elValInhibition.textContent = state.inhibition ?? 55;
+
+  elTunerComfort.value = state.comfort ?? 55;
+  elValComfort.textContent = state.comfort ?? 55;
+
+  elTunerCompliance.value = state.compliance ?? 40;
+  elValCompliance.textContent = state.compliance ?? 40;
+
   elTunerSummary.value = state.summary || '';
+  renderPresenceSummary(contact.roleplayPresenceState);
 
   // Show details panel, hide placeholder
   elDetailsPlaceholder.classList.add('hidden');
@@ -443,6 +487,11 @@ async function handleTunerSubmit(e) {
         intimacy: parseInt(elTunerIntimacy.value),
         shyness: parseInt(elTunerShyness.value),
         curiosity: parseInt(elTunerCuriosity.value),
+        volatility: parseInt(elTunerVolatility.value),
+        desire: parseInt(elTunerDesire.value),
+        inhibition: parseInt(elTunerInhibition.value),
+        comfort: parseInt(elTunerComfort.value),
+        compliance: parseInt(elTunerCompliance.value),
         summary: elTunerSummary.value
       })
     });
@@ -549,7 +598,7 @@ async function restartWaClient() {
 
 // Utility: Escape HTML to prevent XSS
 function escapeHTML(str) {
-  return str.replace(/[&<>'"]/g, 
+  return String(str ?? '').replace(/[&<>'"]/g, 
     tag => ({
       '&': '&amp;',
       '<': '&lt;',
@@ -558,4 +607,61 @@ function escapeHTML(str) {
       '"': '&quot;'
     }[tag] || tag)
   );
+}
+
+function withStateDefaults(state = {}) {
+  return {
+    mood: state.mood || 'neutral',
+    affection: state.affection ?? 50,
+    trust: state.trust ?? 50,
+    energy: state.energy ?? 70,
+    tension: state.tension ?? 0,
+    intimacy: state.intimacy ?? 10,
+    shyness: state.shyness ?? 15,
+    curiosity: state.curiosity ?? 55,
+    volatility: state.volatility ?? 15,
+    desire: state.desire ?? 20,
+    inhibition: state.inhibition ?? 55,
+    comfort: state.comfort ?? 55,
+    compliance: state.compliance ?? 40,
+    summary: state.summary || '',
+  };
+}
+
+function renderPresenceCell(presence) {
+  if (!presence) {
+    return '<span class="text-muted font-sm">-</span>';
+  }
+
+  return `
+    <span class="metric-pill presence" title="${escapeHTML(presence.statusText)}">
+      <i class="fa-solid fa-location-dot"></i> ${escapeHTML(presence.activityType)}
+    </span>
+  `;
+}
+
+function renderPresenceSummary(presence) {
+  if (!presence) {
+    elPresenceStatusText.textContent = 'Belum ada aktivitas aktif.';
+    elPresenceSourceText.textContent = '-';
+    elPresenceActivityType.textContent = '-';
+    elPresenceLocation.textContent = '-';
+    elPresenceSocial.textContent = '-';
+    elPresenceInterruptibility.textContent = '-';
+    elPresenceExpires.textContent = '-';
+    return;
+  }
+
+  elPresenceStatusText.textContent = presence.statusText;
+  elPresenceSourceText.textContent = presence.source || '-';
+  elPresenceActivityType.textContent = presence.activityType || '-';
+  elPresenceLocation.textContent = presence.locationLabel || '-';
+  elPresenceSocial.textContent = presence.socialContext || '-';
+  elPresenceInterruptibility.textContent = presence.interruptibility || '-';
+  elPresenceExpires.textContent = presence.expiresAt ? new Date(presence.expiresAt).toLocaleString('id-ID', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }) : '-';
 }

@@ -38,6 +38,11 @@ enum RoleplayMood {
   excited
   jealous
   worried
+  swing
+  sensual
+  flirty
+  aroused
+  needy
 }
 
 model ContactSetting {
@@ -53,6 +58,7 @@ model ContactSetting {
   notes Note[]
 
   roleplayState RoleplayState?
+  roleplayPresenceState RoleplayPresenceState?
   roleplayMemories RoleplayMemory[]
 }
 
@@ -89,6 +95,11 @@ model RoleplayState {
   intimacy          Int          @default(10)
   shyness           Int          @default(15)
   curiosity         Int          @default(55)
+  volatility        Int          @default(15)
+  desire            Int          @default(20)
+  inhibition        Int          @default(55)
+  comfort           Int          @default(55)
+  compliance        Int          @default(40)
   summary           String?
   lastInteractionAt DateTime?
   createdAt         DateTime     @default(now())
@@ -113,6 +124,25 @@ model RoleplayMemory {
 
   @@index([chatId, importance, updatedAt])
   @@index([chatId, kind, updatedAt])
+}
+
+model RoleplayPresenceState {
+  id               String   @id @default(cuid())
+  chatId           String   @unique
+  activityType     String
+  statusText       String
+  locationLabel    String
+  socialContext    String
+  interruptibility String
+  source           String
+  priority         Int      @default(10)
+  startedAt        DateTime @default(now())
+  expiresAt        DateTime
+  lastReason       String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  contactSetting ContactSetting @relation(fields: [chatId], references: [chatId], onDelete: Cascade)
 }
 
 model ProactiveLog {

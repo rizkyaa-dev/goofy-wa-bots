@@ -17,9 +17,17 @@ import { RoleplayMemoryValidatorService } from './memory/roleplay-memory-validat
 import { CharacterFoundationPromptBuilder } from './prompt/builders/character-foundation-prompt.builder';
 import { ConversationContextPromptBuilder } from './prompt/builders/conversation-context-prompt.builder';
 import { EmotionStatePromptBuilder } from './prompt/builders/emotion-state-prompt.builder';
+import { IntimacyPolicyPromptBuilder } from './prompt/builders/intimacy-policy-prompt.builder';
 import { MemoryQuoteOutputPromptBuilder } from './prompt/builders/memory-quote-output-prompt.builder';
+import { PresenceContextPromptBuilder } from './prompt/builders/presence-context-prompt.builder';
 import { ResponseStylePromptBuilder } from './prompt/builders/response-style-prompt.builder';
 import { TimeContextPromptBuilder } from './prompt/builders/time-context-prompt.builder';
+import { RoleplayPresenceAgentService } from './presence/roleplay-presence-agent.service';
+import { RoleplayPresenceDirectorService } from './presence/roleplay-presence-director.service';
+import { RoleplayPresenceSchedulerService } from './presence/roleplay-presence-scheduler.service';
+import { RoleplayPresenceService } from './presence/roleplay-presence.service';
+import { RoleplayPresenceStateRepository } from './presence/roleplay-presence-state.repository';
+import { RoleplayIntimacyPolicyService } from './intimacy/roleplay-intimacy-policy.service';
 import { ExpertPromptRegistryService } from './prompt/expert-prompt-registry.service';
 import { RoleplayPromptCompilerService } from './prompt/roleplay-prompt-compiler.service';
 import { ConversationalProsodyPlannerService } from './prosody/conversational-prosody-planner.service';
@@ -28,6 +36,7 @@ import { QuoteDecisionService } from './quote/quote-decision.service';
 import { QuotePolicyService } from './quote/quote-policy.service';
 import { RoleplayReplyPostProcessorService } from './response/roleplay-reply-post-processor.service';
 import { ResponseDirectorService } from './response/response-director.service';
+import { InternalDisclosureGuardService } from './validation/internal-disclosure-guard.service';
 import { ResponseValidatorService } from './validation/response-validator.service';
 import { RoleplayChatService } from './roleplay-chat.service';
 import { RoleplayResetService } from './state/roleplay-reset.service';
@@ -55,6 +64,8 @@ import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.ser
     RoleplayMemoryValidatorService,
     CharacterFoundationPromptBuilder,
     EmotionStatePromptBuilder,
+    IntimacyPolicyPromptBuilder,
+    PresenceContextPromptBuilder,
     TimeContextPromptBuilder,
     ConversationContextPromptBuilder,
     ResponseStylePromptBuilder,
@@ -67,10 +78,17 @@ import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.ser
     QuotePolicyService,
     RoleplayReplyPostProcessorService,
     ResponseDirectorService,
+    InternalDisclosureGuardService,
     ResponseValidatorService,
     RoleplayResetService,
     RoleplayRouterService,
     RoleplayStateRepository,
+    RoleplayPresenceAgentService,
+    RoleplayPresenceDirectorService,
+    RoleplayPresenceSchedulerService,
+    RoleplayPresenceService,
+    RoleplayPresenceStateRepository,
+    RoleplayIntimacyPolicyService,
     TimeContextService,
     RoleplayPreAnalyzerService,
   ],
@@ -79,7 +97,9 @@ import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.ser
     RoleplayMemoryService,
     RoleplayResetService,
     RoleplayPreAnalyzerService,
+    RoleplayPresenceService,
     CharacterProfileService,
+    InternalDisclosureGuardService,
   ],
 })
 export class RoleplayModule {}

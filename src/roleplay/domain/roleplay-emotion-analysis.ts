@@ -18,6 +18,11 @@ export type RoleplayEmotionAnalysis = {
   intimacyDelta: number;
   shynessDelta: number;
   curiosityDelta: number;
+  volatilityDelta: number;
+  desireDelta: number;
+  inhibitionDelta: number;
+  comfortDelta: number;
+  complianceDelta: number;
   avoidQuestion: boolean;
   replyDirective: string;
 };

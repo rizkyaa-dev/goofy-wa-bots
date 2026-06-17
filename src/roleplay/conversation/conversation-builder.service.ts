@@ -4,6 +4,7 @@ import { LlmMessage } from '../../llm/domain/llm.types';
 import { RoleplayConversationPlan, RoleplayFollowUpPolicy } from '../domain/roleplay-conversation-plan';
 import { RoleplayEmotionAnalysis } from '../domain/roleplay-emotion-analysis';
 import { RoleplayRouteDecision } from '../domain/roleplay-route';
+import { RoleplayIntimacyPolicy } from '../intimacy/domain/roleplay-intimacy-policy';
 
 type CreateConversationPlanInput = {
   latestUserMessage: string;
@@ -11,6 +12,7 @@ type CreateConversationPlanInput = {
   memories: RoleplayMemory[];
   analysis: RoleplayEmotionAnalysis;
   routeDecision: RoleplayRouteDecision;
+  intimacyPolicy: RoleplayIntimacyPolicy;
   quoteIntent?: string;
   conversationScope: 'personal_chat' | 'group_chat';
 };
@@ -146,6 +148,34 @@ export class ConversationBuilderService {
     }
 
     if (this.isIntimacyRequest(lower)) {
+      if (input.intimacyPolicy.explicitness === 'explicit_raw' || input.intimacyPolicy.explicitness === 'explicit_soft') {
+        return this.createPlan({
+          topic: 'adult_intimacy',
+          userMove: 'requests_affection',
+          botMove: 'playful_affection',
+          detailHooks,
+          warmth: 'playful',
+          followUpPolicy: 'none',
+          avoid: ['clinical explanation', 'policy talk', 'sudden tone break', 'controlling user actions'],
+          directive:
+            'User membuka konteks dewasa dan intimacy policy mengizinkan direct adult language. Balas sebagai karakter dengan chemistry dewasa yang natural, mutual, singkat, dan tidak terdengar seperti refusal template.',
+        });
+      }
+
+      if (input.intimacyPolicy.explicitness === 'sensual') {
+        return this.createPlan({
+          topic: 'sensual_intimacy',
+          userMove: 'requests_affection',
+          botMove: 'playful_affection',
+          detailHooks,
+          warmth: 'playful',
+          followUpPolicy: 'none',
+          avoid: ['graphic sexual escalation', 'cold rejection', 'customer service refusal'],
+          directive:
+            'User mengajak mesra dan state mendukung sensual tone. Balas hangat, charged, dan teasing; tetap implied kalau direct adult language belum diizinkan.',
+        });
+      }
+
       return this.createPlan({
         topic: 'intimacy_request',
         userMove: 'requests_affection',
@@ -529,7 +559,9 @@ export class ConversationBuilderService {
   }
 
   private isIntimacyRequest(text: string): boolean {
-    return /\b(?:bermesraan|mesra|romantis|manja(?:in)?|sayang-sayangan|peluk|cium)\b/iu.test(text);
+    return /\b(?:bermesraan|mesra|romantis|manja(?:in)?|sayang-sayangan|peluk|cium|seks|sex|ngeseks|bercinta|horny|sange|napsu|turn\s*on|vcs|ngentot|intim)\b/iu.test(
+      text,
+    );
   }
 
   private isFlirting(text: string): boolean {
@@ -541,7 +573,7 @@ export class ConversationBuilderService {
   }
 
   private hasPlayfulAddress(text: string): boolean {
-    return this.hasAny(text, ['dek', 'ay', 'sayang', 'mbak', 'kak']);
+    return this.hasAny(text, ['dek', 'banh', 'sayang', 'mbak', 'kak']);
   }
 
   private hasAny(text: string, patterns: string[]): boolean {

@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Res, HttpStatus } from '@nestjs/common';
+import { Controller, Delete, Get, Post, Body, Param, Res, HttpStatus } from '@nestjs/common';
+import { RoleplayMood } from '@prisma/client';
 import { join } from 'path';
 import { readFileSync, existsSync } from 'fs';
 import { PrismaService, prismaStorage } from '../infra/prisma/prisma.service';
@@ -6,8 +7,17 @@ import { SandboxPrismaService } from '../infra/prisma/sandbox-prisma.service';
 import { RoleplayChatService } from '../roleplay/roleplay-chat.service';
 import { RoleplayResetService } from '../roleplay/state/roleplay-reset.service';
 import { ConversationsService } from '../conversations/conversations.service';
+import { LlmService } from '../llm/llm.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
 import { resolveBotReplyParts } from '../bot/domain/bot-reply';
+import {
+  parseSandboxAddMemoryInput,
+  parseSandboxChatId,
+  parseSandboxChatInput,
+  parseSandboxMemoryId,
+  parseSandboxPresenceUpdateInput,
+  parseSandboxStateUpdateInput,
+} from './sandbox.validation';
 
 @Controller()
 export class SandboxController {
@@ -17,6 +27,7 @@ export class SandboxController {
     private readonly roleplayChat: RoleplayChatService,
     private readonly roleplayReset: RoleplayResetService,
     private readonly conversations: ConversationsService,
+    private readonly llm: LlmService,
   ) {}
 
   private getAssetPath(filename: string): string {
@@ -34,6 +45,7 @@ export class SandboxController {
       const htmlPath = this.getAssetPath('sandbox.html');
       const htmlContent = readFileSync(htmlPath, 'utf8');
       res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Cache-Control', 'no-store');
       res.status(HttpStatus.OK).send(htmlContent);
     } catch (error) {
       res.status(HttpStatus.INTERNAL_SERVER_ERROR).send(
@@ -48,6 +60,7 @@ export class SandboxController {
       const jsPath = this.getAssetPath('sandbox.js');
       const jsContent = readFileSync(jsPath, 'utf8');
       res.setHeader('Content-Type', 'application/javascript');
+      res.setHeader('Cache-Control', 'no-store');
       res.status(HttpStatus.OK).send(jsContent);
     } catch (error) {
       res.status(HttpStatus.NOT_FOUND).send('');
@@ -56,21 +69,10 @@ export class SandboxController {
 
   @Post('/api/sandbox/chat')
   async chat(@Body() body: { chatId: string; text: string }) {
-    const { chatId, text } = body;
+    const { chatId, text } = parseSandboxChatInput(body);
 
     return prismaStorage.run(this.sandboxPrisma, async () => {
-      // 1. Fetch or create contact setting in sandbox db
-      let settings = await this.prisma.contactSetting.findUnique({
-        where: { chatId },
-      });
-      if (!settings) {
-        settings = await this.prisma.contactSetting.create({
-          data: {
-            chatId,
-            mode: 'auto_reply',
-          },
-        });
-      }
+      const settings = await this.ensureSandboxContact(chatId);
 
       // 2. Prepare mock IncomingMessage
       const incoming: IncomingMessage = {
@@ -86,7 +88,7 @@ export class SandboxController {
       await this.conversations.recordInbound(incoming);
 
       // 4. Generate Alya's reply using live roleplay engine
-      const reply = await this.roleplayChat.generateReply(incoming, settings);
+      const { result: reply, usage } = await this.llm.runWithUsage(() => this.roleplayChat.generateReply(incoming, settings));
 
       // 5. Resolve and record outbound message parts
       const parts = resolveBotReplyParts(reply);
@@ -96,44 +98,170 @@ export class SandboxController {
       return {
         reply: replyText,
         parts: parts,
+        usage: usage ?? reply.usage,
       };
     });
   }
 
   @Get('/api/sandbox/state/:chatId')
   async getState(@Param('chatId') chatId: string) {
+    const parsedChatId = parseSandboxChatId(chatId);
+
     return prismaStorage.run(this.sandboxPrisma, async () => {
-      const state = await this.prisma.roleplayState.findUnique({
-        where: { chatId },
+      await this.ensureSandboxContact(parsedChatId);
+
+      const state = await this.prisma.roleplayState.upsert({
+        where: { chatId: parsedChatId },
+        update: {},
+        create: { chatId: parsedChatId },
+      });
+      const presence = await this.prisma.roleplayPresenceState.findUnique({
+        where: { chatId: parsedChatId },
       });
       const memories = await this.prisma.roleplayMemory.findMany({
-        where: { chatId },
+        where: { chatId: parsedChatId },
         orderBy: { updatedAt: 'desc' },
       });
-      const messages = await this.conversations.getRecentMessages(chatId, 30);
+      const messages = await this.conversations.getRecentMessages(parsedChatId, 30);
 
       return {
-        state: state || {
-          mood: 'neutral',
-          affection: 50,
-          trust: 50,
-          energy: 70,
-          tension: 0,
-          intimacy: 10,
-          shyness: 15,
-          curiosity: 55,
-          summary: '',
-        },
+        state,
+        presence,
         memories,
         messages,
       };
     });
   }
 
+  @Post('/api/sandbox/state/:chatId')
+  async updateState(@Param('chatId') chatId: string, @Body() body: unknown) {
+    const parsedChatId = parseSandboxChatId(chatId);
+    const data = parseSandboxStateUpdateInput(body);
+
+    return prismaStorage.run(this.sandboxPrisma, async () => {
+      await this.ensureSandboxContact(parsedChatId);
+
+      return this.prisma.roleplayState.upsert({
+        where: { chatId: parsedChatId },
+        create: {
+          chatId: parsedChatId,
+          mood: data.mood ?? RoleplayMood.neutral,
+          affection: data.affection ?? 50,
+          trust: data.trust ?? 50,
+          energy: data.energy ?? 70,
+          tension: data.tension ?? 0,
+          intimacy: data.intimacy ?? 10,
+          shyness: data.shyness ?? 15,
+          curiosity: data.curiosity ?? 55,
+          volatility: data.volatility ?? 15,
+          desire: data.desire ?? 20,
+          inhibition: data.inhibition ?? 55,
+          comfort: data.comfort ?? 55,
+          compliance: data.compliance ?? 40,
+          summary: data.summary ?? '',
+        },
+        update: data,
+      });
+    });
+  }
+
+  @Post('/api/sandbox/presence/:chatId')
+  async updatePresence(@Param('chatId') chatId: string, @Body() body: unknown) {
+    const parsedChatId = parseSandboxChatId(chatId);
+    const data = parseSandboxPresenceUpdateInput(body);
+
+    return prismaStorage.run(this.sandboxPrisma, async () => {
+      await this.ensureSandboxContact(parsedChatId);
+
+      const startedAt = new Date();
+      const expiresAt = new Date(startedAt.getTime() + data.durationMinutes * 60 * 1000);
+
+      return this.prisma.roleplayPresenceState.upsert({
+        where: { chatId: parsedChatId },
+        create: {
+          chatId: parsedChatId,
+          activityType: data.activityType,
+          statusText: data.statusText,
+          locationLabel: data.locationLabel,
+          socialContext: data.socialContext,
+          interruptibility: data.interruptibility,
+          source: data.source,
+          priority: data.priority,
+          startedAt,
+          expiresAt,
+          lastReason: data.lastReason ?? 'manual_sandbox_override',
+        },
+        update: {
+          activityType: data.activityType,
+          statusText: data.statusText,
+          locationLabel: data.locationLabel,
+          socialContext: data.socialContext,
+          interruptibility: data.interruptibility,
+          source: data.source,
+          priority: data.priority,
+          startedAt,
+          expiresAt,
+          lastReason: data.lastReason ?? 'manual_sandbox_override',
+        },
+      });
+    });
+  }
+
+  @Post('/api/sandbox/memory/:chatId')
+  async addMemory(@Param('chatId') chatId: string, @Body() body: unknown) {
+    const parsedChatId = parseSandboxChatId(chatId);
+    const data = parseSandboxAddMemoryInput(body);
+
+    return prismaStorage.run(this.sandboxPrisma, async () => {
+      await this.ensureSandboxContact(parsedChatId);
+
+      return this.prisma.roleplayMemory.create({
+        data: {
+          chatId: parsedChatId,
+          kind: data.kind,
+          content: data.content,
+          importance: data.importance,
+          confidence: 1.0,
+          sourceText: 'Manual entry via Sandbox',
+        },
+      });
+    });
+  }
+
+  @Delete('/api/sandbox/memory/:memoryId')
+  async deleteMemory(@Param('memoryId') memoryId: string) {
+    const parsedMemoryId = parseSandboxMemoryId(memoryId);
+
+    return prismaStorage.run(this.sandboxPrisma, async () => {
+      return this.prisma.roleplayMemory.delete({
+        where: { id: parsedMemoryId },
+      });
+    });
+  }
+
   @Post('/api/sandbox/reset/:chatId')
   async reset(@Param('chatId') chatId: string) {
+    const parsedChatId = parseSandboxChatId(chatId);
+
     return prismaStorage.run(this.sandboxPrisma, async () => {
-      return this.roleplayReset.reset(chatId, 'all');
+      return this.roleplayReset.reset(parsedChatId, 'all');
+    });
+  }
+
+  private async ensureSandboxContact(chatId: string) {
+    const existing = await this.prisma.contactSetting.findUnique({
+      where: { chatId },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    return this.prisma.contactSetting.create({
+      data: {
+        chatId,
+        mode: 'auto_reply',
+      },
     });
   }
 }

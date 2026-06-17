@@ -5,6 +5,8 @@ import { WhatsappWebClientService } from '../wa/whatsapp-web-client.service';
 import { LlmService } from '../llm/llm.service';
 import { CharacterProfileService } from '../roleplay/identity/character-profile.service';
 import { RoleplayMemoryService } from '../roleplay/memory/roleplay-memory.service';
+import { RoleplayPresenceService } from '../roleplay/presence/roleplay-presence.service';
+import { InternalDisclosureGuardService } from '../roleplay/validation/internal-disclosure-guard.service';
 import { ProactivePromptCompilerService } from './proactive-prompt-compiler.service';
 import { AppEnv } from '../config/env.validation';
 
@@ -23,7 +25,9 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
     private readonly llm: LlmService,
     private readonly characterProfile: CharacterProfileService,
     private readonly memories: RoleplayMemoryService,
+    private readonly presence: RoleplayPresenceService,
     private readonly promptCompiler: ProactivePromptCompilerService,
+    private readonly internalDisclosureGuard: InternalDisclosureGuardService,
   ) {}
 
   onModuleInit() {
@@ -255,6 +259,7 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
       const messages = this.promptCompiler.compile({
         profile,
         state,
+        presence: await this.presence.ensureCurrentPresence(chatId, state),
         triggerType,
         timeText,
         memories: compiledMemories,
@@ -267,7 +272,7 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
         model: contact.llmModel,
       });
 
-      const cleanText = this.stripOuterQuotes(llmResult.text);
+      const cleanText = this.internalDisclosureGuard.repairForChat(this.stripOuterQuotes(llmResult.text), 'deflect');
 
       if (!cleanText) {
         this.logger.warn(`Generated proactive message was empty for ${chatId}. Skipping send.`);

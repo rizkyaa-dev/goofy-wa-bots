@@ -34,7 +34,22 @@ export class RoleplayStateRepository {
 }
 
 type StatePatch = {
-  mood: 'neutral' | 'happy' | 'sad' | 'annoyed' | 'warm' | 'playful' | 'sleepy' | 'excited' | 'jealous' | 'worried';
+  mood:
+    | 'neutral'
+    | 'happy'
+    | 'sad'
+    | 'annoyed'
+    | 'warm'
+    | 'playful'
+    | 'sleepy'
+    | 'excited'
+    | 'jealous'
+    | 'worried'
+    | 'swing'
+    | 'sensual'
+    | 'flirty'
+    | 'aroused'
+    | 'needy';
   affection: number;
   trust: number;
   energy: number;
@@ -42,4 +57,9 @@ type StatePatch = {
   intimacy: number;
   shyness: number;
   curiosity: number;
+  volatility: number;
+  desire: number;
+  inhibition: number;
+  comfort: number;
+  compliance: number;
 };

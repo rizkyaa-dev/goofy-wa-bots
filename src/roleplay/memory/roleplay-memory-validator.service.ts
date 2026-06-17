@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { RoleplayMemoryKind } from '@prisma/client';
+import { InternalDisclosureGuardService } from '../validation/internal-disclosure-guard.service';
 import { ExtractedRoleplayMemory } from './domain/extracted-roleplay-memory';
 
 @Injectable()
 export class RoleplayMemoryValidatorService {
+  constructor(private readonly internalDisclosureGuard: InternalDisclosureGuardService) {}
+
   validate(memories: ExtractedRoleplayMemory[], minConfidence: number, maxMemories: number): ExtractedRoleplayMemory[] {
     return memories
       .filter((memory) => this.isValid(memory, minConfidence))
@@ -25,6 +28,8 @@ export class RoleplayMemoryValidatorService {
       memory.content.trim().length <= 220 &&
       typeof memory.sourceText === 'string' &&
       memory.sourceText.trim().length > 0 &&
+      !this.internalDisclosureGuard.isUnsafeStoredText(memory.content) &&
+      !this.internalDisclosureGuard.isUnsafeStoredText(memory.sourceText) &&
       typeof memory.importance === 'number' &&
       typeof memory.confidence === 'number' &&
       memory.confidence >= minConfidence &&

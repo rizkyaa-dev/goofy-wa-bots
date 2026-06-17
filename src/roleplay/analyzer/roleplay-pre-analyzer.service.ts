@@ -36,6 +36,11 @@ const fallbackAnalysis: RoleplayEmotionAnalysis = {
   intimacyDelta: 0,
   shynessDelta: 0,
   curiosityDelta: 0,
+  volatilityDelta: 0,
+  desireDelta: 0,
+  inhibitionDelta: 0,
+  comfortDelta: 0,
+  complianceDelta: 0,
   avoidQuestion: false,
   replyDirective: 'Read the user literally and respond naturally.',
 };
@@ -68,7 +73,7 @@ export class RoleplayPreAnalyzerService {
           providerName,
           model: modelName,
           temperature: 0.1,
-          maxTokens: 500, // Safe buffer for unified JSON payload
+          maxTokens: 900, // Safe buffer for unified JSON payload with expanded affect deltas.
           thinkingType: 'disabled',
           messages: [
             {
@@ -79,12 +84,17 @@ export class RoleplayPreAnalyzerService {
                 'Output strict JSON only. Do not use markdown code block syntax.',
                 '',
                 '### MODULE 1: EMOTION CLASSIFICATION',
-                '- Analyze the user\'s tone, intent, and emotional impact on the bot (affection, trust, tension, energy, intimacy, shyness, curiosity).',
+                '- Analyze the user\'s tone, intent, and emotional impact on the bot (affection, trust, tension, energy, intimacy, shyness, curiosity, volatility, desire, inhibition, comfort, compliance).',
                 '- Allowed userTone: neutral, warm, playful, teasing, vulnerable, annoyed, pressuring, awkward.',
-                '- Deltas (affectionDelta, trustDelta, tensionDelta, energyDelta, intimacyDelta, shynessDelta, curiosityDelta) must be integers from -5 to 5.',
+                '- Deltas must be integers from -5 to 5.',
                 '- intimacyDelta: increases (+1 to +5) when user shares secrets, feelings, deep history, or flirts/romances; decreases (-1 to -5) if user is cold, formal, or business-like.',
                 '- shynessDelta: increases (+1 to +5) when user compliments, flirts, teases, or gets close; decreases or remains 0 if user is neutral or hostile.',
                 '- curiosityDelta: increases (+1 to +5) when the user brings fresh details, interesting stories, or open topics worth exploring; decreases (-1 to -5) when the user is dry, hostile, repetitive, or obviously uninterested in being engaged further.',
+                '- volatilityDelta: increases when the user destabilizes the rhythm, pressures, teases sharply, gives mixed signals, or causes mood swings; decreases when the exchange is steady and reassuring.',
+                '- desireDelta: increases only for adult romantic/sensual/flirtatious cues with mutual context; decreases for hostile, cold, unsafe, or non-consensual pressure.',
+                '- inhibitionDelta: increases when the bot should hold back, feel guarded, embarrassed, unsafe, or cautious; decreases when trust, comfort, and intimacy make openness feel natural.',
+                '- comfortDelta: increases when the user is respectful, warm, reassuring, and emotionally safe; decreases with pressure, insults, coercion, or boundary crossing.',
+                '- complianceDelta: increases when cooperation would feel natural because the user is respectful, trusted, and non-coercive; decreases when the user pressures, commands, insults, or crosses boundaries. Compliance is willingness to cooperate, not blind obedience.',
                 '- avoidQuestion: set to true if the user seems tired of questions or another question would feel like an interrogation/interview.',
                 '- replyDirective: a short, specific instruction for the reply generator.',
                 '',
@@ -136,6 +146,11 @@ export class RoleplayPreAnalyzerService {
                     intimacyDelta: 'integer -5..5',
                     shynessDelta: 'integer -5..5',
                     curiosityDelta: 'integer -5..5',
+                    volatilityDelta: 'integer -5..5',
+                    desireDelta: 'integer -5..5',
+                    inhibitionDelta: 'integer -5..5',
+                    comfortDelta: 'integer -5..5',
+                    complianceDelta: 'integer -5..5',
                     avoidQuestion: 'boolean',
                     replyDirective: 'string'
                   },
@@ -203,6 +218,11 @@ export class RoleplayPreAnalyzerService {
       intimacyDelta: this.clampDelta(parsedEmotion.intimacyDelta),
       shynessDelta: this.clampDelta(parsedEmotion.shynessDelta),
       curiosityDelta: this.clampDelta(parsedEmotion.curiosityDelta),
+      volatilityDelta: this.clampDelta(parsedEmotion.volatilityDelta),
+      desireDelta: this.clampDelta(parsedEmotion.desireDelta),
+      inhibitionDelta: this.clampDelta(parsedEmotion.inhibitionDelta),
+      comfortDelta: this.clampDelta(parsedEmotion.comfortDelta),
+      complianceDelta: this.clampDelta(parsedEmotion.complianceDelta),
       avoidQuestion: Boolean(parsedEmotion.avoidQuestion),
       replyDirective: typeof parsedEmotion.replyDirective === 'string' && parsedEmotion.replyDirective
         ? parsedEmotion.replyDirective.slice(0, 220)
