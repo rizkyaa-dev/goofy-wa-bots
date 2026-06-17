@@ -122,6 +122,7 @@ export class DashboardService {
         tension: data.tension ?? 0,
         intimacy: data.intimacy ?? 10,
         shyness: data.shyness ?? 15,
+        curiosity: data.curiosity ?? 55,
         summary: data.summary ?? '',
       },
       update: data,

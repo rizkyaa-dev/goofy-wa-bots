@@ -36,6 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const intimacyBar = document.getElementById('intimacyBar');
   const shynessVal = document.getElementById('shynessVal');
   const shynessBar = document.getElementById('shynessBar');
+  const curiosityVal = document.getElementById('curiosityVal');
+  const curiosityBar = document.getElementById('curiosityBar');
   const moodBadge = document.getElementById('moodBadge');
   const memoryList = document.getElementById('memoryList');
   
@@ -173,6 +175,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Shyness
     shynessVal.innerText = `${state.shyness ?? 15}/100`;
     shynessBar.style.width = `${state.shyness ?? 15}%`;
+
+    // Curiosity
+    curiosityVal.innerText = `${state.curiosity ?? 55}/100`;
+    curiosityBar.style.width = `${state.curiosity ?? 55}%`;
 
     // Mood badge class
     moodBadge.innerText = state.mood;

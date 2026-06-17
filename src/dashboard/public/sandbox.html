@@ -431,6 +431,11 @@
       box-shadow: 0 0 8px rgba(142, 197, 252, 0.4);
     }
 
+    .curiosity-fill {
+      background: linear-gradient(90deg, #22c55e, #14b8a6);
+      box-shadow: 0 0 8px rgba(20, 184, 166, 0.4);
+    }
+
     .mood-badge {
       display: inline-block;
       padding: 6px 12px;
@@ -663,6 +668,17 @@
             </div>
             <div class="metric-bar-bg">
               <div class="metric-bar-fill shyness-fill" id="shynessBar" style="width: 15%;"></div>
+            </div>
+          </div>
+
+          <!-- Curiosity -->
+          <div class="metric-row">
+            <div class="metric-label-wrapper">
+              <span class="metric-label">Curiosity (Rasa Ingin Tahu)</span>
+              <span class="metric-value" id="curiosityVal">55/100</span>
+            </div>
+            <div class="metric-bar-bg">
+              <div class="metric-bar-fill curiosity-fill" id="curiosityBar" style="width: 55%;"></div>
             </div>
           </div>
 

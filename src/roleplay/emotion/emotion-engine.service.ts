@@ -6,6 +6,7 @@ import { IncomingMessage } from '../../messages/domain/incoming-message';
 export class EmotionEngineService {
   evaluateInbound(state: RoleplayState, message: IncomingMessage) {
     const text = message.body.toLowerCase();
+    const trimmedText = text.trim();
     const positive = this.matches(text, ['makasih', 'terima kasih', 'thanks', 'wkwk', 'haha', 'hehe', 'sayang', 'kangen']);
     const negative = this.matches(text, ['bodoh', 'benci', 'diam', 'goblok', 'anjing', 'bangsat', 'kesal']);
     const apology = this.matches(text, ['maaf', 'sorry']);
@@ -20,6 +21,9 @@ export class EmotionEngineService {
     const jealous = this.matches(text, ['cewek lain', 'cowok lain', 'mantan', 'pacar orang', 'selingkuh', 'dia lebih', 'cewe lain', 'cowo lain']);
     const worried = this.matches(text, ['sakit', 'sedih', 'nangis', 'stress', 'cemas', 'musibah', 'kecelakaan', 'terluka']);
     const shortMessage = text.trim().length <= 8;
+    const openEndedQuestion = question && this.matches(text, ['kenapa', 'gimana', 'bagaimana', 'cerita', 'ceritain', 'jelasin', 'menurutmu', 'menurut kamu']);
+    const personalDetail = this.matches(text, ['aku lagi', 'tadi aku', 'hari ini aku', 'aku ngerasa', 'aku merasa', 'aku suka', 'hobiku', 'ceritanya']);
+    const dryReply = shortMessage && !question && !positive && !teasing && !vulnerable;
     const longGap = state.lastInteractionAt ? Date.now() - state.lastInteractionAt.getTime() > 12 * 60 * 60 * 1000 : false;
 
     const affection = this.clamp(
@@ -73,6 +77,18 @@ export class EmotionEngineService {
         (negative ? -3 : 0),
     );
 
+    const curiosity = this.clamp(
+      ((state as any).curiosity ?? 55) +
+        (question ? 1 : 0) +
+        (openEndedQuestion ? 2 : 0) +
+        (personalDetail ? 2 : 0) +
+        (excited ? 1 : 0) +
+        (dryReply ? -2 : 0) +
+        (negative ? -1 : 0) +
+        (pressure ? -2 : 0) +
+        (metaTesting && trimmedText.length < 24 ? -1 : 0),
+    );
+
     return {
       mood: this.selectMood(
         { positive, negative, apology, question, pressure, boundaryCrossing, vulnerable, metaTesting, teasing, sleepy, excited, jealous, worried, tension },
@@ -84,6 +100,7 @@ export class EmotionEngineService {
       tension,
       intimacy,
       shyness,
+      curiosity,
     };
   }
 

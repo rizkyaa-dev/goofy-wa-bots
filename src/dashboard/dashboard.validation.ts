@@ -26,6 +26,7 @@ const updateContactRoleplayStateSchema = z
     tension: stateValueSchema.optional(),
     intimacy: stateValueSchema.optional(),
     shyness: stateValueSchema.optional(),
+    curiosity: stateValueSchema.optional(),
     summary: z.string().trim().max(2000).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {

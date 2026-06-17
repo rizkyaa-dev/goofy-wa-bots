@@ -14,11 +14,12 @@ export class EmotionStatePromptBuilder {
       `Tension: ${input.state.tension}/100`,
       `Intimacy: ${this.getIntimacy(input.state)}/100`,
       `Shyness: ${this.getShyness(input.state)}/100`,
+      `Curiosity: ${this.getCuriosity(input.state)}/100`,
       `Directive: ${this.createEmotionDirective(input.state)}`,
       `Classifier tone: ${input.analysis.userTone}`,
       `Classifier intent: ${input.analysis.userIntent}`,
       `Classifier directive: ${input.analysis.replyDirective}`,
-      'Emotion expression rule: The state above is strictly internal. Never explicitly use the words "mood", "emotion", "affection", "trust", "tension", or "energy" as justifications in the chat.',
+      'Emotion expression rule: The state above is strictly internal. Never explicitly use the words "mood", "emotion", "affection", "trust", "tension", "energy", or "curiosity" as justifications in the chat.',
       'Express your internal state implicitly through word choice, response length, timing, deflections, or subtle jokes.',
       '',
     ];
@@ -77,6 +78,12 @@ export class EmotionStatePromptBuilder {
       directives.push('Responses should be slower, shorter, or sound tired without explicitly complaining about energy levels.');
     }
 
+    if (this.getCuriosity(state) >= 70) {
+      directives.push('You are highly curious. When the rhythm is right, pick up a fresh detail from the user and explore it with at most one natural follow-up.');
+    } else if (this.getCuriosity(state) <= 30) {
+      directives.push('You are not very curious right now. Prefer reacting or answering directly instead of opening new branches of conversation.');
+    }
+
     return directives.length > 0 ? directives.join(' ') : 'Neutral and natural. Do not be overly enthusiastic without a valid reason.';
   }
 
@@ -86,5 +93,9 @@ export class EmotionStatePromptBuilder {
 
   private getShyness(state: RoleplayState): number {
     return (state as RoleplayState & { shyness?: number }).shyness ?? 15;
+  }
+
+  private getCuriosity(state: RoleplayState): number {
+    return (state as RoleplayState & { curiosity?: number }).curiosity ?? 55;
   }
 }

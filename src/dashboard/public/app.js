@@ -31,6 +31,7 @@ const elTunerEnergy = document.getElementById('tuner-energy');
 const elTunerTension = document.getElementById('tuner-tension');
 const elTunerIntimacy = document.getElementById('tuner-intimacy');
 const elTunerShyness = document.getElementById('tuner-shyness');
+const elTunerCuriosity = document.getElementById('tuner-curiosity');
 const elTunerSummary = document.getElementById('tuner-summary');
 const elValAffection = document.getElementById('val-affection');
 const elValTrust = document.getElementById('val-trust');
@@ -38,6 +39,7 @@ const elValEnergy = document.getElementById('val-energy');
 const elValTension = document.getElementById('val-tension');
 const elValIntimacy = document.getElementById('val-intimacy');
 const elValShyness = document.getElementById('val-shyness');
+const elValCuriosity = document.getElementById('val-curiosity');
 const elStateTunerForm = document.getElementById('state-tuner-form');
 
 // Memory Elements
@@ -90,6 +92,7 @@ function setupEventListeners() {
   elTunerTension.addEventListener('input', (e) => elValTension.textContent = e.target.value);
   elTunerIntimacy.addEventListener('input', (e) => elValIntimacy.textContent = e.target.value);
   elTunerShyness.addEventListener('input', (e) => elValShyness.textContent = e.target.value);
+  elTunerCuriosity.addEventListener('input', (e) => elValCuriosity.textContent = e.target.value);
 
   // State Tuner Form Submit
   elStateTunerForm.addEventListener('submit', handleTunerSubmit);
@@ -215,7 +218,7 @@ function renderContactsTable(contacts) {
     }
 
     // Ambil Data State Relasi
-    const state = contact.roleplayState || { affection: 50, trust: 50, energy: 70, mood: 'neutral' };
+    const state = contact.roleplayState || { affection: 50, trust: 50, energy: 70, curiosity: 55, mood: 'neutral' };
     
     // Format nomor HP
     const cleanNum = contact.chatId.replace('@c.us', '');
@@ -286,7 +289,7 @@ async function inspectContact(chatId) {
   const contact = currentContacts.find(c => c.chatId === chatId);
   if (!contact) return;
 
-  const state = contact.roleplayState || { affection: 50, trust: 50, energy: 70, tension: 0, intimacy: 10, shyness: 15, mood: 'neutral', summary: '' };
+  const state = contact.roleplayState || { affection: 50, trust: 50, energy: 70, tension: 0, intimacy: 10, shyness: 15, curiosity: 55, mood: 'neutral', summary: '' };
   
   // Update Details Header
   const cleanNum = contact.chatId.replace('@c.us', '');
@@ -313,6 +316,9 @@ async function inspectContact(chatId) {
 
   elTunerShyness.value = state.shyness ?? 15;
   elValShyness.textContent = state.shyness ?? 15;
+
+  elTunerCuriosity.value = state.curiosity ?? 55;
+  elValCuriosity.textContent = state.curiosity ?? 55;
 
   elTunerSummary.value = state.summary || '';
 
@@ -436,6 +442,7 @@ async function handleTunerSubmit(e) {
         tension: parseInt(elTunerTension.value),
         intimacy: parseInt(elTunerIntimacy.value),
         shyness: parseInt(elTunerShyness.value),
+        curiosity: parseInt(elTunerCuriosity.value),
         summary: elTunerSummary.value
       })
     });

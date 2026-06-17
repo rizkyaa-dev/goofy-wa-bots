@@ -1,0 +1,2 @@
+ALTER TABLE "RoleplayState"
+ADD COLUMN "curiosity" INTEGER NOT NULL DEFAULT 55;

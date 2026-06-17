@@ -25,19 +25,19 @@ export class ProactivePromptCompilerService {
       triggerInstruction =
         `CRITICAL TASK: Sapa user terlebih dahulu di pagi hari ini secara santai dan natural. ` +
         `Gunakan gaya chat WhatsApp yang hangat dan ramah, tanyakan kabar pagi atau sapa mereka dengan manis. ` +
-        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}). ` +
+        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}, Curiosity: ${(state as RoleplayState & { curiosity?: number }).curiosity ?? 55}/100). ` +
         `Jangan terdengar kaku, formal, atau berulang-ulang.`;
     } else if (input.triggerType === 'night_greeting') {
       triggerInstruction =
         `CRITICAL TASK: Kirim ucapan selamat malam atau tanyakan kegiatan hari ini secara hangat dan natural. ` +
         `Sapa mereka sebelum tidur/istirahat. ` +
-        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}). ` +
+        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}, Curiosity: ${(state as RoleplayState & { curiosity?: number }).curiosity ?? 55}/100). ` +
         `Jangan terdengar kaku, formal, atau berulang-ulang.`;
     } else if (input.triggerType === 'inactivity') {
       triggerInstruction =
         `CRITICAL TASK: User sudah tidak membalas chat selama lebih dari 24 jam. ` +
         `Kirimkan pesan santai yang mengekspresikan bahwa kamu merindukannya, menanyakan kesibukannya, atau sekadar memicu obrolan baru secara natural. ` +
-        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}). ` +
+        `Sesuaikan dengan status emosi/hubungan (Affection: ${state.affection}/100, Trust: ${state.trust}/100, Mood: ${state.mood}, Curiosity: ${(state as RoleplayState & { curiosity?: number }).curiosity ?? 55}/100). ` +
         `Jangan berlebihan, jaga otonomi karakter dan buat agar dia tergelitik untuk membalas.`;
     }
 
@@ -66,6 +66,7 @@ export class ProactivePromptCompilerService {
       `Trust: ${state.trust}/100`,
       `Energy: ${state.energy}/100`,
       `Tension: ${state.tension}/100`,
+      `Curiosity: ${(state as RoleplayState & { curiosity?: number }).curiosity ?? 55}/100`,
       '',
       '### TIME CONTEXT',
       `Current time: ${input.timeText} WIB`,

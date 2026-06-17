@@ -35,6 +35,7 @@ const fallbackAnalysis: RoleplayEmotionAnalysis = {
   energyDelta: 0,
   intimacyDelta: 0,
   shynessDelta: 0,
+  curiosityDelta: 0,
   avoidQuestion: false,
   replyDirective: 'Read the user literally and respond naturally.',
 };
@@ -78,11 +79,12 @@ export class RoleplayPreAnalyzerService {
                 'Output strict JSON only. Do not use markdown code block syntax.',
                 '',
                 '### MODULE 1: EMOTION CLASSIFICATION',
-                '- Analyze the user\'s tone, intent, and emotional impact on the bot (affection, trust, tension, energy, intimacy, shyness).',
+                '- Analyze the user\'s tone, intent, and emotional impact on the bot (affection, trust, tension, energy, intimacy, shyness, curiosity).',
                 '- Allowed userTone: neutral, warm, playful, teasing, vulnerable, annoyed, pressuring, awkward.',
-                '- Deltas (affectionDelta, trustDelta, tensionDelta, energyDelta, intimacyDelta, shynessDelta) must be integers from -5 to 5.',
+                '- Deltas (affectionDelta, trustDelta, tensionDelta, energyDelta, intimacyDelta, shynessDelta, curiosityDelta) must be integers from -5 to 5.',
                 '- intimacyDelta: increases (+1 to +5) when user shares secrets, feelings, deep history, or flirts/romances; decreases (-1 to -5) if user is cold, formal, or business-like.',
                 '- shynessDelta: increases (+1 to +5) when user compliments, flirts, teases, or gets close; decreases or remains 0 if user is neutral or hostile.',
+                '- curiosityDelta: increases (+1 to +5) when the user brings fresh details, interesting stories, or open topics worth exploring; decreases (-1 to -5) when the user is dry, hostile, repetitive, or obviously uninterested in being engaged further.',
                 '- avoidQuestion: set to true if the user seems tired of questions or another question would feel like an interrogation/interview.',
                 '- replyDirective: a short, specific instruction for the reply generator.',
                 '',
@@ -133,6 +135,7 @@ export class RoleplayPreAnalyzerService {
                     energyDelta: 'integer -5..5',
                     intimacyDelta: 'integer -5..5',
                     shynessDelta: 'integer -5..5',
+                    curiosityDelta: 'integer -5..5',
                     avoidQuestion: 'boolean',
                     replyDirective: 'string'
                   },
@@ -199,6 +202,7 @@ export class RoleplayPreAnalyzerService {
       energyDelta: this.clampDelta(parsedEmotion.energyDelta),
       intimacyDelta: this.clampDelta(parsedEmotion.intimacyDelta),
       shynessDelta: this.clampDelta(parsedEmotion.shynessDelta),
+      curiosityDelta: this.clampDelta(parsedEmotion.curiosityDelta),
       avoidQuestion: Boolean(parsedEmotion.avoidQuestion),
       replyDirective: typeof parsedEmotion.replyDirective === 'string' && parsedEmotion.replyDirective
         ? parsedEmotion.replyDirective.slice(0, 220)

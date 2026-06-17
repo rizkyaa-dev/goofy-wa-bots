@@ -41,4 +41,5 @@ type StatePatch = {
   tension: number;
   intimacy: number;
   shyness: number;
+  curiosity: number;
 };
