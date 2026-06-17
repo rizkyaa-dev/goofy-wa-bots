@@ -2,51 +2,220 @@ Source Available Non-Commercial License
 
 Copyright (c) 2026 rizkyaa-dev.
 
-This software and associated documentation files (the "Software") are made
-available for personal, educational, research, and other non-commercial use
-only, subject to the terms below.
+This software, source code, binaries, documentation, configuration files,
+assets, examples, and any related materials distributed with this repository
+(collectively, the "Software") are made available only under the terms of this
+Source Available Non-Commercial License (the "License").
 
-1. Permitted Uses
+This License is not an open source license as defined by the Open Source
+Initiative. The Software is source-available for limited non-commercial use
+only.
 
-You may view, copy, modify, and use the Software for non-commercial purposes,
-including personal learning, private experimentation, academic study, and
-non-commercial research.
+By accessing, copying, downloading, installing, running, modifying, or otherwise
+using the Software, you agree to be bound by this License. If you do not agree,
+you must not access, copy, download, install, run, modify, or use the Software.
 
-You may create and share non-commercial modifications or forks, provided that
-this license and the copyright notice are preserved.
+1. Definitions
 
-2. Prohibited Uses
+"Licensor" means rizkyaa-dev.
 
-You may not, without prior written permission from rizkyaa-dev:
+"You" or "User" means any individual or legal entity exercising permissions
+under this License.
 
-- sell, rent, lease, sublicense, or commercially distribute the Software;
-- use the Software to provide paid services, hosted services, SaaS, consulting,
-  automation, support, or any other commercial offering;
-- use the Software for or within a for-profit company, commercial organization,
-  commercial product, or revenue-generating project;
-- package, publish, or redistribute the Software as part of a paid product or
-  paid platform;
-- remove, obscure, or alter copyright notices, license notices, or attribution;
-- claim ownership of the Software or present it as your original work.
+"Commercial Use" means any use of the Software, directly or indirectly, that is
+intended for, connected to, supporting, enabling, or resulting in commercial
+advantage, monetary compensation, revenue generation, cost reduction, business
+operations, product development, service delivery, customer support, internal
+business tooling, or other business benefit.
 
-3. Commercial Licensing
+"Corporate Use" means any use by, for, on behalf of, within, or to benefit any
+for-profit company, enterprise, startup, incorporated business, partnership,
+agency, consultancy, commercial organization, venture-backed entity, government
+contractor, or any parent, subsidiary, affiliate, contractor, employee, vendor,
+client, investor, or agent of such an organization.
 
-Any commercial use, corporate use, resale, paid hosting, paid service,
-integration into a commercial product, or other revenue-generating use requires
-prior written permission from rizkyaa-dev.
+"Enterprise Use" means any use in a professional, organizational, production,
+commercial, internal business, revenue-generating, customer-facing, employee-
+facing, contractor-facing, vendor-facing, or client-facing environment, whether
+or not the Software itself is sold or directly monetized.
 
-4. No Trademark Rights
+"Non-Commercial Use" means personal, private, educational, academic, hobby,
+or non-commercial research use by an individual where the use is not connected
+to any business, employer, client, paid service, product, monetized platform,
+commercial research, commercial training, consulting, advertising, fundraising,
+or other revenue-generating activity.
 
-This license does not grant any rights to use the names, logos, trademarks, or
-branding of rizkyaa-dev except as required for reasonable attribution.
+"Derivative Work" means any modification, adaptation, translation, port,
+fork, plugin, integration, wrapper, service, compiled build, container image,
+or other work based on or incorporating all or part of the Software.
 
-5. No Warranty
+2. Limited Permission
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+Subject to full compliance with this License, the Licensor grants You a limited,
+revocable, non-exclusive, non-transferable, non-sublicensable, royalty-free
+permission to view, copy, modify, and run the Software solely for Non-Commercial
+Use.
 
-IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR
-OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING
-FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-IN THE SOFTWARE.
+You may share a non-commercial fork or modification only if all of the following
+conditions are met:
+
+- the fork or modification is used and distributed only for Non-Commercial Use;
+- this License and all copyright notices are preserved in full;
+- the fork or modification clearly states that it is derived from the Software;
+- the fork or modification does not imply endorsement by the Licensor;
+- the fork or modification does not add terms that weaken or bypass this License.
+
+No other rights are granted.
+
+3. Prohibited Uses
+
+Unless You have prior written permission from rizkyaa-dev, You must not, and
+must not permit any third party to:
+
+- use the Software for Commercial Use;
+- use the Software for Corporate Use;
+- use the Software for Enterprise Use;
+- use the Software within, for, on behalf of, or to benefit any for-profit
+  company, startup, enterprise, agency, consultancy, commercial organization,
+  employer, client, vendor, contractor, or customer;
+- use the Software for internal business operations, internal tooling, internal
+  automation, employee tools, customer support, sales, marketing, analytics,
+  business intelligence, workflow automation, or operational infrastructure;
+- use the Software to provide, operate, power, support, or improve any paid
+  product, paid service, hosted service, managed service, SaaS, API, bot,
+  automation, consulting service, agency service, integration, marketplace
+  listing, subscription, or commercial offering;
+- sell, rent, lease, sublicense, license, resell, monetize, commercially host,
+  commercially distribute, commercially package, or commercially make available
+  the Software or any Derivative Work;
+- include the Software or any Derivative Work in any commercial product,
+  commercial repository, paid platform, paid template, paid course, paid bundle,
+  commercial deployment, or revenue-generating system;
+- use the Software to reduce costs, avoid licensing fees, replace a paid tool,
+  support a business process, or otherwise obtain business value for any
+  commercial entity;
+- use the Software in a production environment for any organization or business;
+- use the Software in connection with advertising, lead generation, affiliate
+  marketing, sponsorship, monetized content, or paid community access;
+- use the Software to train, fine-tune, evaluate, benchmark, improve, or create
+  commercial AI models, datasets, agents, bots, automation systems, or related
+  commercial machine learning products;
+- use the Software to create or operate a competing product, service, platform,
+  library, framework, bot, or automation system;
+- remove, obscure, alter, or misrepresent copyright notices, license notices,
+  attribution, source origin, or ownership;
+- claim ownership of the Software or present the Software or any Derivative Work
+  as wholly original to You;
+- use the Software in a way that violates applicable law or infringes third-party
+  rights;
+- help, enable, induce, or instruct another party to do anything prohibited by
+  this License.
+
+4. No Circumvention
+
+You may not avoid this License by using an intermediary, contractor, affiliate,
+subsidiary, parent company, customer, vendor, consultant, employee, agency,
+open-source mirror, private fork, wrapper, API layer, hosted deployment,
+container image, compiled binary, model-generated rewrite, translated version,
+or substantially similar reimplementation derived from the Software.
+
+If the Software, a Derivative Work, or a substantially similar work derived from
+the Software is used to benefit a commercial entity, that use is Commercial Use
+and is prohibited without prior written permission from the Licensor.
+
+5. Derivative Works and Forks
+
+All Derivative Works remain subject to this License.
+
+You may not relicense the Software or any Derivative Work under a more permissive
+license, an open source license, a commercial license, or any license that
+permits Commercial Use, Corporate Use, or Enterprise Use without prior written
+permission from the Licensor.
+
+You may not use superficial changes, code generation, refactoring, translation
+to another programming language, file restructuring, renaming, formatting, or
+build-system changes to claim that a Derivative Work is independent of this
+License.
+
+6. Distribution Requirements
+
+Any permitted copy, fork, or Derivative Work must include:
+
+- this License in full;
+- the original copyright notice;
+- clear attribution to rizkyaa-dev;
+- a clear statement of any modifications You made.
+
+You must not imply that the Licensor endorses You, Your fork, Your organization,
+or Your use of the Software.
+
+7. Commercial Licensing
+
+Any Commercial Use, Corporate Use, Enterprise Use, resale, paid hosting, paid
+support, paid integration, commercial deployment, use by a for-profit entity,
+or other business-related use requires a separate written commercial license
+from rizkyaa-dev before such use begins.
+
+Permission must be explicit, written, and signed or otherwise clearly approved
+by rizkyaa-dev. Silence, repository access, issue participation, pull request
+acceptance, or public availability of the source code does not grant commercial
+permission.
+
+8. Termination
+
+Your rights under this License terminate automatically and immediately if You
+violate any term of this License.
+
+Upon termination, You must stop all use of the Software and destroy all copies,
+forks, builds, deployments, containers, archives, and Derivative Works in Your
+possession or control, unless otherwise required by law.
+
+Termination does not limit any rights or remedies available to the Licensor.
+
+9. No Trademark Rights
+
+This License does not grant any rights to use the names, logos, trademarks,
+service marks, branding, domain names, or public identity of rizkyaa-dev except
+as strictly necessary for reasonable attribution.
+
+10. No Patent License
+
+No patent rights are granted by this License. If You require patent rights or
+commercial certainty, You must obtain a separate written license from the
+Licensor.
+
+11. No Warranty
+
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY
+KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, NON-INFRINGEMENT,
+SECURITY, ACCURACY, AVAILABILITY, OR ERROR-FREE OPERATION.
+
+The Licensor does not warrant that the Software will meet Your requirements,
+operate without interruption, be secure, be free of defects, or remain available.
+
+12. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE
+LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGE, LOSS, LIABILITY, COST, EXPENSE, OR
+OTHER CONSEQUENCE, WHETHER DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+PUNITIVE, OR CONSEQUENTIAL, INCLUDING BUT NOT LIMITED TO LOST PROFITS, LOST
+REVENUE, LOST DATA, BUSINESS INTERRUPTION, SECURITY INCIDENTS, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES, OR OTHER COMMERCIAL DAMAGES, ARISING FROM OR
+RELATING TO THE SOFTWARE OR THIS LICENSE, WHETHER IN CONTRACT, TORT, STRICT
+LIABILITY, NEGLIGENCE, OR OTHERWISE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
+
+13. Interpretation
+
+If any provision of this License is held to be unenforceable, the remaining
+provisions remain in effect. The unenforceable provision shall be interpreted
+to the maximum extent permitted by law to preserve its intent.
+
+Any ambiguity in this License must not be interpreted as granting Commercial
+Use, Corporate Use, Enterprise Use, sublicensing rights, ownership rights, or
+rights beyond the limited Non-Commercial Use permission expressly stated above.
+
+14. Reservation of Rights
+
+All rights not expressly granted in this License are reserved by rizkyaa-dev.
