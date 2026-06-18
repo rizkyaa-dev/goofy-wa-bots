@@ -1189,21 +1189,29 @@
             <div class="sandbox-grid">
               <div class="form-stack">
                 <label for="presenceActivityInput">Activity Type</label>
-                <select id="presenceActivityInput" class="form-control">
-                  <option value="sleeping">sleeping</option>
-                  <option value="waking_up">waking_up</option>
-                  <option value="eating">eating</option>
-                  <option value="working">working</option>
-                  <option value="studying">studying</option>
-                  <option value="commuting">commuting</option>
-                  <option value="relaxing">relaxing</option>
-                  <option value="watching">watching</option>
-                  <option value="gaming">gaming</option>
-                  <option value="chatting_offline">chatting_offline</option>
-                  <option value="going_out">going_out</option>
-                  <option value="self_care">self_care</option>
-                  <option value="idle">idle</option>
-                </select>
+                <input
+                  type="text"
+                  id="presenceActivityInput"
+                  class="form-control"
+                  list="presenceActivityPresets"
+                  maxlength="80"
+                  placeholder="relaxing / nyari_charger / beresin_kamar"
+                >
+                <datalist id="presenceActivityPresets">
+                  <option value="sleeping"></option>
+                  <option value="waking_up"></option>
+                  <option value="eating"></option>
+                  <option value="working"></option>
+                  <option value="studying"></option>
+                  <option value="commuting"></option>
+                  <option value="relaxing"></option>
+                  <option value="watching"></option>
+                  <option value="gaming"></option>
+                  <option value="chatting_offline"></option>
+                  <option value="going_out"></option>
+                  <option value="self_care"></option>
+                  <option value="idle"></option>
+                </datalist>
               </div>
               <div class="form-stack">
                 <label for="presenceDurationInput">Durasi Aktif (menit)</label>

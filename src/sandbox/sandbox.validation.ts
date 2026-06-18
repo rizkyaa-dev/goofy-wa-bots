@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { RoleplayMemoryKind, RoleplayMood } from '@prisma/client';
 import { z } from 'zod';
 import {
-  roleplayPresenceActivities,
+  normalizeRoleplayPresenceActivityType,
   roleplayPresenceInterruptibilities,
   roleplayPresenceSocialContexts,
   roleplayPresenceSources,
@@ -11,6 +11,12 @@ import {
 const chatIdSchema = z.string().trim().min(1);
 const stateValueSchema = z.number().int().min(0).max(100);
 const memoryIdSchema = z.string().trim().min(1);
+const activityTypeSchema = z
+  .string()
+  .trim()
+  .min(2)
+  .max(80)
+  .transform((value) => normalizeRoleplayPresenceActivityType(value));
 
 const sandboxChatSchema = z.object({
   chatId: chatIdSchema,
@@ -39,7 +45,7 @@ const sandboxStateUpdateSchema = z
   });
 
 const sandboxPresenceUpdateSchema = z.object({
-  activityType: z.enum(roleplayPresenceActivities),
+  activityType: activityTypeSchema,
   statusText: z.string().trim().min(1).max(220),
   locationLabel: z.string().trim().min(1).max(120),
   socialContext: z.enum(roleplayPresenceSocialContexts),

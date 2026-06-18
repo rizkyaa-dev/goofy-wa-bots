@@ -24,6 +24,7 @@ import { ResponseStylePromptBuilder } from './prompt/builders/response-style-pro
 import { TimeContextPromptBuilder } from './prompt/builders/time-context-prompt.builder';
 import { RoleplayPresenceAgentService } from './presence/roleplay-presence-agent.service';
 import { RoleplayPresenceDirectorService } from './presence/roleplay-presence-director.service';
+import { RoleplayPresenceEmotionPolicyService } from './presence/roleplay-presence-emotion-policy.service';
 import { RoleplayPresenceSchedulerService } from './presence/roleplay-presence-scheduler.service';
 import { RoleplayPresenceService } from './presence/roleplay-presence.service';
 import { RoleplayPresenceStateRepository } from './presence/roleplay-presence-state.repository';
@@ -85,6 +86,7 @@ import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.ser
     RoleplayStateRepository,
     RoleplayPresenceAgentService,
     RoleplayPresenceDirectorService,
+    RoleplayPresenceEmotionPolicyService,
     RoleplayPresenceSchedulerService,
     RoleplayPresenceService,
     RoleplayPresenceStateRepository,

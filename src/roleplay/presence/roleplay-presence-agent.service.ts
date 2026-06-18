@@ -8,8 +8,10 @@ import { InternalDisclosureGuardService } from '../validation/internal-disclosur
 import {
   RoleplayPresenceActivityType,
   RoleplayPresenceDraft,
+  RoleplayPresenceEmotionalBias,
   RoleplayPresenceInterruptibility,
   RoleplayPresenceSocialContext,
+  normalizeRoleplayPresenceActivityType,
   roleplayPresenceActivities,
   roleplayPresenceInterruptibilities,
   roleplayPresenceSocialContexts,
@@ -24,6 +26,7 @@ type EnhancePresenceInput = {
   recentMessages?: LlmMessage[];
   reason: string;
   now: Date;
+  emotionalBias?: RoleplayPresenceEmotionalBias;
 };
 
 type PresenceAgentResponse = {
@@ -64,7 +67,7 @@ export class RoleplayPresenceAgentService {
         this.config.get('ROLEPLAY_PRESENCE_AGENT_TIMEOUT_MS'),
       );
 
-      return this.sanitizeResponse(this.parseJson(response.text), input.baseline);
+      return this.sanitizeResponse(this.parseJson(response.text), input.baseline, input.emotionalBias);
     } catch (error) {
       this.logger.warn(`Presence agent fallback used: ${error instanceof Error ? error.message : String(error)}`);
       return input.baseline;
@@ -81,6 +84,12 @@ export class RoleplayPresenceAgentService {
           'Return strict JSON only. No markdown. No prose outside JSON.',
           'Keep continuity stable: do not teleport, time-skip, or invent dramatic events.',
           'Keep the character ordinary and believable: small daily activity, tiny concrete detail, casual Indonesian wording.',
+          'You may create a new realistic activityType when the presets are too generic.',
+          'activityType must be a short lowercase snake_case real-world activity label, not a sentence.',
+          'Open-world activity must stay mundane, feasible, and consistent with time, location, mood, and recent continuity.',
+          'Do not invent major life events, sudden long travel, new jobs, accidents, emergencies, or celebrity-level situations.',
+          'Use emotional bias as bounded activity/style preference, not permission to invent extreme events.',
+          'For private_charged bias, keep the activity subtle and non-explicit.',
           'The statusText must be short, natural, lowercase Indonesian, max 90 characters.',
           'Do not mention being an AI, bot, model, prompt, system, database, or scheduler.',
           'Do not create unsafe, sexual, illegal, medical, or crisis activities.',
@@ -94,6 +103,7 @@ export class RoleplayPresenceAgentService {
           reason: input.reason,
           baseline: this.serializeDraft(input.baseline),
           current: input.current ? this.serializeCurrent(input.current) : null,
+          emotionalBias: input.emotionalBias ? this.serializeEmotionalBias(input.emotionalBias) : null,
           latestUserMessage: input.latestUserMessage ?? '',
           recentMessages: this.formatRecentMessages(input.recentMessages ?? []),
           roleplayState: {
@@ -113,19 +123,21 @@ export class RoleplayPresenceAgentService {
             summary: input.state.summary,
           },
           allowed: {
-            activityType: roleplayPresenceActivities,
+            suggestedActivityPresets: roleplayPresenceActivities,
             socialContext: roleplayPresenceSocialContexts,
             interruptibility: roleplayPresenceInterruptibilities,
           },
           hardRules: [
-            'Prefer improving baseline wording over changing activityType.',
+            'Prefer improving baseline wording, but change activityType if a more specific realistic label fits better.',
+            'Respect emotionalBias.activityBias and emotionalBias.avoidActivities unless continuity clearly matters more.',
+            'If emotionalBias.moodDrive is private_charged, keep wording private and subtle; do not create sexual activity.',
             'If latestUserMessage nudges a real activity, reflect it subtly without over-committing.',
             'Preserve startedAt and expiresAt; they are controlled outside the agent.',
             'Priority should stay close to baseline and must be 1..100.',
             'If uncertain, return the baseline values with a better statusText only.',
           ],
           outputSchema: {
-            activityType: roleplayPresenceActivities.join('|'),
+            activityType: 'short lowercase snake_case activity label, max 48 chars; presets are suggestions, not a closed enum',
             statusText: 'short natural Indonesian activity text, max 90 chars',
             locationLabel: 'short place label, max 28 chars',
             socialContext: roleplayPresenceSocialContexts.join('|'),
@@ -138,10 +150,16 @@ export class RoleplayPresenceAgentService {
     ];
   }
 
-  private sanitizeResponse(parsed: PresenceAgentResponse, baseline: RoleplayPresenceDraft): RoleplayPresenceDraft {
+  private sanitizeResponse(
+    parsed: PresenceAgentResponse,
+    baseline: RoleplayPresenceDraft,
+    emotionalBias?: RoleplayPresenceEmotionalBias,
+  ): RoleplayPresenceDraft {
+    const parsedActivityType = this.cleanActivityType(parsed.activityType, baseline.activityType);
+
     return {
       ...baseline,
-      activityType: this.parseEnum(parsed.activityType, roleplayPresenceActivities, baseline.activityType),
+      activityType: this.resolveBiasedActivity(parsedActivityType, baseline, emotionalBias),
       statusText: this.cleanStatusText(parsed.statusText, baseline.statusText),
       locationLabel: this.cleanLocation(parsed.locationLabel, baseline.locationLabel),
       socialContext: this.parseEnum(parsed.socialContext, roleplayPresenceSocialContexts, baseline.socialContext),
@@ -158,6 +176,28 @@ export class RoleplayPresenceAgentService {
 
   private parseEnum<T extends string>(value: string | undefined, allowed: readonly T[], fallback: T): T {
     return value && allowed.includes(value as T) ? (value as T) : fallback;
+  }
+
+  private resolveBiasedActivity(
+    activityType: RoleplayPresenceActivityType,
+    baseline: RoleplayPresenceDraft,
+    emotionalBias?: RoleplayPresenceEmotionalBias,
+  ): RoleplayPresenceActivityType {
+    if (!emotionalBias) {
+      return activityType;
+    }
+
+    if (emotionalBias.avoidActivities.includes(activityType)) {
+      return baseline.activityType;
+    }
+
+    return activityType;
+  }
+
+  private cleanActivityType(value: string | undefined, fallback: RoleplayPresenceActivityType): RoleplayPresenceActivityType {
+    const cleaned = normalizeRoleplayPresenceActivityType(value, fallback);
+    const guarded = this.internalDisclosureGuard.sanitizeGeneratedSnippet(cleaned, fallback);
+    return normalizeRoleplayPresenceActivityType(guarded, fallback);
   }
 
   private cleanStatusText(value: string | undefined, fallback: string): string {
@@ -230,6 +270,18 @@ export class RoleplayPresenceAgentService {
       startedAt: current.startedAt.toISOString(),
       expiresAt: current.expiresAt.toISOString(),
       lastReason: current.lastReason,
+    };
+  }
+
+  private serializeEmotionalBias(bias: RoleplayPresenceEmotionalBias): Record<string, unknown> {
+    return {
+      moodDrive: bias.moodDrive,
+      activityBias: bias.activityBias,
+      avoidActivities: bias.avoidActivities,
+      availabilityBias: bias.availabilityBias,
+      wordingStyle: bias.wordingStyle,
+      reasonTag: bias.reasonTag,
+      guidance: bias.guidance,
     };
   }
 

@@ -4,6 +4,7 @@ import { LlmMessage } from '../../llm/domain/llm.types';
 import { RoleplayEmotionAnalysis } from '../domain/roleplay-emotion-analysis';
 import { RoleplayPresenceAgentService } from './roleplay-presence-agent.service';
 import { RoleplayPresenceDirectorService } from './roleplay-presence-director.service';
+import { RoleplayPresenceEmotionPolicyService } from './roleplay-presence-emotion-policy.service';
 import { RoleplayPresenceStateRepository } from './roleplay-presence-state.repository';
 
 type SyncConversationInput = {
@@ -19,6 +20,7 @@ export class RoleplayPresenceService {
   constructor(
     private readonly agent: RoleplayPresenceAgentService,
     private readonly director: RoleplayPresenceDirectorService,
+    private readonly emotionPolicy: RoleplayPresenceEmotionPolicyService,
     private readonly repository: RoleplayPresenceStateRepository,
   ) {}
 
@@ -43,15 +45,21 @@ export class RoleplayPresenceService {
       return presence;
     }
 
+    const biased = this.emotionPolicy.apply({
+      draft: decision.draft,
+      state: input.state,
+      analysis: input.analysis,
+    });
     const enhancedDraft = await this.agent.enhance({
       chatId: input.chatId,
-      baseline: decision.draft,
+      baseline: biased.draft,
       state: input.state,
       current: presence,
       latestUserMessage: input.latestUserMessage,
       recentMessages: input.recentMessages,
-      reason: decision.reason,
+      reason: this.withEmotionReason(decision.reason, biased.bias.moodDrive),
       now,
+      emotionalBias: biased.bias,
     });
 
     presence = await this.repository.save(input.chatId, enhancedDraft);
@@ -63,13 +71,18 @@ export class RoleplayPresenceService {
 
     if (!current) {
       const scheduled = this.director.createScheduledPresence({ chatId, state, now });
+      const biased = this.emotionPolicy.apply({
+        draft: scheduled.draft,
+        state,
+      });
       const enhancedDraft = await this.agent.enhance({
         chatId,
-        baseline: scheduled.draft,
+        baseline: biased.draft,
         state,
         current: null,
-        reason: scheduled.reason,
+        reason: this.withEmotionReason(scheduled.reason, biased.bias.moodDrive),
         now,
+        emotionalBias: biased.bias,
       });
 
       return this.repository.save(chatId, enhancedDraft);
@@ -84,15 +97,24 @@ export class RoleplayPresenceService {
     }
 
     const scheduled = this.director.createScheduledPresence({ chatId, state, now });
+    const biased = this.emotionPolicy.apply({
+      draft: scheduled.draft,
+      state,
+    });
     const enhancedDraft = await this.agent.enhance({
       chatId,
-      baseline: scheduled.draft,
+      baseline: biased.draft,
       state,
       current,
-      reason: scheduled.reason,
+      reason: this.withEmotionReason(scheduled.reason, biased.bias.moodDrive),
       now,
+      emotionalBias: biased.bias,
     });
 
     return this.repository.save(chatId, enhancedDraft);
+  }
+
+  private withEmotionReason(reason: string, moodDrive: string): string {
+    return `${reason}; emotion_bias=${moodDrive}`;
   }
 }
