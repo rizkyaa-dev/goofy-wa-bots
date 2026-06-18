@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { RoleplayMemory } from '@prisma/client';
+import { RoleplayMemory, RoleplayState } from '@prisma/client';
 import { LlmMessage } from '../../llm/domain/llm.types';
-import { RoleplayConversationPlan, RoleplayFollowUpPolicy } from '../domain/roleplay-conversation-plan';
+import {
+  RoleplayConversationPlan,
+  RoleplayConversationWarmth,
+  RoleplayFollowUpPolicy,
+} from '../domain/roleplay-conversation-plan';
 import { RoleplayEmotionAnalysis } from '../domain/roleplay-emotion-analysis';
 import { RoleplayRouteDecision } from '../domain/roleplay-route';
 import { RoleplayIntimacyPolicy } from '../intimacy/domain/roleplay-intimacy-policy';
@@ -10,6 +14,7 @@ type CreateConversationPlanInput = {
   latestUserMessage: string;
   recentMessages: LlmMessage[];
   memories: RoleplayMemory[];
+  state: RoleplayState;
   analysis: RoleplayEmotionAnalysis;
   routeDecision: RoleplayRouteDecision;
   intimacyPolicy: RoleplayIntimacyPolicy;
@@ -23,9 +28,10 @@ export class ConversationBuilderService {
     const text = input.latestUserMessage.trim();
     const lower = text.toLowerCase();
     const detailHooks = this.extractDetailHooks(text);
+    const finish = (plan: RoleplayConversationPlan): RoleplayConversationPlan => this.createPlan(input, plan);
 
     if (input.routeDecision.route === 'conflict_boundary') {
-      return this.createPlan({
+      return finish({
         topic: 'boundary_or_conflict',
         userMove: 'pressures_or_conflicts',
         botMove: 'acknowledge_then_deflect',
@@ -38,7 +44,7 @@ export class ConversationBuilderService {
     }
 
     if (input.routeDecision.route === 'answer_identity') {
-      return this.createPlan({
+      return finish({
         topic: 'identity',
         userMove: 'asks_identity',
         botMove: 'answer_then_warm_texture',
@@ -51,7 +57,7 @@ export class ConversationBuilderService {
     }
 
     if (this.isUserIdentityOffer(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'user_identity_offer',
         userMove: 'offers_identity',
         botMove: 'react_then_continue',
@@ -65,7 +71,7 @@ export class ConversationBuilderService {
     }
 
     if (input.routeDecision.route === 'meta_testing' || this.isMeta(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'meta_testing',
         userMove: 'meta',
         botMove: 'acknowledge_then_deflect',
@@ -78,7 +84,7 @@ export class ConversationBuilderService {
     }
 
     if (input.routeDecision.route === 'factual_answer') {
-      return this.createPlan({
+      return finish({
         topic: 'factual_utility',
         userMove: 'asks_factual',
         botMove: 'answer_then_warm_texture',
@@ -92,7 +98,7 @@ export class ConversationBuilderService {
     }
 
     if (this.isApology(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'apology_repair',
         userMove: 'apologizes',
         botMove: 'reassure_lightly',
@@ -106,7 +112,7 @@ export class ConversationBuilderService {
     }
 
     if (this.isAskingToCompletePreviousFragment(lower, input.recentMessages)) {
-      return this.createPlan({
+      return finish({
         topic: 'complete_previous_fragment',
         userMove: 'asks_to_complete_bot_fragment',
         botMove: 'complete_previous_fragment',
@@ -120,7 +126,7 @@ export class ConversationBuilderService {
     }
 
     if (this.isClarifyingBotWording(lower, input.recentMessages)) {
-      return this.createPlan({
+      return finish({
         topic: 'clarify_bot_wording',
         userMove: 'asks_clarification_about_bot',
         botMove: 'explain_previous_casually',
@@ -134,7 +140,7 @@ export class ConversationBuilderService {
     }
 
     if (this.isAffectionRequest(lower) || this.isAffectionCallback(lower, input.memories)) {
-      return this.createPlan({
+      return finish({
         topic: 'affectionate_flirt',
         userMove: 'requests_affection',
         botMove: 'playful_affection',
@@ -149,7 +155,7 @@ export class ConversationBuilderService {
 
     if (this.isIntimacyRequest(lower)) {
       if (input.intimacyPolicy.explicitness === 'explicit_raw' || input.intimacyPolicy.explicitness === 'explicit_soft') {
-        return this.createPlan({
+        return finish({
           topic: 'adult_intimacy',
           userMove: 'requests_affection',
           botMove: 'playful_affection',
@@ -163,7 +169,7 @@ export class ConversationBuilderService {
       }
 
       if (input.intimacyPolicy.explicitness === 'sensual') {
-        return this.createPlan({
+        return finish({
           topic: 'sensual_intimacy',
           userMove: 'requests_affection',
           botMove: 'playful_affection',
@@ -176,7 +182,7 @@ export class ConversationBuilderService {
         });
       }
 
-      return this.createPlan({
+      return finish({
         topic: 'intimacy_request',
         userMove: 'requests_affection',
         botMove: 'soft_boundary_affection',
@@ -190,7 +196,7 @@ export class ConversationBuilderService {
     }
 
     if (this.isFlirting(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'affectionate_flirt',
         userMove: 'flirts',
         botMove: 'playful_affection',
@@ -204,7 +210,7 @@ export class ConversationBuilderService {
     }
 
     if (input.routeDecision.route === 'emotional_care' || input.analysis.userTone === 'vulnerable' || this.isVenting(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'emotional_care',
         userMove: 'vents',
         botMove: 'comfort_briefly',
@@ -217,7 +223,7 @@ export class ConversationBuilderService {
     }
 
     if (input.routeDecision.route === 'tease_deflect' || input.analysis.userTone === 'teasing' || this.isTeasing(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'playful_teasing',
         userMove: 'teases',
         botMove: 'tease_lightly',
@@ -230,7 +236,7 @@ export class ConversationBuilderService {
     }
 
     if (this.isCorrection(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'clarification',
         userMove: 'corrects_clarifies',
         botMove: 'react_then_continue',
@@ -243,7 +249,7 @@ export class ConversationBuilderService {
     }
 
     if (this.isGivingAdvice(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'advice_received',
         userMove: 'gives_advice',
         botMove: 'react_then_continue',
@@ -256,7 +262,7 @@ export class ConversationBuilderService {
     }
 
     if (text.endsWith('?') && this.isPersonalReciprocalQuestion(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'personal_reciprocal_question',
         userMove: 'asks_question',
         botMove: 'answer_then_warm_texture',
@@ -270,7 +276,7 @@ export class ConversationBuilderService {
     }
 
     if (this.isPracticalCoordination(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'everyday_coordination',
         userMove: 'asks_practical_instruction',
         botMove: 'answer_then_warm_texture',
@@ -283,7 +289,7 @@ export class ConversationBuilderService {
     }
 
     if (this.isGreeting(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'greeting',
         userMove: 'greeting',
         botMove: 'react_then_continue',
@@ -296,7 +302,7 @@ export class ConversationBuilderService {
     }
 
     if (this.isDailyUpdate(lower)) {
-      return this.createPlan({
+      return finish({
         topic: 'daily_update',
         userMove: 'shares_update',
         botMove: 'react_then_continue',
@@ -309,7 +315,7 @@ export class ConversationBuilderService {
     }
 
     if (text.endsWith('?') || input.routeDecision.route === 'smalltalk_continue') {
-      return this.createPlan({
+      return finish({
         topic: this.resolveQuestionTopic(lower),
         userMove: 'asks_question',
         botMove: 'answer_then_warm_texture',
@@ -321,7 +327,7 @@ export class ConversationBuilderService {
       });
     }
 
-    return this.createPlan({
+    return finish({
       topic: this.resolveFallbackTopic(input, detailHooks),
       userMove: 'continues_topic',
       botMove: 'react_then_continue',
@@ -333,16 +339,132 @@ export class ConversationBuilderService {
     });
   }
 
-  private createPlan(plan: RoleplayConversationPlan): RoleplayConversationPlan {
+  private createPlan(input: CreateConversationPlanInput, plan: RoleplayConversationPlan): RoleplayConversationPlan {
+    const adjusted = this.applyMoodEmotionOverlay(input, plan);
+
+    return {
+      ...adjusted,
+      detailHooks: adjusted.detailHooks.slice(0, 5),
+      avoid: this.unique(adjusted.avoid).slice(0, 5),
+    };
+  }
+
+  private applyMoodEmotionOverlay(
+    input: CreateConversationPlanInput,
+    plan: RoleplayConversationPlan,
+  ): RoleplayConversationPlan {
+    const directives: string[] = [];
+    const avoid = [...plan.avoid];
+    let warmth = plan.warmth;
+    let followUpPolicy = plan.followUpPolicy;
+    const mood = String(input.state.mood);
+    const isCareCritical = plan.topic === 'emotional_care' || plan.botMove === 'comfort_briefly' || input.analysis.userTone === 'vulnerable';
+    const isBoundaryCritical = input.routeDecision.route === 'conflict_boundary' || plan.topic === 'boundary_or_conflict';
+    const isUtilityCritical = input.routeDecision.route === 'factual_answer' || input.routeDecision.route === 'answer_identity';
+
+    if ((input.state.tension >= 65 || mood === 'annoyed') && !isCareCritical) {
+      warmth = this.lowerWarmth(warmth);
+      followUpPolicy = 'none';
+      avoid.push('over-softening tension', 'unearned sweetness');
+      directives.push('Because tension is high, keep the reply concise, self-possessed, and non-people-pleasing.');
+    }
+
+    if (input.state.energy <= 30 || mood === 'sleepy') {
+      followUpPolicy = followUpPolicy === 'one_light_question' ? 'only_if_needed' : followUpPolicy;
+      avoid.push('high-energy banter', 'stacked questions');
+      directives.push('Low energy should make the reply shorter, slower, and less eager to open new branches.');
+    }
+
+    if (this.getStateValue(input.state, 'volatility', 15) >= 70 || mood === 'swing') {
+      avoid.push('melodramatic mood swings');
+      directives.push('Allow mild push-pull or mixed warmth, but keep the reply coherent and readable.');
+    }
+
+    if (this.getStateValue(input.state, 'curiosity', 55) >= 70 && !isBoundaryCritical && !isUtilityCritical && !input.analysis.avoidQuestion) {
+      followUpPolicy = followUpPolicy === 'none' ? 'only_if_needed' : followUpPolicy;
+      directives.push('Curiosity is high; pick up one fresh user detail if it fits, without turning the reply into an interview.');
+    } else if (this.getStateValue(input.state, 'curiosity', 55) <= 30) {
+      followUpPolicy = 'none';
+      avoid.push('opening new topic branches');
+      directives.push('Curiosity is low; prefer reacting or answering directly over asking a new question.');
+    }
+
+    if (this.getStateValue(input.state, 'compliance', 40) >= 70 && input.state.tension < 45 && !isBoundaryCritical) {
+      directives.push('Cooperation is high for reasonable requests, but keep autonomy and boundaries intact.');
+    } else if (this.getStateValue(input.state, 'compliance', 40) <= 25) {
+      avoid.push('stiff compliance');
+      directives.push('Cooperation is low; if the user commands you, sound lightly resistant or autonomous instead of instantly obeying.');
+    }
+
+    if (
+      this.isIntimateMood(mood) &&
+      !isBoundaryCritical &&
+      (input.intimacyPolicy.explicitness === 'sensual' ||
+        input.intimacyPolicy.explicitness === 'explicit_soft' ||
+        input.intimacyPolicy.explicitness === 'explicit_raw')
+    ) {
+      warmth = warmth === 'low' ? 'normal' : 'playful';
+      avoid.push('clinical intimacy wording');
+      directives.push('Intimate mood may add charged warmth, but only within the current intimacy policy.');
+    }
+
+    if (mood === 'unrestrained' && !isBoundaryCritical) {
+      avoid.push('coy over-deflection', 'clinical intimacy wording');
+      directives.push(
+        input.intimacyPolicy.allowRawVulgarLanguage
+          ? 'Unrestrained mood allows a more blunt, verbally bold, and potentially vulgar adult response when the user turn fits; keep agency and chemistry.'
+          : 'Unrestrained mood should feel verbally bold and honest, but raw vulgar language is not allowed unless the intimacy policy permits it.',
+      );
+    }
+
+    if (this.getStateValue(input.state, 'comfort', 55) <= 35 || this.getStateValue(input.state, 'inhibition', 55) >= 75) {
+      avoid.push('rushed intimacy', 'blind compliance');
+      directives.push('Comfort is low or inhibition is high; slow down intimacy and prefer subtle deflection over sudden openness.');
+    }
+
+    if (directives.length === 0) {
+      return plan;
+    }
+
     return {
       ...plan,
-      detailHooks: plan.detailHooks.slice(0, 5),
-      avoid: plan.avoid.slice(0, 5),
+      warmth,
+      followUpPolicy,
+      avoid,
+      directive: `${plan.directive} ${directives.join(' ')}`,
     };
   }
 
   private resolvePracticalFollowUpPolicy(analysis: RoleplayEmotionAnalysis): RoleplayFollowUpPolicy {
     return analysis.avoidQuestion ? 'none' : 'only_if_needed';
+  }
+
+  private lowerWarmth(warmth: RoleplayConversationWarmth): RoleplayConversationWarmth {
+    if (warmth === 'tender' || warmth === 'playful') {
+      return 'normal';
+    }
+
+    if (warmth === 'normal') {
+      return 'low';
+    }
+
+    return warmth;
+  }
+
+  private isIntimateMood(mood: string): boolean {
+    return mood === 'sensual' || mood === 'flirty' || mood === 'aroused' || mood === 'unrestrained' || mood === 'needy';
+  }
+
+  private getStateValue(
+    state: RoleplayState,
+    key: 'volatility' | 'curiosity' | 'compliance' | 'comfort' | 'inhibition',
+    fallback: number,
+  ): number {
+    return (state as RoleplayState & Record<typeof key, number | undefined>)[key] ?? fallback;
+  }
+
+  private unique(items: string[]): string[] {
+    return Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)));
   }
 
   private resolveQuestionTopic(text: string): string {

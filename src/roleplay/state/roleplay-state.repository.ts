@@ -49,6 +49,7 @@ type StatePatch = {
     | 'sensual'
     | 'flirty'
     | 'aroused'
+    | 'unrestrained'
     | 'needy';
   affection: number;
   trust: number;

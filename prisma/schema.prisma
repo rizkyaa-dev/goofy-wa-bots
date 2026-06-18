@@ -42,6 +42,7 @@ enum RoleplayMood {
   sensual
   flirty
   aroused
+  unrestrained
   needy
 }
 

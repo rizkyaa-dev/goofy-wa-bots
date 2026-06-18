@@ -74,6 +74,19 @@ export class RoleplayIntimacyPolicyService {
 
     if (userIntent === 'explicit') {
       if (
+        mood === 'unrestrained' &&
+        desire >= 85 &&
+        comfort >= 75 &&
+        state.trust >= 65 &&
+        compliance >= 55 &&
+        intimacy >= 70 &&
+        inhibition <= 25 &&
+        state.tension < 45
+      ) {
+        return 'explicit_raw';
+      }
+
+      if (
         mood === 'aroused' &&
         desire >= 75 &&
         comfort >= 70 &&
@@ -101,6 +114,18 @@ export class RoleplayIntimacyPolicyService {
 
     if (userIntent === 'flirt') {
       return desire >= 45 && comfort >= 45 ? 'suggestive' : 'none';
+    }
+
+    if (
+      mood === 'unrestrained' &&
+      desire >= 85 &&
+      comfort >= 75 &&
+      state.trust >= 65 &&
+      intimacy >= 70 &&
+      inhibition <= 25 &&
+      state.tension < 45
+    ) {
+      return 'sensual';
     }
 
     if ((mood === 'aroused' || mood === 'sensual' || mood === 'needy') && desire >= 70 && comfort >= 65 && inhibition <= 35) {
@@ -209,7 +234,7 @@ export class RoleplayIntimacyPolicyService {
     }
 
     if (explicitness === 'explicit_raw') {
-      return 'Adult explicit mode is available for this turn. The character may use direct, vulgar adult language if it fits the user turn, while staying mutual, in-character, and concise.';
+      return 'Adult explicit raw mode is available for this turn. The character may use direct, blunt, vulgar adult language if it fits the user turn, while staying mutual, in-character, concise, and self-possessed.';
     }
 
     if (explicitness === 'explicit_soft') {

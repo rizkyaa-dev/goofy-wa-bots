@@ -100,6 +100,7 @@ export class RoleplayChatService {
       latestUserMessage: message.body,
       recentMessages,
       memories,
+      state,
       analysis,
       routeDecision,
       intimacyPolicy,
@@ -319,6 +320,7 @@ type StatePatch = {
     | 'sensual'
     | 'flirty'
     | 'aroused'
+    | 'unrestrained'
     | 'needy';
   affection: number;
   trust: number;

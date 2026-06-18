@@ -735,6 +735,7 @@ body.light-theme .contacts-table tbody tr:hover {
 .mood-badge.sensual { background: rgba(190, 24, 93, 0.15); color: #f472b6; }
 .mood-badge.flirty { background: rgba(244, 114, 182, 0.15); color: #f9a8d4; }
 .mood-badge.aroused { background: rgba(220, 38, 38, 0.15); color: #f87171; }
+.mood-badge.unrestrained { background: rgba(127, 29, 29, 0.2); color: #fca5a5; }
 .mood-badge.needy { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; }
 
 .presence-summary-card {
@@ -1160,6 +1161,7 @@ body.light-theme .mood-badge.swing { background: rgba(234, 88, 12, 0.16); color:
 body.light-theme .mood-badge.sensual { background: rgba(190, 24, 93, 0.16); color: #9d174d; }
 body.light-theme .mood-badge.flirty { background: rgba(219, 39, 119, 0.14); color: #be185d; }
 body.light-theme .mood-badge.aroused { background: rgba(220, 38, 38, 0.15); color: #991b1b; }
+body.light-theme .mood-badge.unrestrained { background: rgba(127, 29, 29, 0.16); color: #7f1d1d; }
 body.light-theme .mood-badge.needy { background: rgba(124, 58, 237, 0.14); color: #6d28d9; }
 
 body.light-theme .form-control {

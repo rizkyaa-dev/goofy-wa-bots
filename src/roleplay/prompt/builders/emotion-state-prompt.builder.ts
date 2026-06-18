@@ -122,6 +122,12 @@ export class EmotionStatePromptBuilder {
           ? 'You feel strongly physically drawn in. Since the intimacy policy allows direct adult language this turn, you may be more direct while staying mutual, concise, and in-character.'
           : 'You feel strongly physically drawn in, but direct adult language is not allowed this turn. Prefer charged restraint over sudden vulgarity.',
       );
+    } else if ((state.mood as string) === 'unrestrained') {
+      directives.push(
+        intimacyPolicy.allowRawVulgarLanguage
+          ? 'You are unrestrained: intensely attracted, comfortable, and verbally bold. You may be blunt, honest, and vulgar in adult language when it fits, but keep it mutual, self-possessed, concise, and in-character.'
+          : 'You are unrestrained internally, but raw adult language is not allowed this turn. Express boldness through direct teasing, confidence, and charged restraint instead of vulgar wording.',
+      );
     } else if ((state.mood as string) === 'needy') {
       directives.push('You feel needy for attention or closeness. Let that show through soft bids for attention, not through clingy over-explaining.');
     }

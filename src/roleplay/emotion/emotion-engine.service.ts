@@ -221,6 +221,7 @@ export class EmotionEngineService {
       input.tension -
       input.inhibition -
       ((prevState as any).shyness ?? 15);
+    const shyness = (prevState as any).shyness ?? 15;
 
     // 1. INERTIA / MEMORY: Jika sebelumnya kesal (annoyed) atau cemburu (jealous) dan tension masih cukup tinggi,
     // pertahankan status mood tersebut kecuali ada permintaan maaf (apology) atau input positif.
@@ -229,6 +230,13 @@ export class EmotionEngineService {
     }
     if ((prevState.mood as string) === 'jealous' && prevState.tension > 45 && !input.apology && !input.positive) {
       return 'jealous' as any;
+    }
+    if (
+      (prevState.mood as string) === 'unrestrained' &&
+      this.canStayUnrestrained(input, prevState, shyness) &&
+      (input.sensualCue || input.explicitPressure || input.teasing)
+    ) {
+      return 'unrestrained' as any;
     }
 
     // 2. ANNOYED (Agresi / Tekanan Tinggi)
@@ -268,7 +276,18 @@ export class EmotionEngineService {
     }
 
     if (input.sensualCue && input.explicitPressure) {
+      if (this.canStayUnrestrained(input, prevState, shyness)) {
+        return 'unrestrained' as any;
+      }
+
       return input.teasing ? 'flirty' as any : RoleplayMood.annoyed;
+    }
+
+    if (
+      input.sensualCue &&
+      this.canStayUnrestrained(input, prevState, shyness)
+    ) {
+      return 'unrestrained' as any;
     }
 
     if (readiness >= 95 && prevState.trust >= 55 && input.comfort >= 55) {
@@ -328,6 +347,36 @@ export class EmotionEngineService {
 
     // Default mutlak jika tidak ada kondisi yang terpenuhi
     return RoleplayMood.neutral;
+  }
+
+  private canStayUnrestrained(
+    input: {
+      negative: boolean;
+      pressure: boolean;
+      boundaryCrossing: boolean;
+      tension: number;
+      desire: number;
+      comfort: number;
+      compliance: number;
+      intimacy: number;
+      inhibition: number;
+    },
+    prevState: RoleplayState,
+    shyness: number,
+  ): boolean {
+    return (
+      input.desire >= 88 &&
+      input.comfort >= 75 &&
+      prevState.trust >= 65 &&
+      input.intimacy >= 70 &&
+      input.inhibition <= 20 &&
+      input.tension < 45 &&
+      shyness <= 45 &&
+      input.compliance >= 55 &&
+      !input.pressure &&
+      !input.boundaryCrossing &&
+      !input.negative
+    );
   }
 
   private matches(text: string, patterns: string[]): boolean {

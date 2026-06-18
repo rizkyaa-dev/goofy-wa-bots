@@ -60,9 +60,10 @@ export class RoleplayPresenceEmotionPolicyService {
       mood === 'sensual' ||
       mood === 'flirty' ||
       mood === 'aroused' ||
+      mood === 'unrestrained' ||
       (desire >= 65 && comfort >= 55 && inhibition <= 45 && tension < 50)
     ) {
-      return this.bias('private_charged', ['relaxing', 'self_care', 'idle'], ['commuting', 'going_out'], 'medium', 'private_subtle', 'drive_private_charged', 'Prefer a private, subtle, non-explicit activity. Never create sexual activities.');
+      return this.bias('private_charged', ['relaxing', 'self_care', 'idle'], ['commuting', 'going_out'], 'medium', 'private_subtle', 'drive_private_charged', 'Prefer a private, subtle, non-explicit activity. Never create sexual activities, even for unrestrained mood.');
     }
 
     if (mood === 'swing' || volatility >= 70) {
