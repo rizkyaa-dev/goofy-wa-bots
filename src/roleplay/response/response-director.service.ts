@@ -154,8 +154,14 @@ export class ResponseDirectorService {
     latestLooksLikeAnswer: boolean,
     routeDecision: RoleplayRouteDecision,
   ): RoleplayResponsePlan['selfDisclosure'] {
-    if (this.isCharacterNameQuestion(text) || latestLooksLikeAnswer) {
+    if (this.isCharacterNameQuestion(text)) {
       return 'none';
+    }
+
+    if (latestLooksLikeAnswer) {
+      // Allow 'small' self-disclosure instead of 'none' to prevent dry dead-ends,
+      // letting the bot share a tiny bit of context (e.g. "aku juga lagi...")
+      return 'small';
     }
 
     if (routeDecision.selfDisclosure) {

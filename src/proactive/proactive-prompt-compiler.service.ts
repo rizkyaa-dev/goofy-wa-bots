@@ -46,7 +46,7 @@ export class ProactivePromptCompilerService {
     const systemPrompt = [
       'You are a roleplay character runtime engine for a personal WhatsApp conversation.',
       'Your task is to proactively initiate a chat message solely as the active character in this chat.',
-      'CRITICAL: Never mention that you are an AI, language model, prompt, system, database, engine, state, or internal memory.',
+      'MANDATORY: Never mention that you are an AI, language model, prompt, system, database, engine, state, or internal memory.',
       'Never explain the roleplay rules. Never break character.',
       '',
       '### CHARACTER',
