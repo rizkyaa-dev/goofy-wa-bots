@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConversationsModule } from '../conversations/conversations.module';
 import { LlmModule } from '../llm/llm.module';
+import { WebSearchModule } from '../web-search/web-search.module';
 import { CharacterProfileService } from './identity/character-profile.service';
 import { ContinuityGuardService } from './validation/continuity-guard.service';
 import { RoleplayAddressPlannerService } from './address/roleplay-address-planner.service';
@@ -22,6 +23,7 @@ import { MemoryQuoteOutputPromptBuilder } from './prompt/builders/memory-quote-o
 import { PresenceContextPromptBuilder } from './prompt/builders/presence-context-prompt.builder';
 import { ResponseStylePromptBuilder } from './prompt/builders/response-style-prompt.builder';
 import { TimeContextPromptBuilder } from './prompt/builders/time-context-prompt.builder';
+import { WebSearchContextPromptBuilder } from './prompt/builders/web-search-context-prompt.builder';
 import { RoleplayPresenceAgentService } from './presence/roleplay-presence-agent.service';
 import { RoleplayPresenceDirectorService } from './presence/roleplay-presence-director.service';
 import { RoleplayPresenceEmotionPolicyService } from './presence/roleplay-presence-emotion-policy.service';
@@ -45,9 +47,11 @@ import { RoleplayRouterService } from './response/roleplay-router.service';
 import { RoleplayStateRepository } from './state/roleplay-state.repository';
 import { TimeContextService } from './context/time-context.service';
 import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.service';
+import { FreshDataDetectorService } from './search/fresh-data-detector.service';
+import { SearchIntentClassifierService } from './search/search-intent-classifier.service';
 
 @Module({
-  imports: [ConversationsModule, LlmModule],
+  imports: [ConversationsModule, LlmModule, WebSearchModule],
   providers: [
     CharacterProfileService,
     ContinuityGuardService,
@@ -67,6 +71,7 @@ import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.ser
     EmotionStatePromptBuilder,
     IntimacyPolicyPromptBuilder,
     PresenceContextPromptBuilder,
+    WebSearchContextPromptBuilder,
     TimeContextPromptBuilder,
     ConversationContextPromptBuilder,
     ResponseStylePromptBuilder,
@@ -93,6 +98,8 @@ import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.ser
     RoleplayIntimacyPolicyService,
     TimeContextService,
     RoleplayPreAnalyzerService,
+    FreshDataDetectorService,
+    SearchIntentClassifierService,
   ],
   exports: [
     RoleplayChatService,

@@ -1,5 +1,6 @@
 import { RoleplayMemory, RoleplayPresenceState, RoleplayState } from '@prisma/client';
 import { LlmMessage } from '../../../llm/domain/llm.types';
+import { WebSearchBrief } from '../../../web-search/domain/web-search.types';
 import { RoleplayAddressPlan } from '../../domain/roleplay-address-plan';
 import { RoleplayCharacterProfile } from '../../domain/roleplay-character-profile';
 import { RoleplayConversationPlan } from '../../domain/roleplay-conversation-plan';
@@ -16,6 +17,7 @@ export type CompileInput = {
   profile: RoleplayCharacterProfile;
   state: RoleplayState;
   presence?: RoleplayPresenceState | null;
+  webSearch?: WebSearchBrief | null;
   time: RoleplayTimeContext;
   memories: RoleplayMemory[];
   latestUserTurn: string;

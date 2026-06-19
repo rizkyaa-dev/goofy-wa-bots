@@ -6,12 +6,15 @@ import { AppEnv } from '../config/env.validation';
 import { LlmProviderError } from '../llm/errors/llm-provider.error';
 import { LlmService } from '../llm/llm.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
+import { WebSearchBrief, WebSearchQualityError } from '../web-search/domain/web-search.types';
+import { WebSearchService } from '../web-search/web-search.service';
 import { RoleplayAddressPlannerService } from './address/roleplay-address-planner.service';
 import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.service';
 import { ConversationBuilderService } from './conversation/conversation-builder.service';
 import { RecentMessageContextService } from './context/recent-message-context.service';
 import { TimeContextService } from './context/time-context.service';
 import { RoleplayEmotionAnalysis } from './domain/roleplay-emotion-analysis';
+import { RoleplayRouteDecision } from './domain/roleplay-route';
 import { EmotionEngineService } from './emotion/emotion-engine.service';
 import { CharacterProfileService } from './identity/character-profile.service';
 import { RoleplayIntimacyPolicyService } from './intimacy/roleplay-intimacy-policy.service';
@@ -24,6 +27,8 @@ import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retrieve
 import { QuotePolicyService } from './quote/quote-policy.service';
 import { RoleplayReplyPostProcessorService } from './response/roleplay-reply-post-processor.service';
 import { ResponseDirectorService } from './response/response-director.service';
+import { FreshDataDetectorService } from './search/fresh-data-detector.service';
+import { SearchIntentDecision } from './search/search-intent.types';
 import { RoleplayStateRepository } from './state/roleplay-state.repository';
 
 @Injectable()
@@ -48,6 +53,8 @@ export class RoleplayChatService {
     private readonly recentContext: RecentMessageContextService,
     private readonly replyPostProcessor: RoleplayReplyPostProcessorService,
     private readonly responseDirector: ResponseDirectorService,
+    private readonly freshDataDetector: FreshDataDetectorService,
+    private readonly webSearch: WebSearchService,
     private readonly states: RoleplayStateRepository,
     private readonly timeContext: TimeContextService,
     private readonly preAnalyzer: RoleplayPreAnalyzerService,
@@ -75,6 +82,11 @@ export class RoleplayChatService {
     const analysis = preAnalysis.analysis;
     const rawQuoteDecision = preAnalysis.quoteDecision;
     const routeDecision = preAnalysis.routeDecision;
+    const webSearchContext = await this.resolveWebSearchContext({
+      latestUserMessage: message.body,
+      routeDecision,
+      conversationScope,
+    });
 
     const nextStatePatch = this.applyAnalysis(this.emotionEngine.evaluateInbound(previousState, message), analysis);
     const state = await this.states.updateAfterInbound(message.chatId, nextStatePatch);
@@ -137,6 +149,7 @@ export class RoleplayChatService {
       profile,
       state,
       presence,
+      webSearch: webSearchContext.brief,
       time: this.timeContext.create(previousState),
       memories,
       latestUserTurn: message.body,
@@ -183,6 +196,7 @@ export class RoleplayChatService {
       presenceStatus: presence.statusText,
       intimacyExplicitness: intimacyPolicy.explicitness,
       intimacyTone: intimacyPolicy.tone,
+      webSearch: webSearchContext.trace,
     });
 
     try {
@@ -215,6 +229,107 @@ export class RoleplayChatService {
 
       return { text: 'Aku lagi agak susah jawab sekarang. Coba kirim lagi sebentar ya.' };
     }
+  }
+
+  private async resolveWebSearchContext(input: {
+    latestUserMessage: string;
+    routeDecision: RoleplayRouteDecision;
+    conversationScope: 'personal_chat' | 'group_chat';
+  }): Promise<{ brief: WebSearchBrief | null; trace: RoleplayWebSearchDebugTrace }> {
+    const detection = await this.freshDataDetector.detect(input);
+    const request = detection.request;
+
+    if (!request) {
+      return {
+        brief: null,
+        trace: this.createNoSearchTrace(detection.decision),
+      };
+    }
+
+    const decisionTrace = this.createDecisionTrace(detection.decision);
+
+    try {
+      const brief = await this.webSearch.search(request);
+
+      return {
+        brief,
+        trace: {
+          ...decisionTrace,
+          requested: true,
+          used: Boolean(brief),
+          query: request.query,
+          intent: request.intent,
+          provider: brief?.provider,
+          model: brief?.model,
+          freshness: brief?.freshness,
+          confidence: brief?.confidence,
+          sourceCount: brief?.sources.length,
+          factCount: brief?.facts.length,
+          answerPreview: brief?.answer.slice(0, 220),
+          reason: brief ? 'search_success' : 'search_disabled',
+        },
+      };
+    } catch (error) {
+      if (error instanceof WebSearchQualityError) {
+        this.logger.warn(`Web search rejected: ${error.message}`);
+        return {
+          brief: null,
+          trace: {
+            requested: true,
+            ...decisionTrace,
+            used: false,
+            query: request.query,
+            intent: request.intent,
+            provider: error.details.provider,
+            confidence: error.details.confidence,
+            sourceCount: error.details.sourceCount,
+            reason: 'search_rejected',
+            error: error.message,
+          },
+        };
+      }
+
+      const message = error instanceof Error ? error.message : String(error);
+      const reason = this.isAbortError(error) ? 'search_timeout' : 'search_error';
+      this.logger.warn(`Web search skipped: ${message}`);
+      return {
+        brief: null,
+        trace: {
+          requested: true,
+          ...decisionTrace,
+          used: false,
+          query: request.query,
+          intent: request.intent,
+          reason,
+          error: message,
+        },
+      };
+    }
+  }
+
+  private createNoSearchTrace(decision: SearchIntentDecision): RoleplayWebSearchDebugTrace {
+    const reason = decision.source === 'classifier' ? 'classifier_no_search' : 'detector_no_match';
+
+    return {
+      requested: false,
+      used: false,
+      ...this.createDecisionTrace(decision),
+      intent: decision.intent ?? undefined,
+      reason,
+    };
+  }
+
+  private createDecisionTrace(decision: SearchIntentDecision): Pick<
+    RoleplayWebSearchDebugTrace,
+    'decisionSource' | 'decisionTarget' | 'decisionConfidence' | 'decisionFreshnessNeeded' | 'decisionReason'
+  > {
+    return {
+      decisionSource: decision.source,
+      decisionTarget: decision.target,
+      decisionConfidence: decision.confidence,
+      decisionFreshnessNeeded: decision.freshnessNeeded,
+      decisionReason: decision.reason,
+    };
   }
 
   private applyAnalysis<T extends StatePatch>(statePatch: T, analysis: RoleplayEmotionAnalysis): T {
@@ -299,10 +414,43 @@ export class RoleplayChatService {
         presenceStatus: trace.presenceStatus,
         intimacyExplicitness: trace.intimacyExplicitness,
         intimacyTone: trace.intimacyTone,
+        webSearch: trace.webSearch,
       }),
     );
   }
+
+  private isAbortError(error: unknown): boolean {
+    return error instanceof Error && (error.name === 'AbortError' || error.message.toLowerCase().includes('aborted'));
+  }
 }
+
+type RoleplayWebSearchDebugTrace = {
+  requested: boolean;
+  used: boolean;
+  query?: string;
+  intent?: string;
+  decisionSource?: string;
+  decisionTarget?: string;
+  decisionConfidence?: number;
+  decisionFreshnessNeeded?: boolean;
+  decisionReason?: string;
+  provider?: string;
+  model?: string;
+  freshness?: string;
+  confidence?: number;
+  sourceCount?: number;
+  factCount?: number;
+  answerPreview?: string;
+  reason:
+    | 'detector_no_match'
+    | 'classifier_no_search'
+    | 'search_disabled'
+    | 'search_success'
+    | 'search_rejected'
+    | 'search_timeout'
+    | 'search_error';
+  error?: string;
+};
 
 type StatePatch = {
   mood:
@@ -366,4 +514,5 @@ type RoleplayDebugTrace = {
   presenceStatus: string;
   intimacyExplicitness: string;
   intimacyTone: string;
+  webSearch: RoleplayWebSearchDebugTrace;
 };

@@ -497,7 +497,34 @@ export class ResponseValidatorService {
   }
 
   private splitSentences(text: string): string[] {
-    return text.match(/[^.!?]+(?:[.!?]+|$)/gu)?.map((sentence) => sentence.trim()).filter(Boolean) ?? [];
+    const sentences: string[] = [];
+    let current = '';
+
+    for (let index = 0; index < text.length; index += 1) {
+      const char = text[index];
+      current += char;
+
+      if (!'.!?'.includes(char)) {
+        continue;
+      }
+
+      if (char === '.' && this.isDigit(text[index - 1]) && this.isDigit(text[index + 1])) {
+        continue;
+      }
+
+      sentences.push(current.trim());
+      current = '';
+    }
+
+    if (current.trim()) {
+      sentences.push(current.trim());
+    }
+
+    return sentences.filter(Boolean);
+  }
+
+  private isDigit(value: string | undefined): boolean {
+    return typeof value === 'string' && /\d/u.test(value);
   }
 
   private createFallback(plan: RoleplayResponsePlan): string {

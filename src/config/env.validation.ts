@@ -146,6 +146,47 @@ const envSchema = z.object({
   GEMINI_TEMPERATURE: optionalNumber(z.number().min(0).max(2)),
   GEMINI_TOP_P: optionalNumber(z.number().min(0).max(1)),
   GEMINI_MAX_TOKENS: optionalNumber(z.number().int().positive()),
+  WEB_SEARCH_ENABLED: z
+    .string()
+    .default('false')
+    .transform((value) => value.toLowerCase() !== 'false'),
+  WEB_SEARCH_PROVIDER: z.string().min(1).default('gemini'),
+  WEB_SEARCH_MODEL: z.string().optional().default(''),
+  WEB_SEARCH_TIMEOUT_MS: z
+    .string()
+    .default('7000')
+    .transform((value) => Number(value))
+    .pipe(z.number().int().positive()),
+  WEB_SEARCH_MAX_SOURCES: z
+    .string()
+    .default('5')
+    .transform((value) => Number(value))
+    .pipe(z.number().int().min(1).max(10)),
+  WEB_SEARCH_CACHE_TTL_SECONDS: z
+    .string()
+    .default('120')
+    .transform((value) => Number(value))
+    .pipe(z.number().int().min(0).max(3600)),
+  WEB_SEARCH_MIN_CONFIDENCE: z
+    .string()
+    .default('0.72')
+    .transform((value) => Number(value))
+    .pipe(z.number().min(0).max(1)),
+  WEB_SEARCH_REQUIRE_SOURCES_FOR_CRITICAL: z
+    .string()
+    .default('true')
+    .transform((value) => value.toLowerCase() !== 'false'),
+  ROLEPLAY_SEARCH_INTENT_CLASSIFIER_ENABLED: z
+    .string()
+    .default('true')
+    .transform((value) => value.toLowerCase() !== 'false'),
+  ROLEPLAY_SEARCH_INTENT_CLASSIFIER_PROVIDER: z.string().min(1).default('deepseek'),
+  ROLEPLAY_SEARCH_INTENT_CLASSIFIER_MODEL: z.string().optional().default(''),
+  ROLEPLAY_SEARCH_INTENT_CLASSIFIER_MIN_CONFIDENCE: z
+    .string()
+    .default('0.72')
+    .transform((value) => Number(value))
+    .pipe(z.number().min(0).max(1)),
   OPENAI_API_KEY: z.string().optional().default(''),
   OPENAI_BASE_URL: z.string().url().default('https://api.openai.com/v1'),
   OPENAI_MODEL: z.string().min(1),
