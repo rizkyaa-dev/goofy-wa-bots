@@ -1,8 +1,17 @@
-# Bot WA Personal
+
+# Bot WA Personal
 
 Bot WhatsApp personal berbasis TypeScript, NestJS, Prisma SQLite, dan `whatsapp-web.js`.
 
 Project ini adalah modular monolith. Adapter WhatsApp dibuat tipis, sedangkan logic bot, command, roleplay, memory, dan LLM dipisah per domain.
+
+## WARNING
+masih dalam fase pengembangan, beberapa prompt agents masih belum mencapai hasil yang diharapkan.
+
+JANGAN PERNAH MENGGUNAKAN PROVIDER AI MAHAL UNTUK MENJALANKAN ROLEPLAY, PENGGUNAAN TOKEN 1X CHAT BISA SAMPAI 8K tokens. HARAP EKSPERIMEN DENGAN MEMAKAI DEEPSEEK.
+
+
+
 
 ## Modul Utama
 
