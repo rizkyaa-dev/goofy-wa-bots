@@ -5,7 +5,6 @@ Bot WhatsApp personal berbasis TypeScript, NestJS, Prisma SQLite, dan `whatsapp-
 
 Project ini adalah modular monolith. Adapter WhatsApp dibuat tipis, sedangkan logic bot, command, roleplay, memory, dan LLM dipisah per domain.
 
-[!NOTE]
 dibuat sebagai side-project iseng, awalnya mau bikin bot buat ngobrol sama waifu virtual, tapi malah keterusan bikin gini hehe. intinya jawaban dari bot dibuat senatural mungkin, seolah ngobrol sama manusia asli. Tapi masih perlu finetuning di bagian prompt, karena kurang interaktif.
 
 > [!WARNING]
