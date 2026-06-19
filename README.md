@@ -8,7 +8,7 @@ Project ini adalah modular monolith. Adapter WhatsApp dibuat tipis, sedangkan lo
 > [!WARNING]
 > Project ini masih dalam fase pengembangan aktif. Beberapa prompt agent masih membutuhkan penyetelan lebih lanjut untuk mencapai hasil optimal.
 > 
-> **PENTING**: Sangat disarankan untuk **tidak menggunakan provider AI berbayar mahal** (seperti GPT-4 atau model flagship lainnya) secara berlebihan untuk menjalankan fitur roleplay. Konsumsi token per interaksi (1x chat) bisa berkisar antara **8K tokens** atau lebih karena menyertakan riwayat obrolan, relational state, serta memori jangka panjang. Harap lakukan eksperimen menggunakan provider hemat biaya seperti **DeepSeek** (misalnya `deepseek-v4-flash`).
+> **PENTING**: Sangat disarankan untuk **tidak menggunakan provider AI berbayar mahal** (seperti GPT-5.5, gemini-3.5-flash atau model flagship lainnya) secara berlebihan untuk menjalankan fitur roleplay. Konsumsi token per interaksi (1x chat) bisa berkisar antara **8K tokens** atau lebih karena menyertakan riwayat obrolan, relational state, serta memori jangka panjang. Harap lakukan eksperimen menggunakan provider hemat biaya seperti **DeepSeek** (misalnya `deepseek-v4-flash`).
 
 
 
