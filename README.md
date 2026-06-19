@@ -5,10 +5,10 @@ Bot WhatsApp personal berbasis TypeScript, NestJS, Prisma SQLite, dan `whatsapp-
 
 Project ini adalah modular monolith. Adapter WhatsApp dibuat tipis, sedangkan logic bot, command, roleplay, memory, dan LLM dipisah per domain.
 
-## WARNING
-masih dalam fase pengembangan, beberapa prompt agents masih belum mencapai hasil yang diharapkan.
-
-JANGAN PERNAH MENGGUNAKAN PROVIDER AI MAHAL UNTUK MENJALANKAN ROLEPLAY, PENGGUNAAN TOKEN 1X CHAT BISA SAMPAI 8K tokens ATAU LEBIH. HARAP EKSPERIMEN DENGAN MEMAKAI DEEPSEEK.
+> [!WARNING]
+> Project ini masih dalam fase pengembangan aktif. Beberapa prompt agent masih membutuhkan penyetelan lebih lanjut untuk mencapai hasil optimal.
+> 
+> **PENTING**: Sangat disarankan untuk **tidak menggunakan provider AI berbayar mahal** (seperti GPT-4 atau model flagship lainnya) secara berlebihan untuk menjalankan fitur roleplay. Konsumsi token per interaksi (1x chat) bisa berkisar antara **8K tokens** atau lebih karena menyertakan riwayat obrolan, relational state, serta memori jangka panjang. Harap lakukan eksperimen menggunakan provider hemat biaya seperti **DeepSeek** (misalnya `deepseek-v4-flash`).
 
 
 
@@ -171,116 +171,6 @@ DEEPSEEK_REASONING_EFFORT=high
 DEEPSEEK_THINKING_TYPE=enabled
 ```
 
-Provider yang tersedia:
-
-- `gemini`
-- `openai`
-- `deepseek`
-
-Per chat, provider/model bisa diubah lewat `/provider` dan `/model`.
-
-## Roleplay Runtime
-
-Aktifkan roleplay untuk chat:
-
-```txt
-/mode auto_reply
-```
-
-Roleplay runtime menyusun balasan dari beberapa layer:
-
-1. `RecentMessageContextService`: mengambil recent chat dan membuang command noise.
-2. `EmotionClassifierService`: membaca tone, intent, delta affection/trust/tension/energy, dan avoid-question.
-3. `EmotionEngineService`: update state relasi dan mood dari pesan terbaru.
-4. `RoleplayMemoryService`: extract dan retrieve memory relevan.
-5. `QuoteDecisionService`: menentukan apakah perlu quote reply.
-6. `RoleplayRouterService`: memilih route seperti `smalltalk_continue`, `emotional_care`, `factual_answer`, `meta_testing`, dan lain-lain.
-7. `ConversationBuilderService`: membuat social move turn ini, misalnya factual utility, apology repair, affection/flirt, atau clarification.
-8. `RoleplayAddressPlannerService`: menentukan apakah boleh menyapa user dengan nickname atau alias mesra.
-9. `ResponseDirectorService`: menentukan reply shape, max sentences, question policy, self-disclosure, texture, dan playfulness.
-10. `ConversationalProsodyPlannerService`: memberi izin ritme 1-3 bubble WhatsApp tanpa mengunci template skenario.
-11. `RoleplayPromptCompilerService`: menyusun prompt final.
-12. `ContinuityGuardService` dan `ResponseValidatorService`: membersihkan echo, pertanyaan terlarang, self-disclosure, punctuation, dan output yang tidak natural.
-
-### Konfigurasi Roleplay
-
-```env
-ROLEPLAY_CHARACTER_NAME=Alya
-ROLEPLAY_CHARACTER_PROFILE=Karakter fiksi untuk ngobrol santai di WhatsApp. Hangat, responsif, dan punya rasa ingin tahu.
-ROLEPLAY_RECENT_MESSAGE_LIMIT=14
-ROLEPLAY_MEMORY_LIMIT=8
-
-ROLEPLAY_QUOTE_ENGINE_ENABLED=true
-ROLEPLAY_QUOTE_CANDIDATE_LIMIT=40
-ROLEPLAY_QUOTE_MIN_CONFIDENCE=0.74
-ROLEPLAY_QUOTE_PROVIDER=deepseek
-ROLEPLAY_QUOTE_MODEL=deepseek-v4-flash
-
-ROLEPLAY_ROUTER_ENABLED=false
-ROLEPLAY_ROUTER_PROVIDER=deepseek
-ROLEPLAY_ROUTER_MODEL=deepseek-v4-flash
-ROLEPLAY_ROUTER_MIN_CONFIDENCE=0.58
-
-ROLEPLAY_DEBUG_LOG_ENABLED=false
-ROLEPLAY_MULTI_BUBBLE_ENABLED=true
-ROLEPLAY_MULTI_BUBBLE_MAX_PARTS=3
-
-ROLEPLAY_EMOTION_CLASSIFIER_ENABLED=true
-ROLEPLAY_EMOTION_CLASSIFIER_PROVIDER=deepseek
-ROLEPLAY_EMOTION_CLASSIFIER_MODEL=deepseek-v4-flash
-
-ROLEPLAY_MEMORY_EXTRACTOR_ENABLED=true
-ROLEPLAY_MEMORY_EXTRACTOR_PROVIDER=deepseek
-ROLEPLAY_MEMORY_EXTRACTOR_MODEL=deepseek-v4-flash
-ROLEPLAY_MEMORY_EXTRACTOR_MIN_CONFIDENCE=0.65
-ROLEPLAY_MEMORY_EXTRACTOR_MAX_MEMORIES=3
-```
-
-`ROLEPLAY_MULTI_BUBBLE_ENABLED=true` mengizinkan roleplay runtime mengirim satu balasan sebagai beberapa bubble WhatsApp. Ini bukan template intent; LLM tetap memilih 1-3 bubble berdasarkan ritme chat, sementara sistem membatasi spam, total pertanyaan, total kalimat, quote reply, dan command/error tetap single reply.
-
-`ROLEPLAY_CHARACTER_NAME` dan `ROLEPLAY_CHARACTER_PROFILE` benar-benar masuk ke prompt karakter. Style, language register, linguistic profile, dan boundaries dasar saat ini berasal dari `src/roleplay/domain/default-roleplay-character.ts`.
-
-Contoh profile yang rapi:
-
-```env
-ROLEPLAY_CHARACTER_PROFILE=Seorang wanita yang berasal dari Bandung, sangat ramah, hangat, responsif, dan punya rasa ingin tahu tinggi.
-```
-
-### Memory
-
-Memory extractor berjalan kalau pesan punya sinyal seperti:
-
-- nama atau panggilan
-- preferensi
-- boundary
-- project atau goal
-- "ingat" atau "jangan lupa"
-
-Memory yang tersimpan bisa dilihat dengan:
-
-```txt
-/rp_memory
-```
-
-Memory dan history bisa dibersihkan dengan:
-
-```txt
-/rp_reset
-/rp_reset memory
-/rp_reset history
-```
-
-### Address dan Panggilan
-
-Bot tidak otomatis boleh memanggil user `sayang/syg` hanya karena user menyapa karakter dengan `ay`. Alias mesra seharusnya dipakai kalau user eksplisit mengizinkan, misalnya:
-
-```txt
-panggil aku sayang
-```
-
-Nickname normal juga disimpan dari pesan seperti:
-
-```txt
 
 Provider yang tersedia:
 
@@ -394,6 +284,39 @@ Nickname normal juga disimpan dari pesan seperti:
 ```txt
 nama ku Riski, dipanggil Ki
 ```
+
+### Presence Agent (Status WA)
+
+Presence Agent menghasilkan pembaruan status / activity presence WhatsApp secara otomatis (misalnya: "sedang makan", "sedang mendengarkan musik") untuk mensimulasikan aktivitas manusia yang realistis secara real-time.
+
+```env
+ROLEPLAY_PRESENCE_AGENT_ENABLED=true
+ROLEPLAY_PRESENCE_AGENT_PROVIDER=deepseek
+ROLEPLAY_PRESENCE_AGENT_MODEL=deepseek-v4-flash
+ROLEPLAY_PRESENCE_AGENT_TEMPERATURE=0.7
+ROLEPLAY_PRESENCE_AGENT_MAX_TOKENS=900
+ROLEPLAY_PRESENCE_AGENT_TIMEOUT_MS=6000
+```
+
+### Web Search Grounding
+
+Fitur pencarian web memungkinkan bot melakukan pencarian informasi secara langsung lewat Google Search / Web Search (menggunakan model Gemini) apabila mendeteksi pertanyaan pengguna yang membutuhkan data real-time, berita terbaru, atau validasi fakta kritis.
+
+```env
+WEB_SEARCH_ENABLED=true
+WEB_SEARCH_PROVIDER=gemini
+WEB_SEARCH_MODEL=gemini-2.5-flash-lite
+WEB_SEARCH_TIMEOUT_MS=15000
+WEB_SEARCH_MAX_SOURCES=5
+WEB_SEARCH_CACHE_TTL_SECONDS=120
+WEB_SEARCH_MIN_CONFIDENCE=0.72
+WEB_SEARCH_REQUIRE_SOURCES_FOR_CRITICAL=true
+ROLEPLAY_SEARCH_INTENT_CLASSIFIER_ENABLED=true
+ROLEPLAY_SEARCH_INTENT_CLASSIFIER_PROVIDER=deepseek
+ROLEPLAY_SEARCH_INTENT_CLASSIFIER_MODEL=deepseek-v4-flash
+ROLEPLAY_SEARCH_INTENT_CLASSIFIER_MIN_CONFIDENCE=0.72
+```
+
 
 ## Temporary Reply
 
