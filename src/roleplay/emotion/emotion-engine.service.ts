@@ -17,7 +17,8 @@ export class EmotionEngineService {
     const metaTesting = this.matches(text, ['bot', 'project', 'developer', 'develop', 'testing', 'tes', 'bikin', 'kode']);
     const teasing = this.matches(text, ['genit', 'modus', 'gombal', 'bawel', 'sok', 'yaelah', 'ye']);
     const sensualCue = this.matches(text, ['mesra', 'manja', 'peluk', 'cium', 'kangen badan', 'seksi', 'sange', 'horny', 'napsu', 'turn on', 'menggoda']);
-    const explicitPressure = this.matches(text, ['pap', 'bugil', 'telanjang', 'vcs', 'coli', 'ngentot', 'nude', 'kirimin foto']);
+    const rawExplicitPressure = this.matches(text, ['pap', 'bugil', 'telanjang', 'vcs', 'coli', 'ngentot', 'nude', 'kirimin foto']);
+    const explicitPressure = rawExplicitPressure && String(state.mood) !== 'aroused' && String(state.mood) !== 'unrestrained';
     const sleepy = this.matches(text, ['ngantuk', 'tidur', 'mager', 'bobo', 'hoam']);
     const excited = this.matches(text, ['heboh', 'seru', 'keren', 'gila', 'mantap', 'gacha', 'game', 'hobi', 'asik', 'excited']);
     const jealous = this.matches(text, ['cewek lain', 'cowok lain', 'mantan', 'pacar orang', 'selingkuh', 'dia lebih', 'cewe lain', 'cowo lain']);

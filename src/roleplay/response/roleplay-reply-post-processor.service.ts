@@ -119,30 +119,10 @@ export class RoleplayReplyPostProcessorService {
   }
 
   private splitSentences(text: string): string[] {
-    const sentences: string[] = [];
-    let current = '';
-
-    for (let index = 0; index < text.length; index += 1) {
-      const char = text[index];
-      current += char;
-
-      if (!'.!?'.includes(char)) {
-        continue;
-      }
-
-      if (char === '.' && this.isDigit(text[index - 1]) && this.isDigit(text[index + 1])) {
-        continue;
-      }
-
-      sentences.push(current.trim());
-      current = '';
-    }
-
-    if (current.trim()) {
-      sentences.push(current.trim());
-    }
-
-    return sentences.filter(Boolean);
+    return text
+      .split(/(?<=[.!?]+['"’”)]?\}?[.,]?)(?=\s+|$)/gu)
+      .map((s) => s.trim())
+      .filter(Boolean);
   }
 
   private createReplyParts(input: {
@@ -287,15 +267,11 @@ export class RoleplayReplyPostProcessorService {
     if (
       (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
       (trimmed.startsWith("'") && trimmed.endsWith("'")) ||
-      (trimmed.startsWith('â€œ') && trimmed.endsWith('â€')) ||
+      (trimmed.startsWith('â€œ') && trimmed.endsWith('â€ ')) ||
       (trimmed.startsWith('â€˜') && trimmed.endsWith('â€™'))
     ) {
     return trimmed.slice(1, -1).trim();
     }
     return trimmed;
-  }
-
-  private isDigit(value: string | undefined): boolean {
-    return typeof value === 'string' && /\d/u.test(value);
   }
 }

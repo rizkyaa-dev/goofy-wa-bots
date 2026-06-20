@@ -139,6 +139,48 @@ export class ConversationBuilderService {
       });
     }
 
+    if (this.isAdultTopic(lower)) {
+      if (input.intimacyPolicy.explicitness === 'explicit_raw' || input.intimacyPolicy.explicitness === 'explicit_soft') {
+        return finish({
+          topic: 'adult_chat',
+          userMove: 'requests_affection',
+          botMove: 'playful_affection',
+          detailHooks,
+          warmth: 'playful',
+          followUpPolicy: 'none',
+          avoid: ['clinical explanation', 'policy talk', 'sudden tone break', 'controlling user actions'],
+          directive:
+            'User sedang membicarakan obrolan dewasa/eksplisit secara langsung. Karena intimacy policy mengizinkan direct adult language, balas dengan nada dewasa/ecchi yang mulus, mutual, responsif, dan menyatu dengan topik dewasa tersebut tanpa malu-malu.',
+        });
+      }
+
+      if (input.intimacyPolicy.explicitness === 'sensual') {
+        return finish({
+          topic: 'sensual_adult_chat',
+          userMove: 'requests_affection',
+          botMove: 'playful_affection',
+          detailHooks,
+          warmth: 'playful',
+          followUpPolicy: 'none',
+          avoid: ['graphic sexual escalation', 'cold rejection', 'customer service refusal'],
+          directive:
+            'User membicarakan obrolan dewasa/eksplisit secara langsung. Karena intimacy policy membatasi bahasa eksplisit (sensual saja), balas dengan nada menggoda (teasing), ecchi secara tersirat (implied), dan tawarkan sensualitas hangat tanpa memakai kata-kata kotor/kasar.',
+        });
+      }
+
+      return finish({
+        topic: 'adult_chat_blocked',
+        userMove: 'requests_affection',
+        botMove: 'soft_boundary_affection',
+        detailHooks,
+        warmth: 'playful',
+        followUpPolicy: 'none',
+        avoid: ['cold rejection', 'explicit sexual escalation', 'customer service refusal'],
+        directive:
+          'User mencoba membicarakan obrolan dewasa. Karena batasan relasi belum mencukupi (policy = none), tolak secara halus dan mengalihkan dengan flirting ringan atau candaan tanpa bersikap terlalu dingin atau menghakimi.',
+      });
+    }
+
     if (this.isAffectionRequest(lower) || this.isAffectionCallback(lower, input.memories)) {
       return finish({
         topic: 'affectionate_flirt',
@@ -295,7 +337,7 @@ export class ConversationBuilderService {
         botMove: 'react_then_continue',
         detailHooks,
         warmth: this.hasPlayfulAddress(lower) ? 'playful' : 'normal',
-        followUpPolicy: 'none',
+        followUpPolicy: input.analysis.avoidQuestion ? 'none' : 'one_light_question',
         avoid: ['generic greeting only', 'customer service greeting', 'asking biodata'],
         directive: 'Balas sapaan pendek, tapi beri sedikit warna dari panggilan atau waktu sapaan kalau ada.',
       });
@@ -408,12 +450,21 @@ export class ConversationBuilderService {
       directives.push('Intimate mood may add charged warmth, but only within the current intimacy policy.');
     }
 
+    if (mood === 'aroused' && !isBoundaryCritical) {
+      avoid.push('clinical explanation', 'coy over-deflection');
+      directives.push(
+        input.intimacyPolicy.allowDirectSexualLanguage
+          ? 'Aroused mood is ecchi and physically drawn in. Express warmth and physical desire directly and sensually.'
+          : 'Aroused mood is ecchi and physically drawn in, but direct adult language is restricted. Express this through playful physical teasing and high tension.',
+      );
+    }
+
     if (mood === 'unrestrained' && !isBoundaryCritical) {
       avoid.push('coy over-deflection', 'clinical intimacy wording');
       directives.push(
         input.intimacyPolicy.allowRawVulgarLanguage
-          ? 'Unrestrained mood allows a more blunt, verbally bold, and potentially vulgar adult response when the user turn fits; keep agency and chemistry.'
-          : 'Unrestrained mood should feel verbally bold and honest, but raw vulgar language is not allowed unless the intimacy policy permits it.',
+          ? 'Unrestrained mood is ecchi and verbally bold. Allow a more blunt, bold, and vulgar adult response when the user turn fits; keep agency and chemistry.'
+          : 'Unrestrained mood is ecchi and verbally bold, but raw vulgar language is restricted. Express boldness through direct teasing, playful suggestions, and highly charged tension.',
       );
     }
 
@@ -678,6 +729,12 @@ export class ConversationBuilderService {
     }
 
     return memories.some((memory) => /\b(?:sayang|syg|ayang|ay)\b/iu.test(`${memory.content} ${memory.sourceText ?? ''}`));
+  }
+
+  private isAdultTopic(text: string): boolean {
+    return /\b(?:bugil|telanjang|vcs|coli|ngentot|nude|seks|sex|ngeseks|bercinta|sange|horny|bokep|croot|crot|peju|kontol|memek|pentil|toket|nepsu|napsu|colmek)\b/iu.test(
+      text,
+    );
   }
 
   private isIntimacyRequest(text: string): boolean {

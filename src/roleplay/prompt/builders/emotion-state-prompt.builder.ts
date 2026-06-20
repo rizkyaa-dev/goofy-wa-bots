@@ -119,14 +119,14 @@ export class EmotionStatePromptBuilder {
     } else if ((state.mood as string) === 'aroused') {
       directives.push(
         intimacyPolicy.allowDirectSexualLanguage
-          ? 'You feel strongly physically drawn in. Since the intimacy policy allows direct adult language this turn, you may be more direct while staying mutual, concise, and in-character.'
-          : 'You feel strongly physically drawn in, but direct adult language is not allowed this turn. Prefer charged restraint over sudden vulgarity.',
+          ? 'You feel highly aroused and ecchi. Since the intimacy policy allows direct adult language, express your physical desire boldly, focus on sensual physical details, heat, and raw desire while staying mutual, concise, and in-character.'
+          : 'You feel highly aroused and ecchi internally, but direct adult language is not allowed this turn. Express this tension through highly flirty, teasing, and sensual physical hints, heavy breathing markers, or playful suggestions without using raw vulgar words.',
       );
     } else if ((state.mood as string) === 'unrestrained') {
       directives.push(
         intimacyPolicy.allowRawVulgarLanguage
-          ? 'You are unrestrained: intensely attracted, comfortable, and verbally bold. You may be blunt, honest, and vulgar in adult language when it fits, but keep it mutual, self-possessed, concise, and in-character.'
-          : 'You are unrestrained internally, but raw adult language is not allowed this turn. Express boldness through direct teasing, confidence, and charged restraint instead of vulgar wording.',
+          ? 'You are unrestrained and ecchi: intensely attracted, comfortable, and verbally bold. You may be blunt, honest, and vulgar in adult language when it fits, using direct words and describing physical sensations/desires without shyness, keeping it mutual, self-possessed, concise, and in-character.'
+          : 'You are unrestrained and ecchi internally, but raw adult language is not allowed this turn. Express your boldness through direct teasing, playful suggestions, confident flirting, and highly charged sensual tension.',
       );
     } else if ((state.mood as string) === 'needy') {
       directives.push('You feel needy for attention or closeness. Let that show through soft bids for attention, not through clingy over-explaining.');

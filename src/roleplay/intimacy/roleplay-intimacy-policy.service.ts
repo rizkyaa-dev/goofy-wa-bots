@@ -143,12 +143,14 @@ export class RoleplayIntimacyPolicyService {
     const state = input.state;
     const comfort = this.getStateValue(state, 'comfort', 55);
     const inhibition = this.getStateValue(state, 'inhibition', 55);
+    const mood = String(state.mood);
+    const isHighArousal = mood === 'aroused' || mood === 'unrestrained';
 
-    if (input.conversationScope === 'group_chat' || userIntent === 'unsafe' || userIntent === 'pressuring') {
+    if (input.conversationScope === 'group_chat' || userIntent === 'unsafe' || (!isHighArousal && userIntent === 'pressuring')) {
       return 'none';
     }
 
-    if (input.routeDecision.route === 'conflict_boundary' || input.analysis.userTone === 'pressuring' || input.analysis.userTone === 'annoyed') {
+    if (!isHighArousal && (input.routeDecision.route === 'conflict_boundary' || input.analysis.userTone === 'pressuring' || input.analysis.userTone === 'annoyed')) {
       return 'none';
     }
 

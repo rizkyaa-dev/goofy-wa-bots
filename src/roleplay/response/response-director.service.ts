@@ -307,7 +307,7 @@ export class ResponseDirectorService {
     }
 
     if (botMove === 'playful_affection') {
-      return 'tease_deflect';
+      return 'react_expand';
     }
 
     if (botMove === 'soft_boundary_affection') {

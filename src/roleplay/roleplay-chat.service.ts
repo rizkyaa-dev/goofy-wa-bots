@@ -77,6 +77,7 @@ export class RoleplayChatService {
       candidates: quoteCandidates,
       memories,
       conversationScope,
+      botState: previousState,
     });
 
     const analysis = preAnalysis.analysis;
@@ -200,11 +201,19 @@ export class RoleplayChatService {
     });
 
     try {
-      const result = await this.llm.generateReply({
-        providerName: settings.llmProvider,
-        model: settings.llmModel,
-        messages: prompt,
+      const timeoutMs = 45000;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error(`LLM generation timed out after ${timeoutMs}ms`)), timeoutMs);
       });
+
+      const result = await Promise.race([
+        this.llm.generateReply({
+          providerName: settings.llmProvider,
+          model: settings.llmModel,
+          messages: prompt,
+        }),
+        timeoutPromise,
+      ]);
 
       return this.replyPostProcessor.process({
         text: result.text,
@@ -223,6 +232,8 @@ export class RoleplayChatService {
         usage: result.usage,
       });
     } catch (error) {
+      this.logger.error(`Failed to generate reply: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
+
       if (error instanceof LlmProviderError) {
         return { text: `Aku lagi agak susah jawab sekarang. (${error.provider}: ${error.message})` };
       }
@@ -366,57 +377,55 @@ export class RoleplayChatService {
       return;
     }
 
-    this.logger.debug(
-      JSON.stringify({
-        chatId: trace.message.chatId,
-        isGroup: trace.message.isGroup,
-        tone: trace.analysis.userTone,
-        intent: trace.analysis.userIntent,
-        avoidQuestion: trace.analysis.avoidQuestion,
-        deltas: {
-          affection: trace.analysis.affectionDelta,
-          trust: trace.analysis.trustDelta,
-          tension: trace.analysis.tensionDelta,
-          energy: trace.analysis.energyDelta,
-          intimacy: trace.analysis.intimacyDelta,
-          shyness: trace.analysis.shynessDelta,
-          curiosity: trace.analysis.curiosityDelta,
-          volatility: trace.analysis.volatilityDelta,
-          desire: trace.analysis.desireDelta,
-          inhibition: trace.analysis.inhibitionDelta,
-          comfort: trace.analysis.comfortDelta,
-          compliance: trace.analysis.complianceDelta,
-        },
-        memoryCount: trace.memoryCount,
-        quoteAction: trace.quoteAction,
-        quoteIntent: trace.quoteIntent,
-        route: trace.route,
-        routeConfidence: Number(trace.routeConfidence.toFixed(2)),
-        conversationTopic: trace.conversationTopic,
-        userMove: trace.userMove,
-        botMove: trace.botMove,
-        warmth: trace.warmth,
-        followUpPolicy: trace.followUpPolicy,
-        addressMode: trace.addressMode,
-        preferredNickname: trace.preferredNickname,
-        affectionateAlias: trace.affectionateAlias,
-        responseMode: trace.responseMode,
-        replyShape: trace.replyShape,
-        emotionalTexture: trace.emotionalTexture,
-        playfulness: trace.playfulness,
-        topicDevelopment: trace.topicDevelopment,
-        prosodyRhythm: trace.prosodyRhythm,
-        maxBubbles: trace.maxBubbles,
-        questionAllowed: trace.questionAllowed,
-        selfDisclosure: trace.selfDisclosure,
-        presenceActivity: trace.presenceActivity,
-        presenceSource: trace.presenceSource,
-        presenceStatus: trace.presenceStatus,
-        intimacyExplicitness: trace.intimacyExplicitness,
-        intimacyTone: trace.intimacyTone,
-        webSearch: trace.webSearch,
-      }),
-    );
+    this.logger.debug({
+      chatId: trace.message.chatId,
+      isGroup: trace.message.isGroup,
+      tone: trace.analysis.userTone,
+      intent: trace.analysis.userIntent,
+      avoidQuestion: trace.analysis.avoidQuestion,
+      deltas: {
+        affection: trace.analysis.affectionDelta,
+        trust: trace.analysis.trustDelta,
+        tension: trace.analysis.tensionDelta,
+        energy: trace.analysis.energyDelta,
+        intimacy: trace.analysis.intimacyDelta,
+        shyness: trace.analysis.shynessDelta,
+        curiosity: trace.analysis.curiosityDelta,
+        volatility: trace.analysis.volatilityDelta,
+        desire: trace.analysis.desireDelta,
+        inhibition: trace.analysis.inhibitionDelta,
+        comfort: trace.analysis.comfortDelta,
+        compliance: trace.analysis.complianceDelta,
+      },
+      memoryCount: trace.memoryCount,
+      quoteAction: trace.quoteAction,
+      quoteIntent: trace.quoteIntent,
+      route: trace.route,
+      routeConfidence: Number(trace.routeConfidence.toFixed(2)),
+      conversationTopic: trace.conversationTopic,
+      userMove: trace.userMove,
+      botMove: trace.botMove,
+      warmth: trace.warmth,
+      followUpPolicy: trace.followUpPolicy,
+      addressMode: trace.addressMode,
+      preferredNickname: trace.preferredNickname,
+      affectionateAlias: trace.affectionateAlias,
+      responseMode: trace.responseMode,
+      replyShape: trace.replyShape,
+      emotionalTexture: trace.emotionalTexture,
+      playfulness: trace.playfulness,
+      topicDevelopment: trace.topicDevelopment,
+      prosodyRhythm: trace.prosodyRhythm,
+      maxBubbles: trace.maxBubbles,
+      questionAllowed: trace.questionAllowed,
+      selfDisclosure: trace.selfDisclosure,
+      presenceActivity: trace.presenceActivity,
+      presenceSource: trace.presenceSource,
+      presenceStatus: trace.presenceStatus,
+      intimacyExplicitness: trace.intimacyExplicitness,
+      intimacyTone: trace.intimacyTone,
+      webSearch: trace.webSearch,
+    });
   }
 
   private isAbortError(error: unknown): boolean {

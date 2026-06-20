@@ -8,6 +8,11 @@ export class ConversationContextPromptBuilder {
       '### LATEST USER TURN',
       input.latestUserTurn,
       '- You must reply to THIS LATEST USER TURN. Recent messages are only for context; do not reply to old messages unless relevant as a callback.',
+      ...(input.recentMessages.length === 0
+        ? [
+            '- CRITICAL: There are NO recent messages. This is either a fresh conversation or it was just reset. DO NOT hallucinate past context. DO NOT apologize for ignoring messages or reference missing past events. Respond fresh as if the user is just initiating contact now.',
+          ]
+        : []),
       '',
       '### CONVERSATION BUILDER',
       `Topic: ${input.conversationPlan.topic}`,

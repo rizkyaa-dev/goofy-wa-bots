@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { RoleplayMemory } from '@prisma/client';
+import { RoleplayMemory, RoleplayState } from '@prisma/client';
 import { AppEnv } from '../../config/env.validation';
 import { LlmService } from '../../llm/llm.service';
 import { RoleplayEmotionAnalysis } from '../domain/roleplay-emotion-analysis';
@@ -18,6 +18,7 @@ export type PreAnalysisInput = {
   candidates: QuoteCandidate[];
   memories: RoleplayMemory[];
   conversationScope: 'personal_chat' | 'group_chat';
+  botState?: RoleplayState;
 };
 
 export type PreAnalysisResult = {
@@ -83,6 +84,11 @@ export class RoleplayPreAnalyzerService {
                 'Your task is to analyze the latest user message and the recent context, and return a strict JSON payload containing three modules: "emotion", "quote", and "routing".',
                 'MANDATORY: Return strict raw JSON only. Do NOT wrap the output in markdown code blocks (e.g., do NOT use ```json).',
                 '',
+                '### BOT STATE AWARENESS',
+                '- You are provided with the bot\'s current internal state ("botState").',
+                '- Use the bot\'s current mood and comfort/desire variables to evaluate if the user is crossing boundaries or pressuring.',
+                '- If the bot\'s mood is already "aroused" or "unrestrained", and comfort/desire are high, direct or playful sensual/sexual questions from the user should NOT be classified as "pressuring" tone or "conflict_boundary" route. Instead, classify them as "playful" or "teasing" tone and "tease_deflect" or "smalltalk_continue" route, because the bot is receptive to intimacy in this state.',
+                '',
                 '### MODULE 1: EMOTION CLASSIFICATION',
                 '- Analyze the user\'s tone, intent, and emotional impact on the bot.',
                 '- userTone: Must be one of [neutral, warm, playful, teasing, vulnerable, annoyed, pressuring, awkward].',
@@ -126,7 +132,7 @@ export class RoleplayPreAnalyzerService {
                 '  * factual_answer: User asks factual, weather, finance, or utility questions.',
                 '  * casual_default: Fallback conversation route.',
                 '- confidence: Floating number from 0 to 1.',
-                '- selfDisclosure: Must be one of [none, small, or normal].',
+                '- selfDisclosure: Must be one of [none, small, or normal]. Set to "small" or "normal" if the user explicitly asks about the bot\'s current activity, location, routine, status, or thoughts. Otherwise, default to "none".',
                 '- reason: Brief rationale for this routing choice.',
               ].join('\n'),
             },
@@ -135,6 +141,21 @@ export class RoleplayPreAnalyzerService {
               content: JSON.stringify({
                 latestUserMessage: input.latestUserMessage,
                 recentContext: input.recentContext,
+                botState: input.botState ? {
+                  mood: input.botState.mood,
+                  affection: input.botState.affection,
+                  trust: input.botState.trust,
+                  tension: input.botState.tension,
+                  energy: input.botState.energy,
+                  intimacy: input.botState.intimacy,
+                  shyness: input.botState.shyness,
+                  curiosity: input.botState.curiosity,
+                  volatility: input.botState.volatility,
+                  desire: input.botState.desire,
+                  inhibition: input.botState.inhibition,
+                  comfort: input.botState.comfort,
+                  compliance: input.botState.compliance,
+                } : undefined,
                 memories: input.memories.map((m) => ({ kind: m.kind, content: m.content })).slice(0, 8),
                 candidates: input.candidates.map((c) => ({ messageId: c.messageId, body: c.body, reasonHint: c.reasonHint })),
                 conversationScope: input.conversationScope,

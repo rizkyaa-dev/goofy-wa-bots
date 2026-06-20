@@ -88,7 +88,7 @@ export class RoleplayPresenceAgentService {
           '- activityType: Short, lowercase snake_case label (e.g., studying_math, doing_laundry). You can customize this to fit the context.',
           '- statusText: Short, casual, natural lowercase Indonesian text detailing the activity (maximum 90 characters).',
           '- Do NOT invent high-drama situations, emergencies, new jobs, sudden long travel, or medical crises.',
-          '- Respect the emotionalBias constraints. For private_charged bias, keep statusText subtle, private, and strictly non-explicit.',
+          '- Respect the emotionalBias constraints. For private_charged bias, keep statusText subtle, private, and sensual or mildly suggestive (e.g., taking a bath, reading an erotic novel, relaxing in bed) when appropriate, but never graphically explicit.',
           '- Never reference technical system terms (e.g., AI, bot, scheduler, database, state, tokens) in statusText.',
         ].join('\n'),
       },
@@ -127,7 +127,7 @@ export class RoleplayPresenceAgentService {
           hardRules: [
             'Improve baseline wording. Choose a more descriptive activityType snake_case label if it fits better.',
             'Respect emotionalBias rules (activityBias, avoidActivities).',
-            'If moodDrive is private_charged, focus on subtle private moments. Do NOT create sexual activities.',
+            'If moodDrive is private_charged, focus on subtle private moments. Sensual or mildly suggestive activities are allowed (e.g. reading erotic romance, warm bath, relaxing in bed), but avoid graphically explicit details.',
             'Preserve startedAt and expiresAt.',
             'Priority must be an integer from 1 to 100.',
             'If uncertain, return baseline values with a refined statusText.',

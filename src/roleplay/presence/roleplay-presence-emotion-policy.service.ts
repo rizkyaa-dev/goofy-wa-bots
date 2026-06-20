@@ -63,7 +63,7 @@ export class RoleplayPresenceEmotionPolicyService {
       mood === 'unrestrained' ||
       (desire >= 65 && comfort >= 55 && inhibition <= 45 && tension < 50)
     ) {
-      return this.bias('private_charged', ['relaxing', 'self_care', 'idle'], ['commuting', 'going_out'], 'medium', 'private_subtle', 'drive_private_charged', 'Prefer a private, subtle, non-explicit activity. Never create sexual activities, even for unrestrained mood.');
+      return this.bias('private_charged', ['relaxing', 'self_care', 'idle'], ['commuting', 'going_out'], 'medium', 'private_subtle', 'drive_private_charged', 'Prefer a private, subtle, sensual activity. If the bot mood is aroused or unrestrained, the activity can be mildly suggestive, intimate, or ecchi (e.g. reading adult/erotic romance novel, taking a warm private bath, resting after intimacy) but not graphically explicit.');
     }
 
     if (mood === 'swing' || volatility >= 70) {
