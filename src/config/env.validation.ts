@@ -62,6 +62,11 @@ const envSchema = z.object({
     .string()
     .default('true')
     .transform((value) => value.toLowerCase() !== 'false'),
+  DASHBOARD_AUTH_ENABLED: z
+    .string()
+    .default('false')
+    .transform((value) => value.toLowerCase() !== 'false'),
+  DASHBOARD_AUTH_TOKEN: z.string().optional().default(''),
   DASHBOARD_PORT: z
     .string()
     .default('3000')

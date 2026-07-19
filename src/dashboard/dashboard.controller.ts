@@ -1,6 +1,7 @@
-import { Controller, Get, Res, Param, Delete, Post, Body, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Res, Param, Delete, Post, Body, HttpStatus, UseGuards } from '@nestjs/common';
 import { join } from 'path';
 import { readFileSync, existsSync } from 'fs';
+import { DashboardAuthGuard } from '../dashboard-security/dashboard-auth.guard';
 import { DashboardService } from './dashboard.service';
 import {
   parseAddContactMemoryInput,
@@ -11,6 +12,7 @@ import {
 } from './dashboard.validation';
 
 @Controller()
+@UseGuards(DashboardAuthGuard)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 

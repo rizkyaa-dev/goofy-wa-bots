@@ -1,8 +1,10 @@
 node_modules/
 dist/
+dist-test/
 .env
 .wwebjs_auth/
 .wwebjs_cache/
+logs/
 prisma/*.db
 prisma/*.db-journal
 npm-debug.log*

@@ -37,14 +37,17 @@ import { ConversationalProsodyPlannerService } from './prosody/conversational-pr
 import { QuoteCandidateRetrieverService } from './quote/quote-candidate-retriever.service';
 import { QuoteDecisionService } from './quote/quote-decision.service';
 import { QuotePolicyService } from './quote/quote-policy.service';
+import { RoleplayLlmExecutionService } from './response/roleplay-llm-execution.service';
 import { RoleplayReplyPostProcessorService } from './response/roleplay-reply-post-processor.service';
 import { ResponseDirectorService } from './response/response-director.service';
 import { InternalDisclosureGuardService } from './validation/internal-disclosure-guard.service';
 import { ResponseValidatorService } from './validation/response-validator.service';
 import { RoleplayChatService } from './roleplay-chat.service';
+import { RoleplayReplyUseCase } from './use-cases/roleplay-reply.use-case';
 import { RoleplayResetService } from './state/roleplay-reset.service';
 import { RoleplayRouterService } from './response/roleplay-router.service';
 import { RoleplayStateRepository } from './state/roleplay-state.repository';
+import { RoleplayStateTransitionService } from './state/roleplay-state-transition.service';
 import { TimeContextService } from './context/time-context.service';
 import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.service';
 import { FreshDataDetectorService } from './search/fresh-data-detector.service';
@@ -64,6 +67,7 @@ import { SearchIntentClassifierService } from './search/search-intent-classifier
     RoleplayIdentityQuestionDetectorService,
     RoleplayMemoryExtractorService,
     RoleplayChatService,
+    RoleplayReplyUseCase,
     RoleplayMemoryService,
     RoleplayMemoryTriggerService,
     RoleplayMemoryValidatorService,
@@ -82,6 +86,7 @@ import { SearchIntentClassifierService } from './search/search-intent-classifier
     QuoteCandidateRetrieverService,
     QuoteDecisionService,
     QuotePolicyService,
+    RoleplayLlmExecutionService,
     RoleplayReplyPostProcessorService,
     ResponseDirectorService,
     InternalDisclosureGuardService,
@@ -89,6 +94,7 @@ import { SearchIntentClassifierService } from './search/search-intent-classifier
     RoleplayResetService,
     RoleplayRouterService,
     RoleplayStateRepository,
+    RoleplayStateTransitionService,
     RoleplayPresenceAgentService,
     RoleplayPresenceDirectorService,
     RoleplayPresenceEmotionPolicyService,

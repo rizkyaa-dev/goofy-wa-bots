@@ -5,6 +5,7 @@ import { WhatsappModule } from '../wa/whatsapp.module';
 import { LlmModule } from '../llm/llm.module';
 import { RoleplayModule } from '../roleplay/roleplay.module';
 import { ProactivePromptCompilerService } from './proactive-prompt-compiler.service';
+import { ProactiveRepository } from './proactive.repository';
 import { ProactiveSchedulerService } from './proactive-scheduler.service';
 
 @Module({
@@ -17,6 +18,7 @@ import { ProactiveSchedulerService } from './proactive-scheduler.service';
   ],
   providers: [
     ProactivePromptCompilerService,
+    ProactiveRepository,
     ProactiveSchedulerService,
   ],
   exports: [

@@ -3,6 +3,7 @@ let selectedChatId = null;
 let currentContacts = [];
 let currentQrCode = null;
 let pollingInterval = null;
+const dashboardAuthToken = resolveDashboardAuthToken();
 
 // DOM Elements
 const elCharacterName = document.getElementById('character-name');
@@ -81,6 +82,31 @@ document.addEventListener('DOMContentLoaded', () => {
   pollingInterval = setInterval(fetchStatus, 3000);
 });
 
+function resolveDashboardAuthToken() {
+  const params = new URLSearchParams(window.location.search);
+  const queryToken = params.get('token');
+
+  if (queryToken) {
+    localStorage.setItem('dashboardAuthToken', queryToken);
+    return queryToken;
+  }
+
+  return localStorage.getItem('dashboardAuthToken') || '';
+}
+
+function dashboardFetch(url, options = {}) {
+  const headers = new Headers(options.headers || {});
+
+  if (dashboardAuthToken) {
+    headers.set('X-Dashboard-Token', dashboardAuthToken);
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}
+
 // Event Listeners Setup
 function setupEventListeners() {
   // Theme Toggle
@@ -147,7 +173,7 @@ function setupEventListeners() {
 // Fetch WhatsApp and General Bot Status
 async function fetchStatus() {
   try {
-    const res = await fetch('/api/dashboard/status');
+    const res = await dashboardFetch('/api/dashboard/status');
     if (!res.ok) throw new Error('Failed to fetch status');
     
     const data = await res.json();
@@ -284,7 +310,7 @@ function isQrLightboxOpen() {
 // Fetch Contacts Table
 async function fetchContacts() {
   try {
-    const res = await fetch('/api/dashboard/contacts');
+    const res = await dashboardFetch('/api/dashboard/contacts');
     if (!res.ok) throw new Error('Failed to fetch contacts');
     
     currentContacts = await res.json();
@@ -450,7 +476,7 @@ async function inspectContact(chatId) {
 async function fetchContactMemory(chatId) {
   elMemoryItemsContainer.innerHTML = '<p class="text-muted text-center font-sm">Memuat data memori...</p>';
   try {
-    const res = await fetch(`/api/dashboard/contacts/${chatId}/memory`);
+    const res = await dashboardFetch(`/api/dashboard/contacts/${chatId}/memory`);
     if (!res.ok) throw new Error('Failed to load memories');
     
     const memories = await res.json();
@@ -521,7 +547,7 @@ function closeDetailsPanel() {
 // Update Contact BotMode via API
 async function updateContactMode(chatId, mode) {
   try {
-    const res = await fetch(`/api/dashboard/contacts/${chatId}/mode`, {
+    const res = await dashboardFetch(`/api/dashboard/contacts/${chatId}/mode`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode })
@@ -547,7 +573,7 @@ async function handleTunerSubmit(e) {
   btnSave.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Menyimpan...';
 
   try {
-    const res = await fetch(`/api/dashboard/contacts/${chatId}/state`, {
+    const res = await dashboardFetch(`/api/dashboard/contacts/${chatId}/state`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -599,7 +625,7 @@ async function handleAddMemorySubmit(e) {
   const importance = parseInt(document.getElementById('mem-importance').value);
 
   try {
-    const res = await fetch(`/api/dashboard/contacts/${chatId}/memory`, {
+    const res = await dashboardFetch(`/api/dashboard/contacts/${chatId}/memory`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kind, content, importance })
@@ -622,7 +648,7 @@ async function handleAddMemorySubmit(e) {
 // Delete Memory manually
 async function deleteMemory(memoryId) {
   try {
-    const res = await fetch(`/api/dashboard/memory/${memoryId}`, {
+    const res = await dashboardFetch(`/api/dashboard/memory/${memoryId}`, {
       method: 'DELETE'
     });
 
@@ -653,7 +679,7 @@ async function restartWaClient() {
   elStatusDesc.textContent = 'Memutus client saat ini dan mereset sesi local auth...';
 
   try {
-    const res = await fetch('/api/dashboard/wa/restart', { method: 'POST' });
+    const res = await dashboardFetch('/api/dashboard/wa/restart', { method: 'POST' });
     if (!res.ok) throw new Error('Restart request failed');
     
     // Polling instan untuk update status

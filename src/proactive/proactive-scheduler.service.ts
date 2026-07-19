@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../infra/prisma/prisma.service';
 import { WhatsappWebClientService } from '../wa/whatsapp-web-client.service';
 import { LlmService } from '../llm/llm.service';
 import { CharacterProfileService } from '../roleplay/identity/character-profile.service';
@@ -9,6 +8,7 @@ import { RoleplayPresenceService } from '../roleplay/presence/roleplay-presence.
 import { InternalDisclosureGuardService } from '../roleplay/validation/internal-disclosure-guard.service';
 import { ProactivePromptCompilerService } from './proactive-prompt-compiler.service';
 import { AppEnv } from '../config/env.validation';
+import { ProactiveContact, ProactiveRepository } from './proactive.repository';
 
 @Injectable()
 export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy {
@@ -19,7 +19,7 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
   private readonly activeTriggerKeys = new Set<string>();
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repository: ProactiveRepository,
     private readonly config: ConfigService<AppEnv, true>,
     private readonly waClient: WhatsappWebClientService,
     private readonly llm: LlmService,
@@ -69,10 +69,7 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
         return;
       }
 
-      const activeContacts = await this.prisma.contactSetting.findMany({
-        where: { mode: 'auto_reply' },
-        include: { roleplayState: true },
-      });
+      const activeContacts = await this.repository.findActiveContacts();
 
       for (const contact of activeContacts) {
         await this.evaluateContact(contact);
@@ -84,18 +81,14 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
     }
   }
 
-  private async evaluateContact(contact: any): Promise<void> {
+  private async evaluateContact(contact: ProactiveContact): Promise<void> {
     const chatId = contact.chatId;
     const now = new Date();
 
     // 1. Get or create RoleplayState
     let state = contact.roleplayState;
     if (!state) {
-      state = await this.prisma.roleplayState.upsert({
-        where: { chatId },
-        update: {},
-        create: { chatId },
-      });
+      state = await this.repository.upsertState(chatId);
     }
 
     // 2. Compute WIB local time details
@@ -152,13 +145,7 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
       if (silenceHours >= inactivityHoursLimit) {
         // Check if we already sent inactivity proactive message in the last 24 hours
         const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        const hasRecentInactivity = await this.prisma.proactiveLog.findFirst({
-          where: {
-            chatId,
-            triggerType: 'inactivity',
-            sentAt: { gte: oneDayAgo },
-          },
-        });
+        const hasRecentInactivity = await this.repository.findRecentInactivityLog(chatId, oneDayAgo);
 
         if (!hasRecentInactivity) {
           // Double check no active conversation/typing
@@ -176,13 +163,7 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
     // To make it simple and bulletproof, we check logs in the last 18 hours matching the type.
     // Since morning/night are far apart, an 18-hour window handles it beautifully.
     const threshold = new Date(now.getTime() - 18 * 60 * 60 * 1000);
-    const logs = await this.prisma.proactiveLog.findMany({
-      where: {
-        chatId,
-        triggerType,
-        sentAt: { gte: threshold },
-      },
-    });
+    const logs = await this.repository.findLogsSince(chatId, triggerType, threshold);
 
     for (const log of logs) {
       if (this.isSameDayWib(log.sentAt, now)) {
@@ -211,12 +192,7 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
 
     // 2. Check for messages in database in the last 10 minutes
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-    const recentDbMessages = await this.prisma.conversationMessage.findFirst({
-      where: {
-        chatId,
-        createdAt: { gte: tenMinutesAgo },
-      },
-    });
+    const recentDbMessages = await this.repository.hasRecentConversation(chatId, tenMinutesAgo);
 
     if (recentDbMessages) {
       this.logger.debug(`Active conversation message found in last 10 minutes for ${chatId}. Skipping proactive message.`);
@@ -227,8 +203,8 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
   }
 
   private async triggerProactiveGreeting(
-    contact: any,
-    state: any,
+    contact: ProactiveContact,
+    state: NonNullable<ProactiveContact['roleplayState']>,
     triggerType: 'morning_greeting' | 'night_greeting' | 'inactivity',
   ): Promise<void> {
     const chatId = contact.chatId;
@@ -283,28 +259,12 @@ export class ProactiveSchedulerService implements OnModuleInit, OnModuleDestroy 
       await this.waClient.sendMessage(chatId, cleanText);
 
       // 6. Log and update state to avoid immediate duplicate triggers
-      await this.prisma.proactiveLog.create({
-        data: {
-          chatId,
-          triggerType,
-        },
-      });
+      await this.repository.createLog(chatId, triggerType);
 
-      await this.prisma.roleplayState.update({
-        where: { chatId },
-        data: {
-          lastInteractionAt: new Date(),
-        },
-      });
+      await this.repository.updateStateLastInteraction(chatId, new Date());
 
       // Record message log to ConversationMessage to maintain history
-      await this.prisma.conversationMessage.create({
-        data: {
-          chatId,
-          direction: 'outbound',
-          body: cleanText,
-        },
-      });
+      await this.repository.createOutboundMessage(chatId, cleanText);
 
       this.logger.log(`Proactive greeting "${triggerType}" successfully sent to ${chatId}.`);
     } catch (error) {

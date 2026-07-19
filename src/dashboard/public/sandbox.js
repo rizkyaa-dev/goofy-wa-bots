@@ -1,4 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const dashboardAuthToken = resolveDashboardAuthToken();
+
+  function resolveDashboardAuthToken() {
+    const params = new URLSearchParams(window.location.search);
+    const queryToken = params.get('token');
+
+    if (queryToken) {
+      localStorage.setItem('dashboardAuthToken', queryToken);
+      return queryToken;
+    }
+
+    return localStorage.getItem('dashboardAuthToken') || '';
+  }
+
+  function dashboardFetch(url, options = {}) {
+    const headers = new Headers(options.headers || {});
+
+    if (dashboardAuthToken) {
+      headers.set('X-Dashboard-Token', dashboardAuthToken);
+    }
+
+    return fetch(url, {
+      ...options,
+      headers,
+    });
+  }
+
   const elThemeToggle = document.getElementById('btn-theme-toggle');
   const elThemeIcon = document.getElementById('theme-toggle-icon');
 
@@ -148,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
     messageInput.value = '';
 
     try {
-      const response = await fetch('/api/sandbox/chat', {
+      const response = await dashboardFetch('/api/sandbox/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chatId: activeChatId, text }),
@@ -264,7 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
-      const response = await fetch(`/api/sandbox/reset/${activeChatId}`, {
+      const response = await dashboardFetch(`/api/sandbox/reset/${activeChatId}`, {
         method: 'POST',
       });
 
@@ -289,7 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadSandboxState(chatId, renderHistory = true) {
     try {
-      const response = await fetch(`/api/sandbox/state/${chatId}`);
+      const response = await dashboardFetch(`/api/sandbox/state/${chatId}`);
       if (!response.ok) {
         throw new Error(await readErrorMessage(response, 'Gagal memuat status sandbox'));
       }
@@ -385,7 +412,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-          const response = await fetch(`/api/sandbox/memory/${memory.id}`, { method: 'DELETE' });
+          const response = await dashboardFetch(`/api/sandbox/memory/${memory.id}`, { method: 'DELETE' });
           if (!response.ok) {
             throw new Error(await readErrorMessage(response, 'Gagal menghapus memory sandbox'));
           }
@@ -577,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function postJson(url, payload) {
-    const response = await fetch(url, {
+    const response = await dashboardFetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
