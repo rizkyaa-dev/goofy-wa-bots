@@ -159,7 +159,7 @@ export class RoleplayPresenceDirectorService {
     if (this.matchesAny(lower, ['mandi', 'shower', 'skincare', 'cuci muka', 'rapi-rapi'])) {
       return {
         activityType: 'self_care',
-        statusText: 'baru keinget terus lagi siap-siap beresin diri bentar',
+        statusText: 'lagi siap-siap beresin diri',
         locationLabel: 'rumah',
         socialContext: 'private',
         interruptibility: 'medium',
@@ -169,7 +169,7 @@ export class RoleplayPresenceDirectorService {
     if (this.matchesAny(lower, ['makan', 'sarapan', 'lunch', 'dinner', 'ngemil', 'lapar', 'laper'])) {
       return {
         activityType: 'eating',
-        statusText: hour < 11 ? 'lagi sarapan santai sebentar' : 'lagi makan pelan-pelan dulu',
+        statusText: hour < 11 ? 'lagi sarapan' : 'lagi makan',
         locationLabel: hour < 11 ? 'rumah' : 'meja makan',
         socialContext: 'alone',
         interruptibility: 'medium',
@@ -180,7 +180,7 @@ export class RoleplayPresenceDirectorService {
       if (hour >= 22 || hour <= 5 || state.energy <= 25) {
         return {
           activityType: 'sleeping',
-          statusText: 'lagi mode mau bobo sih, udah setengah tumbang',
+          statusText: 'lagi siap tidur di kamar',
           locationLabel: 'kamar',
           socialContext: 'private',
           interruptibility: 'low',
@@ -189,7 +189,7 @@ export class RoleplayPresenceDirectorService {
 
       return {
         activityType: 'relaxing',
-        statusText: 'lagi rebahan santai bentar sambil ngumpulin tenaga',
+        statusText: 'lagi rebahan buat istirahat',
         locationLabel: 'kamar',
         socialContext: 'alone',
         interruptibility: 'medium',
@@ -199,7 +199,7 @@ export class RoleplayPresenceDirectorService {
     if (this.matchesAny(lower, ['nonton', 'film', 'drakor', 'series', 'youtube'])) {
       return {
         activityType: 'watching',
-        statusText: 'lagi nonton santai sambil setengah fokus ke hp',
+        statusText: 'lagi nonton di kamar',
         locationLabel: 'kamar',
         socialContext: 'alone',
         interruptibility: 'high',
@@ -209,17 +209,27 @@ export class RoleplayPresenceDirectorService {
     if (this.matchesAny(lower, ['main game', 'gacha', 'rank', 'push rank', 'mabar', 'game'])) {
       return {
         activityType: 'gaming',
-        statusText: 'lagi main bentar tapi belum terlalu serius-serius amat',
+        statusText: 'lagi main game',
         locationLabel: 'kamar',
         socialContext: 'friends',
         interruptibility: 'medium',
       };
     }
 
-    if (this.matchesAny(lower, ['belajar', 'tugas', 'kuliah', 'ngerjain', 'kerja', 'meeting'])) {
+    if (this.matchesAny(lower, ['belajar', 'tugas', 'kuliah'])) {
       return {
-        activityType: state.curiosity >= 60 ? 'studying' : 'working',
-        statusText: state.curiosity >= 60 ? 'lagi baca-baca sesuatu sambil nyatet dikit' : 'lagi ngerjain sesuatu bentar',
+        activityType: 'studying',
+        statusText: 'lagi ngerjain tugas dulu',
+        locationLabel: 'meja',
+        socialContext: 'private',
+        interruptibility: 'medium',
+      };
+    }
+
+    if (this.matchesAny(lower, ['ngerjain', 'kerja', 'meeting'])) {
+      return {
+        activityType: 'working',
+        statusText: 'lagi fokus kerja dulu',
         locationLabel: 'meja',
         socialContext: 'private',
         interruptibility: 'medium',
@@ -233,12 +243,12 @@ export class RoleplayPresenceDirectorService {
     if (daypart === 'late_night') {
       return [
         this.createBlueprint('sleeping', 'kamar', 'private', 'low', 14, [50, 90], [
-          'lagi bobo sih, setengah ilang dari dunia',
-          'lagi setengah tidur di kamar, masih pengen narik selimut',
+          'lagi tidur di kamar',
+          'lagi setengah tidur di kamar',
         ]),
         this.createBlueprint('relaxing', 'kamar', 'alone', 'low', 12, [25, 45], [
-          'lagi rebahan gelap-gelapan sambil bengong dikit',
-          'lagi mode mager total di kamar',
+          'lagi rebahan di kamar',
+          'lagi istirahat di kamar',
         ]),
       ];
     }
@@ -246,16 +256,16 @@ export class RoleplayPresenceDirectorService {
     if (daypart === 'morning') {
       return [
         this.createBlueprint('waking_up', 'kamar', 'private', 'medium', 12, [20, 40], [
-          'baru bangun, masih ngumpulin nyawa pelan-pelan',
-          'lagi bangun tapi otak belum full online',
+          'baru bangun dan masih kumpulin tenaga',
+          'baru bangun di kamar',
         ]),
         this.createBlueprint('eating', 'rumah', 'family', 'medium', 12, [20, 35], [
-          'lagi sarapan santai dulu',
-          'lagi nyemil pagi sambil pelan-pelan sadar',
+          'lagi sarapan',
+          'lagi sarapan ringan',
         ]),
         this.createBlueprint('self_care', 'rumah', 'private', 'medium', 14, [25, 40], [
-          'lagi siap-siap pelan dulu biar keliatan niat hidup',
-          'lagi beresin diri bentar sebelum beneran aktif',
+          'lagi siap-siap',
+          'lagi beresin diri',
         ]),
       ];
     }
@@ -263,16 +273,16 @@ export class RoleplayPresenceDirectorService {
     if (daypart === 'late_morning') {
       return [
         this.createBlueprint('working', 'meja', 'private', state.energy <= 35 ? 'medium' : 'high', 14, [35, 55], [
-          'lagi ngerjain sesuatu bentar sambil buka hp sesekali',
-          'lagi fokus tipis-tipis sama urusan kecil',
+          'lagi ngerjain kerjaan',
+          'lagi fokus kerja',
         ]),
         this.createBlueprint('studying', 'meja', 'private', 'medium', 15, [35, 60], [
-          'lagi baca-baca sesuatu sambil nyatet dikit',
-          'lagi ngerapiin pikiran sambil lihat-lihat sesuatu',
+          'lagi baca materi',
+          'lagi nyatet materi',
         ]),
         this.createBlueprint('idle', 'rumah', 'alone', 'high', 10, [20, 35], [
-          'lagi lowong santai aja sebenernya',
-          'lagi senggang dikit, jadi lumayan gampang kegoda buka hp',
+          'lagi senggang di rumah',
+          'lagi istirahat di rumah',
         ]),
       ];
     }
@@ -280,16 +290,16 @@ export class RoleplayPresenceDirectorService {
     if (daypart === 'afternoon') {
       return [
         this.createBlueprint('working', 'meja', 'private', 'medium', 15, [35, 60], [
-          'lagi ngerjain sesuatu bentar tapi belum tenggelam banget',
-          'lagi sibuk ringan doang sebenernya',
+          'lagi ngerjain kerjaan',
+          'lagi fokus kerja',
         ]),
-        this.createBlueprint('going_out', 'luar bentar', 'crowded', 'low', 18, [25, 50], [
-          'lagi di luar bentar, muter sebentar doang',
-          'lagi keluar sebentar, belum jauh-jauh amat',
+        this.createBlueprint('going_out', 'luar', 'crowded', 'low', 18, [25, 50], [
+          'lagi di luar rumah',
+          'lagi keluar rumah',
         ]),
         this.createBlueprint('relaxing', 'rumah', 'alone', 'high', 11, [20, 35], [
-          'lagi santai sambil scroll-scroll iseng',
-          'lagi nyuri waktu buat leha-leha bentar',
+          'lagi santai di rumah',
+          'lagi istirahat di rumah',
         ]),
       ];
     }
@@ -297,36 +307,36 @@ export class RoleplayPresenceDirectorService {
     if (daypart === 'evening') {
       return [
         this.createBlueprint('commuting', 'jalan', 'crowded', 'low', 18, [20, 45], [
-          'lagi di jalan bentar, belum settle penuh',
-          'lagi transisi pulang jadi fokusku kebagi dikit',
+          'lagi di jalan pulang',
+          'lagi perjalanan pulang',
         ]),
         this.createBlueprint('eating', 'meja makan', 'family', 'medium', 14, [25, 40], [
-          'lagi makan malam pelan-pelan',
-          'lagi duduk sambil makan bentar',
+          'lagi makan malam',
+          'lagi makan di meja',
         ]),
         this.createBlueprint('chatting_offline', 'rumah', 'friends', 'medium', 14, [20, 35], [
-          'lagi ngobrol santai dulu sama orang sekitar',
-          'lagi kebawa ngobrol santai off-chat bentar',
+          'lagi ngobrol sama teman',
+          'lagi ngobrol di rumah',
         ]),
       ];
     }
 
     return [
       this.createBlueprint('watching', 'kamar', 'alone', 'high', 13, [25, 45], [
-        'lagi nonton santai sambil setengah fokus ke hp',
-        'lagi nyetel sesuatu buat nemenin malam',
+        'lagi nonton di kamar',
+        'lagi nonton malam ini',
       ]),
       this.createBlueprint('gaming', 'kamar', 'friends', 'medium', 13, [25, 45], [
-        'lagi main bentar buat ngilangin penat',
-        'lagi sibuk tipis-tipis sama game, tapi belum hardcore',
+        'lagi main game',
+        'lagi main game di kamar',
       ]),
       this.createBlueprint('relaxing', 'kamar', 'alone', 'high', 12, [20, 40], [
-        'lagi rebahan santai sambil scroll-scroll',
-        'lagi mode santai total, cuma pegang hp doang',
+        'lagi rebahan di kamar',
+        'lagi istirahat di kamar',
       ]),
       this.createBlueprint('self_care', 'rumah', 'private', 'medium', 14, [20, 35], [
-        'lagi beres-beres diri sedikit sebelum full santai',
-        'lagi siap-siap masuk mode malam',
+        'lagi beresin diri',
+        'lagi siap-siap malam',
       ]),
     ];
   }

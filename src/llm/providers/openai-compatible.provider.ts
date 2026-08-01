@@ -45,6 +45,7 @@ export abstract class OpenAiCompatibleProvider implements LlmProvider {
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers,
+      signal: input.signal,
       body: JSON.stringify({
         model: input.model,
         messages: input.messages,

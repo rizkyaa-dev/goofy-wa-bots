@@ -39,6 +39,10 @@ type PresenceAgentResponse = {
   lastReason?: string;
 };
 
+const statusStyleTokens = new Set([
+  'aku', 'aja', 'dulu', 'emang', 'ini', 'itu', 'kok', 'lagi', 'masih', 'nih', 'sih', 'sedang', 'udah', 'sudah',
+]);
+
 @Injectable()
 export class RoleplayPresenceAgentService {
   private readonly logger = new Logger(RoleplayPresenceAgentService.name);
@@ -59,7 +63,7 @@ export class RoleplayPresenceAgentService {
         this.llm.generateReply({
           providerName: this.resolveProvider(),
           model: this.resolveModel(),
-          temperature: this.config.get('ROLEPLAY_PRESENCE_AGENT_TEMPERATURE') ?? 0.7,
+          temperature: this.config.get('ROLEPLAY_PRESENCE_AGENT_TEMPERATURE') ?? 0.25,
           maxTokens: this.config.get('ROLEPLAY_PRESENCE_AGENT_MAX_TOKENS'),
           thinkingType: 'disabled',
           messages: this.createPrompt(input),
@@ -67,7 +71,7 @@ export class RoleplayPresenceAgentService {
         this.config.get('ROLEPLAY_PRESENCE_AGENT_TIMEOUT_MS'),
       );
 
-      return this.sanitizeResponse(this.parseJson(response.text), input.baseline, input.emotionalBias);
+      return this.sanitizeResponse(this.parseJson(response.text), input.baseline);
     } catch (error) {
       this.logger.warn(`Presence agent fallback used: ${error instanceof Error ? error.message : String(error)}`);
       return input.baseline;
@@ -83,12 +87,10 @@ export class RoleplayPresenceAgentService {
           'Your only task is to refine an off-chat activity snapshot. Do NOT engage in conversation.',
           'MANDATORY: Return strict raw JSON only. Do NOT wrap output in markdown code blocks (e.g., do NOT use ```json).',
           'Guidelines:',
-          '- Keep continuity stable. Avoid sudden location teleports, major time skips, or dramatic events.',
-          '- Keep the character activities mundane, ordinary, and believable (e.g., study, chores, eating, resting, walking).',
-          '- activityType: Short, lowercase snake_case label (e.g., studying_math, doing_laundry). You can customize this to fit the context.',
-          '- statusText: Short, casual, natural lowercase Indonesian text detailing the activity (maximum 90 characters).',
-          '- Do NOT invent high-drama situations, emergencies, new jobs, sudden long travel, or medical crises.',
-          '- Respect the emotionalBias constraints. For private_charged bias, keep statusText subtle, private, and sensual or mildly suggestive (e.g., taking a bath, reading an erotic novel, relaxing in bed) when appropriate, but never graphically explicit.',
+          '- The baseline is the sole source of facts. You may only paraphrase baseline.statusText; do not change, add, or infer activities, objects, food, drinks, devices, people, places, or availability.',
+          '- Keep one activity only. Do not add a second activity with phrases such as "sambil ..." unless it already exists in baseline.statusText.',
+          '- statusText: Short, casual, natural lowercase Indonesian text (maximum 90 characters). Prefer direct phrasing over filler such as "bentar", "dikit", or generic embellishment.',
+          '- Do NOT invent high-drama situations, emergencies, new jobs, sudden long travel, medical crises, or sensory details.',
           '- Never reference technical system terms (e.g., AI, bot, scheduler, database, state, tokens) in statusText.',
         ].join('\n'),
       },
@@ -100,7 +102,6 @@ export class RoleplayPresenceAgentService {
           reason: input.reason,
           baseline: this.serializeDraft(input.baseline),
           current: input.current ? this.serializeCurrent(input.current) : null,
-          emotionalBias: input.emotionalBias ? this.serializeEmotionalBias(input.emotionalBias) : null,
           latestUserMessage: input.latestUserMessage ?? '',
           recentMessages: this.formatRecentMessages(input.recentMessages ?? []),
           roleplayState: {
@@ -125,21 +126,12 @@ export class RoleplayPresenceAgentService {
             interruptibility: roleplayPresenceInterruptibilities,
           },
           hardRules: [
-            'Improve baseline wording. Choose a more descriptive activityType snake_case label if it fits better.',
-            'Respect emotionalBias rules (activityBias, avoidActivities).',
-            'If moodDrive is private_charged, focus on subtle private moments. Sensual or mildly suggestive activities are allowed (e.g. reading erotic romance, warm bath, relaxing in bed), but avoid graphically explicit details.',
-            'Preserve startedAt and expiresAt.',
-            'Priority must be an integer from 1 to 100.',
-            'If uncertain, return baseline values with a refined statusText.',
+            'Return only a paraphrase of baseline.statusText. Do not change any other field.',
+            'Every content word in statusText must already be supported by baseline.statusText.',
+            'If a natural paraphrase is not possible, return baseline.statusText unchanged.',
           ],
           outputSchema: {
-            activityType: 'lowercase snake_case activity label, max 48 characters',
-            statusText: 'short casual Indonesian text, max 90 characters',
-            locationLabel: 'short place label, max 28 characters',
-            socialContext: roleplayPresenceSocialContexts.join('|'),
-            interruptibility: roleplayPresenceInterruptibilities.join('|'),
-            priority: 'integer 1..100',
-            lastReason: 'short snake_case tag describing update reason',
+            statusText: 'paraphrase of baseline.statusText only, max 90 characters',
           },
         }),
       },
@@ -149,19 +141,10 @@ export class RoleplayPresenceAgentService {
   private sanitizeResponse(
     parsed: PresenceAgentResponse,
     baseline: RoleplayPresenceDraft,
-    emotionalBias?: RoleplayPresenceEmotionalBias,
   ): RoleplayPresenceDraft {
-    const parsedActivityType = this.cleanActivityType(parsed.activityType, baseline.activityType);
-
     return {
       ...baseline,
-      activityType: this.resolveBiasedActivity(parsedActivityType, baseline, emotionalBias),
       statusText: this.cleanStatusText(parsed.statusText, baseline.statusText),
-      locationLabel: this.cleanLocation(parsed.locationLabel, baseline.locationLabel),
-      socialContext: this.parseEnum(parsed.socialContext, roleplayPresenceSocialContexts, baseline.socialContext),
-      interruptibility: this.parseEnum(parsed.interruptibility, roleplayPresenceInterruptibilities, baseline.interruptibility),
-      priority: this.clampInteger(parsed.priority, 1, 100, baseline.priority),
-      lastReason: this.cleanReason(parsed.lastReason, baseline.lastReason ?? 'presence_agent_enriched'),
     };
   }
 
@@ -198,7 +181,22 @@ export class RoleplayPresenceAgentService {
 
   private cleanStatusText(value: string | undefined, fallback: string): string {
     const cleaned = this.cleanText(value, 90);
-    return this.internalDisclosureGuard.sanitizeGeneratedSnippet(cleaned, fallback);
+    const guarded = this.internalDisclosureGuard.sanitizeGeneratedSnippet(cleaned, fallback);
+    return this.isFaithfulParaphrase(guarded, fallback) ? guarded : fallback;
+  }
+
+  private isFaithfulParaphrase(candidate: string, baseline: string): boolean {
+    const candidateWords = this.extractContentWords(candidate);
+    const baselineWords = new Set(this.extractContentWords(baseline));
+
+    return candidateWords.length > 0 && candidateWords.every((word) => baselineWords.has(word));
+  }
+
+  private extractContentWords(text: string): string[] {
+    return text
+      .toLocaleLowerCase('id-ID')
+      .match(/[\p{Letter}\p{Number}]+/gu)
+      ?.filter((word) => word.length > 1 && !statusStyleTokens.has(word)) ?? [];
   }
 
   private cleanLocation(value: string | undefined, fallback: string): string {

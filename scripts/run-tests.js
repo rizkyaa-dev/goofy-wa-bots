@@ -31,7 +31,12 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-const result = spawnSync(process.execPath, ['--test', ...files], {
+const coverageEnabled = process.argv.includes('--coverage');
+const result = spawnSync(process.execPath, [
+  '--test',
+  ...(coverageEnabled ? ['--experimental-test-coverage'] : []),
+  ...files,
+], {
   stdio: 'inherit',
   shell: false,
 });

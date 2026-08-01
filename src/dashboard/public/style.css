@@ -1,5 +1,6 @@
 /* CSS Reset & Variables */
 :root {
+  color-scheme: dark;
   --bg-color: #080c14;
   --bg-gradient: radial-gradient(circle at top right, #1a103c 0%, #080c14 60%, #030509 100%);
   --panel-bg: rgba(13, 20, 35, 0.65);
@@ -39,6 +40,24 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.5;
+}
+
+/* Keep native select popovers readable in both themes. The browser uses
+   color-scheme to choose its popup controls, while option colors provide a
+   consistent fallback for Chromium and Firefox. */
+select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: #111827;
+  color: #f1f5f9;
+}
+
+select option:checked,
+select option:hover {
+  background-color: #312e81;
+  color: #ffffff;
 }
 
 /* App Container */
@@ -1069,6 +1088,7 @@ textarea.form-control {
 
 /* Light Theme Variables Override */
 body.light-theme {
+  color-scheme: light;
   --bg-color: #f1f5f9;
   --bg-gradient: radial-gradient(circle at top right, #e2e8f0 0%, #f8fafc 60%, #e2e8f0 100%);
   --panel-bg: rgba(255, 255, 255, 0.75);
@@ -1086,6 +1106,21 @@ body.light-theme {
   
   --success: #059669;
   --success-glow: rgba(5, 150, 105, 0.1);
+}
+
+body.light-theme select {
+  color-scheme: light;
+}
+
+body.light-theme select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
+body.light-theme select option:checked,
+body.light-theme select option:hover {
+  background-color: #ede9fe;
+  color: #1e1b4b;
 }
 
 /* Specific overrides for light theme readability */

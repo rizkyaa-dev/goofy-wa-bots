@@ -14,6 +14,7 @@ export class ConversationContextPromptBuilder {
           ]
         : []),
       '',
+      ...this.createContinuityContext(input),
       '### CONVERSATION BUILDER',
       `Topic: ${input.conversationPlan.topic}`,
       `User move: ${input.conversationPlan.userMove}`,
@@ -37,6 +38,24 @@ export class ConversationContextPromptBuilder {
       '- If the user uses "syg", you may mirror it if the context is warm/playful. Do not overuse formal forms like "Sayang".',
       '- If a Preferred nickname exists, use it in non-affectionate contexts. Do not invent weird hybrid names.',
       '- Do not address the user in every single reply. Use their name/alias sparingly for emphasis or color.',
+      '',
+    ];
+  }
+
+  private createContinuityContext(input: CompileInput): string[] {
+    const continuity = input.continuity;
+
+    if (continuity.disclosures.length === 0 && continuity.blockedFollowUpTopics.length === 0) {
+      return [];
+    }
+
+    return [
+      '### ACTIVE CONVERSATION CONTINUITY',
+      ...continuity.disclosures.map((disclosure) => `Known recent user detail (${disclosure.topic}): ${disclosure.value}`),
+      `Already answered topics: ${continuity.answeredTopics.join(', ') || '-'}`,
+      `Blocked redundant follow-ups: ${continuity.blockedFollowUpTopics.join(', ') || '-'}`,
+      `Callback guidance: ${continuity.callbackHints.join(' ') || 'Use recent details only when relevant.'}`,
+      '- Do not ask for information that the user has already provided in the active conversation.',
       '',
     ];
   }

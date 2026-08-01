@@ -4,6 +4,7 @@ import { WebSearchBrief } from '../../../web-search/domain/web-search.types';
 import { RoleplayAddressPlan } from '../../domain/roleplay-address-plan';
 import { RoleplayCharacterProfile } from '../../domain/roleplay-character-profile';
 import { RoleplayConversationPlan } from '../../domain/roleplay-conversation-plan';
+import { RoleplayContinuityContext } from '../../domain/roleplay-continuity';
 import { RoleplayEmotionAnalysis } from '../../domain/roleplay-emotion-analysis';
 import { RoleplayIntimacyPolicy } from '../../intimacy/domain/roleplay-intimacy-policy';
 import { RoleplayProsodyPlan } from '../../domain/roleplay-prosody-plan';
@@ -24,6 +25,7 @@ export type CompileInput = {
   recentMessages: LlmMessage[];
   addressPlan: RoleplayAddressPlan;
   conversationPlan: RoleplayConversationPlan;
+  continuity: RoleplayContinuityContext;
   intimacyPolicy: RoleplayIntimacyPolicy;
   prosodyPlan: RoleplayProsodyPlan;
   analysis: RoleplayEmotionAnalysis;

@@ -3,11 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { AppEnv } from '../../config/env.validation';
 import { LlmProviderError } from '../../llm/errors/llm-provider.error';
 import { IncomingMessage } from '../../messages/domain/incoming-message';
-import { WebSearchBrief, WebSearchQualityError } from '../../web-search/domain/web-search.types';
-import { WebSearchService } from '../../web-search/web-search.service';
+import { WebSearchBrief } from '../../web-search/domain/web-search.types';
 import { RoleplayAddressPlannerService } from '../address/roleplay-address-planner.service';
 import { RoleplayPreAnalyzerService } from '../analyzer/roleplay-pre-analyzer.service';
 import { ConversationBuilderService } from '../conversation/conversation-builder.service';
+import { RoleplayContinuityService } from '../conversation/roleplay-continuity.service';
 import { RecentMessageContextService } from '../context/recent-message-context.service';
 import { TimeContextService } from '../context/time-context.service';
 import { RoleplayEmotionAnalysis } from '../domain/roleplay-emotion-analysis';
@@ -26,8 +26,7 @@ import { QuotePolicyService } from '../quote/quote-policy.service';
 import { RoleplayLlmExecutionService } from '../response/roleplay-llm-execution.service';
 import { RoleplayReplyPostProcessorService } from '../response/roleplay-reply-post-processor.service';
 import { ResponseDirectorService } from '../response/response-director.service';
-import { FreshDataDetectorService } from '../search/fresh-data-detector.service';
-import { SearchIntentDecision } from '../search/search-intent.types';
+import { RoleplayWebSearchContextService, RoleplayWebSearchDebugTrace } from '../search/roleplay-web-search-context.service';
 import { RoleplayStateRepository } from '../state/roleplay-state.repository';
 import { RoleplayStateTransitionService } from '../state/roleplay-state-transition.service';
 
@@ -40,6 +39,7 @@ export class RoleplayReplyUseCase {
     private readonly characterProfile: CharacterProfileService,
     private readonly config: ConfigService<AppEnv, true>,
     private readonly conversationBuilder: ConversationBuilderService,
+    private readonly continuity: RoleplayContinuityService,
     private readonly emotionEngine: EmotionEngineService,
     private readonly llmExecution: RoleplayLlmExecutionService,
     private readonly memories: RoleplayMemoryService,
@@ -53,8 +53,7 @@ export class RoleplayReplyUseCase {
     private readonly recentContext: RecentMessageContextService,
     private readonly replyPostProcessor: RoleplayReplyPostProcessorService,
     private readonly responseDirector: ResponseDirectorService,
-    private readonly freshDataDetector: FreshDataDetectorService,
-    private readonly webSearch: WebSearchService,
+    private readonly webSearchContext: RoleplayWebSearchContextService,
     private readonly states: RoleplayStateRepository,
     private readonly stateTransition: RoleplayStateTransitionService,
     private readonly timeContext: TimeContextService,
@@ -65,6 +64,7 @@ export class RoleplayReplyUseCase {
     const { message, settings } = input;
     const previousState = await this.states.getOrCreate(message.chatId);
     const recentMessages = await this.recentContext.build(message.chatId);
+    const continuity = this.continuity.build(recentMessages, message.body);
     const conversationScope = message.isGroup ? 'group_chat' : 'personal_chat';
 
     await this.memories.captureFromInbound(message, this.formatRecentContext(recentMessages));
@@ -85,14 +85,21 @@ export class RoleplayReplyUseCase {
     const analysis = preAnalysis.analysis;
     const rawQuoteDecision = preAnalysis.quoteDecision;
     const routeDecision = preAnalysis.routeDecision;
-    const webSearchContext = await this.resolveWebSearchContext({
+    const webSearchContext = await this.webSearchContext.resolve({
       latestUserMessage: message.body,
       routeDecision,
       conversationScope,
     });
 
     const nextStatePatch = this.stateTransition.applyAnalysis(this.emotionEngine.evaluateInbound(previousState, message), analysis);
-    const state = await this.states.updateAfterInbound(message.chatId, nextStatePatch);
+    // Keep the transition in memory until generation succeeds. A failed provider call
+    // must not advance the durable relationship state without a delivered turn.
+    const state = {
+      ...previousState,
+      ...nextStatePatch,
+      lastInteractionAt: new Date(),
+      updatedAt: new Date(),
+    };
     const intimacyPolicy = this.intimacyPolicy.create({
       state,
       latestUserMessage: message.body,
@@ -120,6 +127,7 @@ export class RoleplayReplyUseCase {
       routeDecision,
       intimacyPolicy,
       quoteIntent: quoteDecision.intent,
+      continuity,
       conversationScope,
     });
     const addressPlan = this.addressPlanner.create({
@@ -159,6 +167,7 @@ export class RoleplayReplyUseCase {
       recentMessages,
       addressPlan,
       conversationPlan,
+      continuity,
       intimacyPolicy,
       analysis,
       conversationScope,
@@ -204,8 +213,7 @@ export class RoleplayReplyUseCase {
 
     try {
       const result = await this.llmExecution.generate(settings, prompt);
-
-      return this.replyPostProcessor.process({
+      const reply = this.replyPostProcessor.process({
         text: result.text,
         delimiter: prosodyPlan.delimiter,
         maxBubbles: prosodyPlan.maxBubbles,
@@ -221,6 +229,9 @@ export class RoleplayReplyUseCase {
         conversationScope,
         usage: result.usage,
       });
+
+      await this.states.updateAfterInbound(message.chatId, nextStatePatch);
+      return reply;
     } catch (error) {
       this.logger.error(`Failed to generate reply: ${error instanceof Error ? error.message : String(error)}`, error instanceof Error ? error.stack : undefined);
 
@@ -230,107 +241,6 @@ export class RoleplayReplyUseCase {
 
       return { text: 'Aku lagi agak susah jawab sekarang. Coba kirim lagi sebentar ya.' };
     }
-  }
-
-  private async resolveWebSearchContext(input: {
-    latestUserMessage: string;
-    routeDecision: RoleplayRouteDecision;
-    conversationScope: 'personal_chat' | 'group_chat';
-  }): Promise<{ brief: WebSearchBrief | null; trace: RoleplayWebSearchDebugTrace }> {
-    const detection = await this.freshDataDetector.detect(input);
-    const request = detection.request;
-
-    if (!request) {
-      return {
-        brief: null,
-        trace: this.createNoSearchTrace(detection.decision),
-      };
-    }
-
-    const decisionTrace = this.createDecisionTrace(detection.decision);
-
-    try {
-      const brief = await this.webSearch.search(request);
-
-      return {
-        brief,
-        trace: {
-          ...decisionTrace,
-          requested: true,
-          used: Boolean(brief),
-          query: request.query,
-          intent: request.intent,
-          provider: brief?.provider,
-          model: brief?.model,
-          freshness: brief?.freshness,
-          confidence: brief?.confidence,
-          sourceCount: brief?.sources.length,
-          factCount: brief?.facts.length,
-          answerPreview: brief?.answer.slice(0, 220),
-          reason: brief ? 'search_success' : 'search_disabled',
-        },
-      };
-    } catch (error) {
-      if (error instanceof WebSearchQualityError) {
-        this.logger.warn(`Web search rejected: ${error.message}`);
-        return {
-          brief: null,
-          trace: {
-            requested: true,
-            ...decisionTrace,
-            used: false,
-            query: request.query,
-            intent: request.intent,
-            provider: error.details.provider,
-            confidence: error.details.confidence,
-            sourceCount: error.details.sourceCount,
-            reason: 'search_rejected',
-            error: error.message,
-          },
-        };
-      }
-
-      const message = error instanceof Error ? error.message : String(error);
-      const reason = this.isAbortError(error) ? 'search_timeout' : 'search_error';
-      this.logger.warn(`Web search skipped: ${message}`);
-      return {
-        brief: null,
-        trace: {
-          requested: true,
-          ...decisionTrace,
-          used: false,
-          query: request.query,
-          intent: request.intent,
-          reason,
-          error: message,
-        },
-      };
-    }
-  }
-
-  private createNoSearchTrace(decision: SearchIntentDecision): RoleplayWebSearchDebugTrace {
-    const reason = decision.source === 'classifier' ? 'classifier_no_search' : 'detector_no_match';
-
-    return {
-      requested: false,
-      used: false,
-      ...this.createDecisionTrace(decision),
-      intent: decision.intent ?? undefined,
-      reason,
-    };
-  }
-
-  private createDecisionTrace(decision: SearchIntentDecision): Pick<
-    RoleplayWebSearchDebugTrace,
-    'decisionSource' | 'decisionTarget' | 'decisionConfidence' | 'decisionFreshnessNeeded' | 'decisionReason'
-  > {
-    return {
-      decisionSource: decision.source,
-      decisionTarget: decision.target,
-      decisionConfidence: decision.confidence,
-      decisionFreshnessNeeded: decision.freshnessNeeded,
-      decisionReason: decision.reason,
-    };
   }
 
   private formatRecentContext(messages: Array<{ role: string; content: string }>): string {
@@ -396,38 +306,7 @@ export class RoleplayReplyUseCase {
     });
   }
 
-  private isAbortError(error: unknown): boolean {
-    return error instanceof Error && (error.name === 'AbortError' || error.message.toLowerCase().includes('aborted'));
-  }
 }
-
-type RoleplayWebSearchDebugTrace = {
-  requested: boolean;
-  used: boolean;
-  query?: string;
-  intent?: string;
-  decisionSource?: string;
-  decisionTarget?: string;
-  decisionConfidence?: number;
-  decisionFreshnessNeeded?: boolean;
-  decisionReason?: string;
-  provider?: string;
-  model?: string;
-  freshness?: string;
-  confidence?: number;
-  sourceCount?: number;
-  factCount?: number;
-  answerPreview?: string;
-  reason:
-    | 'detector_no_match'
-    | 'classifier_no_search'
-    | 'search_disabled'
-    | 'search_success'
-    | 'search_rejected'
-    | 'search_timeout'
-    | 'search_error';
-  error?: string;
-};
 
 type RoleplayDebugTrace = {
   message: IncomingMessage;

@@ -13,6 +13,7 @@ import { OpenAiProvider } from './providers/openai.provider';
 export class LlmService {
   private readonly providers: ReadonlyMap<string, LlmProvider>;
   private readonly usageStorage = new AsyncLocalStorage<LlmUsageAccumulator>();
+  private readonly metrics = new Map<string, LlmMetrics>();
 
   constructor(
     private readonly config: ConfigService<AppEnv, true>,
@@ -43,21 +44,70 @@ export class LlmService {
     }
 
     const defaultOptions = provider.getDefaultOptions();
+    const startedAt = Date.now();
 
-    const result = await provider.generateReply({
-      ...input,
-      providerName,
-      model: input.model?.trim() || provider.getDefaultModel(),
-      temperature: input.temperature ?? defaultOptions.temperature,
-      maxTokens: input.maxTokens ?? defaultOptions.maxTokens,
-      topP: input.topP ?? defaultOptions.topP,
-      reasoningEffort: input.reasoningEffort ?? defaultOptions.reasoningEffort,
-      thinkingType: input.thinkingType ?? defaultOptions.thinkingType,
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.config.get('LLM_TIMEOUT_MS'));
 
-    this.recordUsage(result.usage);
+    try {
+      const result = await provider.generateReply({
+        ...input,
+        providerName,
+        model: input.model?.trim() || provider.getDefaultModel(),
+        temperature: input.temperature ?? defaultOptions.temperature,
+        maxTokens: input.maxTokens ?? defaultOptions.maxTokens,
+        topP: input.topP ?? defaultOptions.topP,
+        reasoningEffort: input.reasoningEffort ?? defaultOptions.reasoningEffort,
+        thinkingType: input.thinkingType ?? defaultOptions.thinkingType,
+        signal: input.signal ? AbortSignal.any([input.signal, controller.signal]) : controller.signal,
+      });
 
-    return result;
+      this.recordUsage(result.usage);
+      this.recordMetric(providerName, Date.now() - startedAt, true, false);
+
+      return result;
+    } catch (error) {
+      if (controller.signal.aborted) {
+        this.recordMetric(providerName, Date.now() - startedAt, false, true);
+        throw new LlmProviderError(`LLM request timed out after ${this.config.get('LLM_TIMEOUT_MS')}ms.`, providerName);
+      }
+
+      this.recordMetric(providerName, Date.now() - startedAt, false, false);
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  getMetrics(): Readonly<Record<string, LlmMetrics>> {
+    return Object.fromEntries(
+      Array.from(this.metrics.entries()).map(([provider, metrics]) => [provider, { ...metrics }]),
+    );
+  }
+
+  private recordMetric(provider: string, durationMs: number, succeeded: boolean, timedOut: boolean): void {
+    const current = this.metrics.get(provider) ?? {
+      requests: 0,
+      successes: 0,
+      failures: 0,
+      timeouts: 0,
+      totalDurationMs: 0,
+    };
+
+    current.requests += 1;
+    current.totalDurationMs += durationMs;
+
+    if (succeeded) {
+      current.successes += 1;
+    } else {
+      current.failures += 1;
+    }
+
+    if (timedOut) {
+      current.timeouts += 1;
+    }
+
+    this.metrics.set(provider, current);
   }
 
   async runWithUsage<T>(fn: () => Promise<T>): Promise<{ result: T; usage?: LlmTokenUsage }> {
@@ -114,4 +164,12 @@ export class LlmService {
 
 type LlmUsageAccumulator = Required<LlmTokenUsage> & {
   hasUsage: boolean;
+};
+
+export type LlmMetrics = {
+  requests: number;
+  successes: number;
+  failures: number;
+  timeouts: number;
+  totalDurationMs: number;
 };

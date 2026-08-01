@@ -2,6 +2,10 @@
 
 Dokumen ini menjelaskan fungsi Dashboard dan Sandbox, endpoint, batasan, serta cara memakainya untuk debugging.
 
+Sandbox memakai database SQLite terpisah (`prisma/sandbox.db`). Saat aplikasi mulai,
+schema sandbox di-apply melalui migration Prisma. Database utama tidak disalin ke sandbox,
+sehingga conversation dan memory pengguna tidak ikut terbawa ke sesi eksperimen.
+
 ## Dashboard
 
 URL:
@@ -144,7 +148,7 @@ Flow:
 
 ## Token Usage
 
-Sandbox menampilkan token usage akumulatif per chat/browser session.
+Sandbox menampilkan token usage akumulatif per chat sandbox. Total disimpan di `sandbox.db`, sehingga tetap tampil setelah halaman di-refresh atau browser dibuka kembali.
 
 Usage mencakup:
 
@@ -153,6 +157,8 @@ Usage mencakup:
 - Total tokens.
 
 Jika sub-agent LLM dipanggil dalam request yang sama dan provider mengembalikan usage, usage ikut terakumulasi lewat AsyncLocalStorage di `LlmService`.
+
+Reset Sandbox menghapus total token untuk chat tersebut bersama riwayat chatnya.
 
 Limitasi:
 

@@ -92,7 +92,7 @@ export class RoleplayPresenceService {
       return current;
     }
 
-    if (!this.director.isExpired(current, now)) {
+    if (!this.director.isExpired(current, now) && !this.isLegacyScheduledStatus(current)) {
       return current;
     }
 
@@ -116,5 +116,13 @@ export class RoleplayPresenceService {
 
   private withEmotionReason(reason: string, moodDrive: string): string {
     return `${reason}; emotion_bias=${moodDrive}`;
+  }
+
+  isLegacyScheduledStatus(presence: RoleplayPresenceState): boolean {
+    if (presence.source !== 'scheduled') {
+      return false;
+    }
+
+    return /\b(?:sesuatu|bentar|dikit)\b/iu.test(presence.statusText);
   }
 }

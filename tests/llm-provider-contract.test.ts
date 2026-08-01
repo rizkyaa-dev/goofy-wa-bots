@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { GeminiProvider } from '../src/llm/providers/gemini.provider';
 import { OpenAiProvider } from '../src/llm/providers/openai.provider';
 import { LlmProviderError } from '../src/llm/errors/llm-provider.error';
+import { LlmService } from '../src/llm/llm.service';
 import { AppEnv } from '../src/config/env.validation';
 
 const originalFetch = globalThis.fetch;
@@ -16,6 +17,33 @@ const config = (values: Partial<AppEnv>) => ({
 });
 
 describe('LLM provider contracts', () => {
+  it('aborts provider requests after the configured timeout', async () => {
+    let aborted = false;
+    const provider = {
+      name: 'fake',
+      getDefaultModel: () => 'fake-model',
+      getDefaultOptions: () => ({}),
+      generateReply: async (input: { signal?: AbortSignal }) => new Promise<never>((_, reject) => {
+        input.signal?.addEventListener('abort', () => {
+          aborted = true;
+          reject(new Error('aborted'));
+        }, { once: true });
+      }),
+    };
+    const service = new LlmService(
+      config({ LLM_PROVIDER: 'fake', LLM_TIMEOUT_MS: 5 } as Partial<AppEnv>) as never,
+      provider as never,
+      { name: 'unused-openai' } as never,
+      { name: 'unused-deepseek' } as never,
+    );
+
+    await assert.rejects(
+      () => service.generateReply({ providerName: 'fake', messages: [{ role: 'user', content: 'hai' }] }),
+      (error: unknown) => error instanceof LlmProviderError && /timed out/u.test(error.message),
+    );
+    assert.equal(aborted, true);
+  });
+
   it('maps OpenAI-compatible request and usage into the common provider result', async () => {
     let capturedBody: unknown;
     globalThis.fetch = (async (_url: string, init: RequestInit) => {

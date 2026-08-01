@@ -255,7 +255,7 @@ export class WhatsappReplyBatcherService implements OnModuleDestroy {
 
   private isCurrent(chatId: string, version: number): boolean {
     const state = this.states.get(chatId);
-    return !state || state.version === version;
+    return Boolean(state && state.version === version);
   }
 
   private clearTimer(state: BatchState): void {

@@ -159,6 +159,14 @@ Fungsi:
 
 Layer ini sangat penting untuk mengurangi jawaban generik.
 
+Conversation continuity menambahkan working context ringan di atas recent messages:
+
+- Disclosure user yang masih aktif, misalnya aktivitas saat ini.
+- Topik yang sudah dijawab dan tidak perlu ditanyakan ulang.
+- Callback hint untuk menjaga alur tanpa membuat interview chain.
+
+Follow-up tidak cukup hanya berstatus `questionAllowed`. Jika fakta yang hendak ditanyakan sudah diberikan user dalam active conversation, builder mengubah follow-up menjadi `none` dan prompt memberi arahan callback.
+
 Contoh:
 
 - User greeting -> `greeting`, `react_then_continue`.

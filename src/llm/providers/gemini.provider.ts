@@ -63,6 +63,7 @@ export class GeminiProvider implements LlmProvider {
         'Content-Type': 'application/json',
         'x-goog-api-key': apiKey,
       },
+      signal: input.signal,
       body: JSON.stringify(payload),
     });
 

@@ -70,7 +70,15 @@ export class RoleplayPresenceEmotionPolicyService {
       return this.bias('restless', ['idle', 'relaxing', 'working'], ['sleeping'], 'medium', 'restless_light', 'mood_restless_volatility', 'Prefer a light, slightly restless activity with ordinary wording.');
     }
 
-    return this.bias('neutral_routine', ['working', 'relaxing', 'idle', 'eating'], [], 'medium', 'ordinary', 'mood_neutral_routine', 'Keep the baseline ordinary and believable.');
+    return this.bias(
+      'neutral_routine',
+      ['working', 'studying', 'relaxing', 'idle', 'eating', 'watching', 'gaming', 'self_care', 'waking_up'],
+      [],
+      'medium',
+      'ordinary',
+      'mood_neutral_routine',
+      'Keep the baseline ordinary and believable.',
+    );
   }
 
   apply(input: ApplyBiasInput): { draft: RoleplayPresenceDraft; bias: RoleplayPresenceEmotionalBias } {
@@ -114,22 +122,22 @@ export class RoleplayPresenceEmotionPolicyService {
 
   private activityDefaults(activityType: RoleplayPresenceActivityType, style: RoleplayPresenceWordingStyle): ActivityDefaults {
     const defaults: Record<string, ActivityDefaults> = {
-      sleeping: { statusText: 'lagi istirahat pelan-pelan dulu', locationLabel: 'kamar', socialContext: 'private' },
-      waking_up: { statusText: 'baru bangun dan masih ngumpulin nyawa', locationLabel: 'kamar', socialContext: 'private' },
-      eating: { statusText: 'lagi makan santai sebentar', locationLabel: 'rumah', socialContext: 'alone' },
-      working: { statusText: 'lagi ngerjain sesuatu bentar', locationLabel: 'meja', socialContext: 'private' },
-      studying: { statusText: 'lagi baca-baca sesuatu sambil nyatet dikit', locationLabel: 'meja', socialContext: 'private' },
-      commuting: { statusText: 'lagi di jalan bentar', locationLabel: 'jalan', socialContext: 'crowded' },
-      relaxing: { statusText: 'lagi santai bentar sambil megang hp', locationLabel: 'rumah', socialContext: 'alone' },
-      watching: { statusText: 'lagi nyetel sesuatu buat nemenin santai', locationLabel: 'kamar', socialContext: 'alone' },
-      gaming: { statusText: 'lagi main bentar buat ngilangin penat', locationLabel: 'kamar', socialContext: 'friends' },
-      chatting_offline: { statusText: 'lagi ngobrol santai sama orang sekitar', locationLabel: 'rumah', socialContext: 'friends' },
-      going_out: { statusText: 'lagi keluar sebentar', locationLabel: 'luar bentar', socialContext: 'crowded' },
-      self_care: { statusText: 'lagi beresin diri pelan-pelan', locationLabel: 'rumah', socialContext: 'private' },
-      idle: { statusText: 'lagi lowong sambil bengong dikit', locationLabel: 'rumah', socialContext: 'alone' },
+      sleeping: { statusText: 'lagi istirahat di kamar', locationLabel: 'kamar', socialContext: 'private' },
+      waking_up: { statusText: 'baru bangun di kamar', locationLabel: 'kamar', socialContext: 'private' },
+      eating: { statusText: 'lagi makan', locationLabel: 'rumah', socialContext: 'alone' },
+      working: { statusText: 'lagi ngerjain kerjaan', locationLabel: 'meja', socialContext: 'private' },
+      studying: { statusText: 'lagi baca materi', locationLabel: 'meja', socialContext: 'private' },
+      commuting: { statusText: 'lagi di jalan', locationLabel: 'jalan', socialContext: 'crowded' },
+      relaxing: { statusText: 'lagi santai di rumah', locationLabel: 'rumah', socialContext: 'alone' },
+      watching: { statusText: 'lagi nonton di kamar', locationLabel: 'kamar', socialContext: 'alone' },
+      gaming: { statusText: 'lagi main game', locationLabel: 'kamar', socialContext: 'friends' },
+      chatting_offline: { statusText: 'lagi ngobrol sama teman', locationLabel: 'rumah', socialContext: 'friends' },
+      going_out: { statusText: 'lagi di luar rumah', locationLabel: 'luar', socialContext: 'crowded' },
+      self_care: { statusText: 'lagi beresin diri', locationLabel: 'rumah', socialContext: 'private' },
+      idle: { statusText: 'lagi senggang di rumah', locationLabel: 'rumah', socialContext: 'alone' },
     };
     const selected = defaults[activityType] ?? {
-      statusText: 'lagi ngurus sesuatu kecil bentar',
+      statusText: 'lagi ngurus hal kecil',
       locationLabel: 'sekitar rumah',
       socialContext: 'alone',
     };
@@ -141,34 +149,8 @@ export class RoleplayPresenceEmotionPolicyService {
   }
 
   private softStyleStatus(statusText: string, style: RoleplayPresenceWordingStyle): string {
-    if (style === 'tired_soft') {
-      return statusText.replace(/\blagi\b/u, 'lagi pelan-pelan');
-    }
-
-    if (style === 'clipped_private') {
-      return statusText.replace(/\bsantai\b/u, 'sendiri').replace(/\bdulu\b/u, 'sebentar');
-    }
-
-    if (style === 'distracted_soft') {
-      return statusText.includes('sambil') ? statusText : `${statusText} sambil agak kepikiran`;
-    }
-
-    if (style === 'bright_casual') {
-      return statusText.includes('bentar') ? statusText : `${statusText} bentar`;
-    }
-
-    if (style === 'soft_available') {
-      return statusText.includes('sambil') ? statusText : `${statusText} sambil buka hp`;
-    }
-
-    if (style === 'private_subtle') {
-      return statusText.replace(/\bramai\b/u, 'sendiri').replace(/\blu(ar|ar bentar)\b/u, 'rumah');
-    }
-
-    if (style === 'restless_light') {
-      return statusText.includes('tipis') ? statusText : `${statusText} tipis-tipis`;
-    }
-
+    // Wording style must not add facts or filler to a semantic activity snapshot.
+    void style;
     return statusText;
   }
 

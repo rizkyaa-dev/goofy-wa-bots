@@ -140,8 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeChatId = chatIdSelect.value;
   let currentPresence = null;
   let toastTimer = null;
-  let cumulativeTokenUsage = createEmptyTokenUsage();
-
   Object.values(stateInputs)
     .filter((item) => item && item.input && item.value)
     .forEach((sliderRef) => {
@@ -154,7 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   chatIdSelect.addEventListener('change', (event) => {
     activeChatId = event.target.value;
-    resetTokenUsage();
     chatViewport.innerHTML = '<div class="no-memories" style="margin: auto; text-align: center;"><p style="color: #94a3b8; font-weight: 500; font-size: 14px;">Memuat riwayat chat...</p></div>';
     loadSandboxState(activeChatId);
   });
@@ -186,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const result = await response.json();
-      addTokenUsage(result.usage);
+      renderTokenUsage(result.tokenUsage);
       const replyBubbles = getReplyBubbles(result);
 
       for (const replyBubble of replyBubbles) {
@@ -307,7 +304,6 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       showToast('Sandbox berhasil direset.', 'success');
-      resetTokenUsage();
       await loadSandboxState(activeChatId, false);
     } catch (error) {
       showToast(error.message || 'Gagal mereset sandbox.', 'error');
@@ -326,6 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
       fillStateForm(data.state || stateDefaults);
       renderPresence(data.presence || null);
       renderMemories(Array.isArray(data.memories) ? data.memories : []);
+      renderTokenUsage(data.tokenUsage);
 
       if (renderHistory) {
         renderChatHistory(Array.isArray(data.messages) ? data.messages : []);
@@ -492,33 +489,15 @@ document.addEventListener('DOMContentLoaded', () => {
       .filter(Boolean);
   }
 
-  function addTokenUsage(usage) {
-    const normalized = normalizeTokenUsage(usage);
-
-    if (!normalized) {
-      renderTokenUsage();
-      return;
-    }
-
-    cumulativeTokenUsage.inputTokens += normalized.inputTokens;
-    cumulativeTokenUsage.outputTokens += normalized.outputTokens;
-    cumulativeTokenUsage.totalTokens += normalized.totalTokens || normalized.inputTokens + normalized.outputTokens;
-    renderTokenUsage();
-  }
-
-  function resetTokenUsage() {
-    cumulativeTokenUsage = createEmptyTokenUsage();
-    renderTokenUsage();
-  }
-
-  function renderTokenUsage() {
+  function renderTokenUsage(usage) {
     if (!sandboxTokenUsage) {
       return;
     }
 
-    const inputTokens = formatTokenCount(cumulativeTokenUsage.inputTokens);
-    const outputTokens = formatTokenCount(cumulativeTokenUsage.outputTokens);
-    const totalTokens = formatTokenCount(cumulativeTokenUsage.totalTokens);
+    const normalized = normalizeTokenUsage(usage) || createEmptyTokenUsage();
+    const inputTokens = formatTokenCount(normalized.inputTokens);
+    const outputTokens = formatTokenCount(normalized.outputTokens);
+    const totalTokens = formatTokenCount(normalized.totalTokens);
     sandboxTokenUsage.textContent = `tok total in: ${inputTokens} / out: ${outputTokens} / all: ${totalTokens}`;
   }
 

@@ -50,6 +50,9 @@ npm.cmd run prisma:generate
 npm.cmd run prisma:migrate
 ```
 
+Saat aplikasi pertama kali memakai Sandbox, migration yang sama juga diterapkan otomatis
+ke `prisma/sandbox.db`. Pastikan package `prisma` tersedia pada deployment runtime.
+
 ### Prisma Push
 
 ```powershell

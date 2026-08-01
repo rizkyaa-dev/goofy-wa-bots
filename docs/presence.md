@@ -59,10 +59,10 @@ LLM refinement agent.
 
 Tugas:
 
-- Mengambil baseline director.
-- Menghasilkan JSON refinement.
-- Membuat `statusText` lebih natural.
-- Tidak mengubah continuity secara ekstrem.
+- Mengambil baseline director sebagai satu-satunya sumber fakta.
+- Hanya boleh memparafrasekan `statusText` dalam JSON.
+- Tidak boleh mengubah activity, lokasi, social context, availability, priority, atau waktu.
+- Menolak output yang menambah detail tidak didukung, lalu memakai baseline.
 
 Jika agent gagal, baseline director tetap dipakai.
 

@@ -1,7 +1,10 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 import { join } from 'path';
-import { copyFile, access } from 'fs/promises';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
+
+const execFileAsync = promisify(execFile);
 
 @Injectable()
 export class SandboxPrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
@@ -16,19 +19,26 @@ export class SandboxPrismaService extends PrismaClient implements OnModuleInit, 
   }
 
   async onModuleInit(): Promise<void> {
-    const sandboxDbPath = join(process.cwd(), 'prisma', 'sandbox.db');
-    const devDbPath = join(process.cwd(), 'prisma', 'dev.db');
-    try {
-      await access(sandboxDbPath);
-    } catch {
-      try {
-        await copyFile(devDbPath, sandboxDbPath);
-        console.log('Sandbox database created successfully by copying dev.db');
-      } catch (err) {
-        console.error('Failed to copy dev.db to sandbox.db', err);
-      }
-    }
+    await this.ensureSchema();
     await this.$connect();
+  }
+
+  private async ensureSchema(): Promise<void> {
+    const prismaCli = join(process.cwd(), 'node_modules', 'prisma', 'build', 'index.js');
+
+    try {
+      await execFileAsync(process.execPath, [prismaCli, 'migrate', 'deploy'], {
+        cwd: process.cwd(),
+        env: {
+          ...process.env,
+          DATABASE_URL: 'file:./sandbox.db',
+        },
+        windowsHide: true,
+      });
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to initialize sandbox database schema: ${detail}`);
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

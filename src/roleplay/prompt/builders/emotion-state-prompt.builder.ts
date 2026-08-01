@@ -98,7 +98,7 @@ export class EmotionStatePromptBuilder {
       );
     } else if ((state.mood as string) === 'sleepy') {
       directives.push(
-        'You are feeling very sleepy and low-energy. Use sleepy text markers like "*hoam*", "ngantuk...", "mager", or "bobo". Keep sentences short and slow-paced.',
+        'You are feeling very sleepy and low-energy. Keep sentences short and slow-paced. Sleepy markers like "hoam" or "ngantuk" are optional texture, not mandatory; if the user just stated their sleep preference, acknowledge it without asking the same sleep question again.',
       );
     } else if ((state.mood as string) === 'excited') {
       directives.push(

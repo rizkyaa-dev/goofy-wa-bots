@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { resolveBotReplyParts } from '../bot/domain/bot-reply';
 import { ConversationsService } from '../conversations/conversations.service';
 import { SandboxPrismaService } from '../infra/prisma/sandbox-prisma.service';
@@ -7,6 +7,7 @@ import { LlmService } from '../llm/llm.service';
 import { IncomingMessage } from '../messages/domain/incoming-message';
 import { RoleplayChatService } from '../roleplay/roleplay-chat.service';
 import { RoleplayResetService } from '../roleplay/state/roleplay-reset.service';
+import { RoleplayPresenceService } from '../roleplay/presence/roleplay-presence.service';
 import { SandboxRepository } from './sandbox.repository';
 import {
   SandboxAddMemoryInput,
@@ -24,6 +25,7 @@ export class SandboxUseCase {
     private readonly roleplayReset: RoleplayResetService,
     private readonly conversations: ConversationsService,
     private readonly llm: LlmService,
+    @Optional() private readonly presence?: RoleplayPresenceService,
   ) {}
 
   chat(input: SandboxChatInput) {
@@ -44,11 +46,13 @@ export class SandboxUseCase {
       const parts = resolveBotReplyParts(reply);
       const replyText = parts.map((part) => part.text).join('\n\n');
       await this.conversations.recordOutbound(input.chatId, replyText, incoming.id);
+      const tokenUsage = await this.repository.accumulateTokenUsage(input.chatId, usage ?? reply.usage);
 
       return {
         reply: replyText,
         parts,
         usage: usage ?? reply.usage,
+        tokenUsage,
       };
     });
   }
@@ -56,7 +60,14 @@ export class SandboxUseCase {
   getState(chatId: string) {
     return this.runInSandbox(async () => {
       await this.repository.ensureContact(chatId);
-      return this.repository.getStateBundle(chatId, 30);
+      const bundle = await this.repository.getStateBundle(chatId, 30);
+
+      if (bundle.presence && this.presence?.isLegacyScheduledStatus(bundle.presence)) {
+        await this.presence.ensureCurrentPresence(chatId, bundle.state);
+        return this.repository.getStateBundle(chatId, 30);
+      }
+
+      return bundle;
     });
   }
 
@@ -87,8 +98,12 @@ export class SandboxUseCase {
     return this.runInSandbox(() => this.repository.deleteMemory(memoryId));
   }
 
-  reset(chatId: string) {
-    return this.runInSandbox(() => this.roleplayReset.reset(chatId, 'all'));
+  async reset(chatId: string) {
+    return this.runInSandbox(async () => {
+      const result = await this.roleplayReset.reset(chatId, 'all');
+      await this.repository.resetTokenUsage(chatId);
+      return result;
+    });
   }
 
   runInSandbox<T>(operation: () => Promise<T>): Promise<T> {

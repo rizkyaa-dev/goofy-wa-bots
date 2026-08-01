@@ -1,10 +1,11 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BotMode } from '@prisma/client';
 import { WhatsappWebClientService } from '../wa/whatsapp-web-client.service';
 import { AppEnv } from '../config/env.validation';
 import { AddContactMemoryInput, UpdateContactRoleplayStateInput } from './dashboard.validation';
 import { DashboardRepository } from './dashboard.repository';
+import { RoleplayPresenceService } from '../roleplay/presence/roleplay-presence.service';
 
 @Injectable()
 export class DashboardService {
@@ -14,6 +15,7 @@ export class DashboardService {
     private readonly repository: DashboardRepository,
     private readonly waClient: WhatsappWebClientService,
     private readonly config: ConfigService<AppEnv, true>,
+    @Optional() private readonly presence?: RoleplayPresenceService,
   ) {}
 
   async getStatus() {
@@ -42,7 +44,20 @@ export class DashboardService {
   }
 
   async getContacts() {
-    return this.repository.findContacts();
+    const contacts = await this.repository.findContacts();
+    const legacyContacts = contacts.filter((contact) =>
+      contact.roleplayState && contact.roleplayPresenceState && this.presence?.isLegacyScheduledStatus(contact.roleplayPresenceState),
+    );
+
+    if (this.presence && legacyContacts.length > 0) {
+      for (const contact of legacyContacts) {
+        await this.presence.ensureCurrentPresence(contact.chatId, contact.roleplayState!);
+      }
+
+      return this.repository.findContacts();
+    }
+
+    return contacts;
   }
 
   async getContactMemory(chatId: string) {

@@ -26,6 +26,7 @@ export type GenerateReplyInput = {
   topP?: number;
   reasoningEffort?: LlmReasoningEffort;
   thinkingType?: LlmThinkingType;
+  signal?: AbortSignal;
 };
 
 export type GenerateReplyResult = {

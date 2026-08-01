@@ -27,4 +27,23 @@ describe('WhatsappReplyBatcherService', () => {
     assert.equal(calculateQuietMs('a'.repeat(140), 1), 7_500);
     assert.equal(calculateQuietMs('pesan lengkap.', 1), 1_800);
   });
+
+  it('invalidates an in-flight flush after cancellation', () => {
+    const batcher = new WhatsappReplyBatcherService(
+      {} as never,
+      { get: <K extends keyof AppEnv>(key: K) => configValues[key] } as never,
+      {} as never,
+    );
+    const internal = batcher as unknown as {
+      getOrCreateState: (chatId: string) => { version: number };
+      cancel: (chatId: string) => void;
+      isCurrent: (chatId: string, version: number) => boolean;
+    };
+
+    const state = internal.getOrCreateState('chat-1');
+    const version = state.version;
+    internal.cancel('chat-1');
+
+    assert.equal(internal.isCurrent('chat-1', version), false);
+  });
 });

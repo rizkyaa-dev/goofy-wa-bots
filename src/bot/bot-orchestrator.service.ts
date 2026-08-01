@@ -29,15 +29,15 @@ export class BotOrchestratorService {
       return null;
     }
 
+    if (!this.contactPolicy.canRespondTo(message)) {
+      this.logger.debug(`Ignored message from non-allowlisted chat ${message.chatId}`);
+      return null;
+    }
+
     const temporaryReply = this.temporaryGreetingReply.createReply(message);
     if (temporaryReply) {
       await this.conversations.recordInbound(message);
       return temporaryReply;
-    }
-
-    if (!this.contactPolicy.canRespondTo(message)) {
-      this.logger.debug(`Ignored message from non-allowlisted chat ${message.chatId}`);
-      return null;
     }
 
     await this.conversations.recordInbound(message);
@@ -97,15 +97,15 @@ export class BotOrchestratorService {
   }
 
   private async handleFreshNonCommand(message: IncomingMessage): Promise<BotReply | null> {
+    if (!this.contactPolicy.canRespondTo(message)) {
+      this.logger.debug(`Ignored message from non-allowlisted chat ${message.chatId}`);
+      return null;
+    }
+
     const temporaryReply = this.temporaryGreetingReply.createReply(message);
     if (temporaryReply) {
       await this.conversations.recordInbound(message);
       return temporaryReply;
-    }
-
-    if (!this.contactPolicy.canRespondTo(message)) {
-      this.logger.debug(`Ignored message from non-allowlisted chat ${message.chatId}`);
-      return null;
     }
 
     await this.conversations.recordInbound(message);

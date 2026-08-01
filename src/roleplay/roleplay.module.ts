@@ -6,6 +6,7 @@ import { CharacterProfileService } from './identity/character-profile.service';
 import { ContinuityGuardService } from './validation/continuity-guard.service';
 import { RoleplayAddressPlannerService } from './address/roleplay-address-planner.service';
 import { ConversationBuilderService } from './conversation/conversation-builder.service';
+import { RoleplayContinuityService } from './conversation/roleplay-continuity.service';
 import { RecentMessageContextService } from './context/recent-message-context.service';
 import { RoleplayContextMessageFilterService } from './context/roleplay-context-message-filter.service';
 import { EmotionClassifierService } from './emotion/emotion-classifier.service';
@@ -52,6 +53,7 @@ import { TimeContextService } from './context/time-context.service';
 import { RoleplayPreAnalyzerService } from './analyzer/roleplay-pre-analyzer.service';
 import { FreshDataDetectorService } from './search/fresh-data-detector.service';
 import { SearchIntentClassifierService } from './search/search-intent-classifier.service';
+import { RoleplayWebSearchContextService } from './search/roleplay-web-search-context.service';
 
 @Module({
   imports: [ConversationsModule, LlmModule, WebSearchModule],
@@ -60,6 +62,7 @@ import { SearchIntentClassifierService } from './search/search-intent-classifier
     ContinuityGuardService,
     RoleplayAddressPlannerService,
     ConversationBuilderService,
+    RoleplayContinuityService,
     EmotionClassifierService,
     EmotionEngineService,
     RecentMessageContextService,
@@ -106,6 +109,7 @@ import { SearchIntentClassifierService } from './search/search-intent-classifier
     RoleplayPreAnalyzerService,
     FreshDataDetectorService,
     SearchIntentClassifierService,
+    RoleplayWebSearchContextService,
   ],
   exports: [
     RoleplayChatService,

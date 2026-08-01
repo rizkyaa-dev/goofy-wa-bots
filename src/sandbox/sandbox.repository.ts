@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { LlmTokenUsage } from '../llm/domain/llm.types';
 import { RoleplayMood } from '@prisma/client';
 import { PrismaService } from '../infra/prisma/prisma.service';
 import {
@@ -46,13 +47,45 @@ export class SandboxRepository {
       orderBy: { createdAt: 'desc' },
       take: messageLimit,
     });
+    const tokenUsage = await this.prisma.sandboxTokenUsage.findUnique({
+      where: { chatId },
+    });
 
     return {
       state,
       presence,
       memories,
       messages: messages.reverse(),
+      tokenUsage: tokenUsage ? this.toTokenUsage(tokenUsage) : this.emptyTokenUsage(),
     };
+  }
+
+  async accumulateTokenUsage(chatId: string, usage: LlmTokenUsage | undefined): Promise<LlmTokenUsage> {
+    const normalized = this.normalizeTokenUsage(usage);
+
+    if (!normalized) {
+      const current = await this.prisma.sandboxTokenUsage.findUnique({ where: { chatId } });
+      return current ? this.toTokenUsage(current) : this.emptyTokenUsage();
+    }
+
+    const tokenUsage = await this.prisma.sandboxTokenUsage.upsert({
+      where: { chatId },
+      create: {
+        chatId,
+        ...normalized,
+      },
+      update: {
+        inputTokens: { increment: normalized.inputTokens },
+        outputTokens: { increment: normalized.outputTokens },
+        totalTokens: { increment: normalized.totalTokens },
+      },
+    });
+
+    return this.toTokenUsage(tokenUsage);
+  }
+
+  resetTokenUsage(chatId: string) {
+    return this.prisma.sandboxTokenUsage.deleteMany({ where: { chatId } });
   }
 
   upsertState(chatId: string, data: SandboxStateUpdateInput) {
@@ -120,5 +153,37 @@ export class SandboxRepository {
     return this.prisma.roleplayMemory.delete({
       where: { id: memoryId },
     });
+  }
+
+  private normalizeTokenUsage(usage: LlmTokenUsage | undefined): Required<LlmTokenUsage> | null {
+    const inputTokens = this.normalizeTokenCount(usage?.inputTokens);
+    const outputTokens = this.normalizeTokenCount(usage?.outputTokens);
+    const totalTokens = this.normalizeTokenCount(usage?.totalTokens);
+
+    if (inputTokens === undefined && outputTokens === undefined && totalTokens === undefined) {
+      return null;
+    }
+
+    return {
+      inputTokens: inputTokens ?? 0,
+      outputTokens: outputTokens ?? 0,
+      totalTokens: totalTokens ?? (inputTokens ?? 0) + (outputTokens ?? 0),
+    };
+  }
+
+  private normalizeTokenCount(value: number | undefined): number | undefined {
+    return Number.isFinite(value) ? Math.max(0, Math.round(value as number)) : undefined;
+  }
+
+  private toTokenUsage(usage: { inputTokens: number; outputTokens: number; totalTokens: number }): Required<LlmTokenUsage> {
+    return {
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      totalTokens: usage.totalTokens,
+    };
+  }
+
+  private emptyTokenUsage(): Required<LlmTokenUsage> {
+    return { inputTokens: 0, outputTokens: 0, totalTokens: 0 };
   }
 }

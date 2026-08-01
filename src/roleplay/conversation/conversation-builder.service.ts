@@ -9,6 +9,7 @@ import {
 import { RoleplayEmotionAnalysis } from '../domain/roleplay-emotion-analysis';
 import { RoleplayRouteDecision } from '../domain/roleplay-route';
 import { RoleplayIntimacyPolicy } from '../intimacy/domain/roleplay-intimacy-policy';
+import { RoleplayContinuityContext } from '../domain/roleplay-continuity';
 
 type CreateConversationPlanInput = {
   latestUserMessage: string;
@@ -19,6 +20,7 @@ type CreateConversationPlanInput = {
   routeDecision: RoleplayRouteDecision;
   intimacyPolicy: RoleplayIntimacyPolicy;
   quoteIntent?: string;
+  continuity: RoleplayContinuityContext;
   conversationScope: 'personal_chat' | 'group_chat';
 };
 
@@ -382,12 +384,31 @@ export class ConversationBuilderService {
   }
 
   private createPlan(input: CreateConversationPlanInput, plan: RoleplayConversationPlan): RoleplayConversationPlan {
-    const adjusted = this.applyMoodEmotionOverlay(input, plan);
+    const adjusted = this.applyContinuityOverlay(input, this.applyMoodEmotionOverlay(input, plan));
 
     return {
       ...adjusted,
       detailHooks: adjusted.detailHooks.slice(0, 5),
       avoid: this.unique(adjusted.avoid).slice(0, 5),
+    };
+  }
+
+  private applyContinuityOverlay(
+    input: CreateConversationPlanInput,
+    plan: RoleplayConversationPlan,
+  ): RoleplayConversationPlan {
+    if (
+      plan.followUpPolicy === 'none' ||
+      !input.continuity.blockedFollowUpTopics.includes('user_current_activity')
+    ) {
+      return plan;
+    }
+
+    return {
+      ...plan,
+      followUpPolicy: 'none',
+      avoid: [...plan.avoid, 'asking the user about their current activity again', 'asking a question about a detail the user just stated'],
+      directive: `${plan.directive} ${input.continuity.callbackHints.join(' ')}`,
     };
   }
 

@@ -162,6 +162,11 @@ const envSchema = z.object({
     .default('7000')
     .transform((value) => Number(value))
     .pipe(z.number().int().positive()),
+  LLM_TIMEOUT_MS: z
+    .string()
+    .default('45000')
+    .transform((value) => Number(value))
+    .pipe(z.number().int().positive()),
   WEB_SEARCH_MAX_SOURCES: z
     .string()
     .default('5')
