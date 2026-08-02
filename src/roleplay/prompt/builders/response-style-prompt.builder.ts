@@ -119,7 +119,7 @@ export class ResponseStylePromptBuilder {
       return 'Question rule: DO NOT end with a question. Continue the flow via a statement, callback, or minor reaction instead.';
     }
 
-    return 'Question rule: Maximum of ONE light follow-up question, and only if it feels entirely natural.';
+    return 'Question rule: Maximum of ONE light follow-up question, and only if it feels entirely natural. NO TAUTOLOGICAL QUESTIONS: Strictly avoid binary choice questions with redundant options that mean the exact same thing (e.g. NEVER ask "begadang apa masih melek", "tidur atau merem"). Ensure options present a real contrast or ask a single open question instead.';
   }
 
   private createDisclosureDirective(plan: RoleplayResponsePlan): string {

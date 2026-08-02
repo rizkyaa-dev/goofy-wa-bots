@@ -7,7 +7,7 @@ import { CompileInput } from '../domain/roleplay-prompt-compile-input';
 export class EmotionStatePromptBuilder {
   build(input: CompileInput): string[] {
     return [
-      '### CURRENT EMOTION STATE',
+      '### [INTERNAL SYSTEM: EMOTIONAL STATE & PARAMETERS]',
       `Mood: ${input.state.mood}`,
       `Affection: ${input.state.affection}/100`,
       `Trust: ${input.state.trust}/100`,
@@ -21,130 +21,139 @@ export class EmotionStatePromptBuilder {
       `Inhibition: ${this.getInhibition(input.state)}/100`,
       `Comfort: ${this.getComfort(input.state)}/100`,
       `Compliance: ${this.getCompliance(input.state)}/100`,
-      `Directive: ${this.createEmotionDirective(input.state, input.intimacyPolicy)}`,
-      `Classifier tone: ${input.analysis.userTone}`,
-      `Classifier intent: ${input.analysis.userIntent}`,
-      `Classifier directive: ${input.analysis.replyDirective}`,
-      'Emotion expression rule: The state above is strictly internal. Never explicitly use the words "mood", "emotion", "affection", "trust", "tension", "energy", "curiosity", "volatility", "desire", "inhibition", "comfort", "compliance", "obedient", or "obedience" as justifications in the chat.',
-      'Express your internal state implicitly through word choice, response length, timing, deflections, or subtle jokes.',
+      '',
+      '### [USER CONTEXT ANALYSIS]',
+      `Detected User Tone: ${input.analysis.userTone}`,
+      `Detected User Intent: ${input.analysis.userIntent}`,
+      `Suggested Reply Directive: ${input.analysis.replyDirective}`,
+      '',
+      '### [CURRENT BEHAVIORAL DIRECTIVES]',
+      `Applied Directive: ${this.createEmotionDirective(input.state, input.intimacyPolicy)}`,
+      '',
+      '### 🛑 STRICT ROLEPLAY RULES (SHOW, DON\'T TELL)',
+      '1. The metrics above are your INTERNAL subconscious. NEVER explicitly mention these numbers or use meta-words like "mood", "affection", "trust", "tension", "energy", "curiosity", "volatility", "desire", "inhibition", "comfort", "compliance", or "obedience" in your dialogue or actions.',
+      '2. EXPRESS IMPLICITLY: Convey your state entirely through natural word choice, sentence length, pacing, stuttering, deflections, physical actions (*asterisks*), or subtle subtext.',
+      '3. Stay deeply in character. Do not act like an AI explaining its feelings; act like a living entity experiencing them.',
       '',
     ];
   }
 
   private createEmotionDirective(state: RoleplayState, intimacyPolicy: RoleplayIntimacyPolicy): string {
     const directives: string[] = [];
+    const isHighArousal = (state.mood as string) === 'aroused' || (state.mood as string) === 'unrestrained';
 
-    if (this.getShyness(state) >= 65) {
+    if (this.getShyness(state) >= 65 && !isHighArousal) {
       directives.push(
-        'You are currently feeling very shy/flustered (salah tingkah/salting). Prioritize shy deflections, stuttering markers like "a-apaan", ellipses "...", and avoiding eye-contact in text, but do not drop character.',
+        '[SHYNESS HIGH]: You are feeling extremely flustered/shy (salah tingkah). Show this through physical markers (avoiding eye contact, blushing) and speech patterns (stuttering like "a-apaan", trailing off with ellipses "..."). Deflect gently without breaking character.',
       );
     }
 
     if (this.getIntimacy(state) >= 75) {
       directives.push(
-        'Your relationship intimacy level is extremely high. You are highly comfortable, deeply affectionate, and willing to share private feelings or use affectionate nicknames naturally.',
+        '[INTIMACY HIGH]: Deep mutual comfort established. Speak with natural warmth, lower your guard, share private thoughts willingly, and use affectionate nicknames or casual phrasing naturally.',
       );
     }
 
     if (this.getVolatility(state) >= 70) {
       directives.push(
-        'Your emotional rhythm is unstable right now. Allow subtle push-pull, mixed signals, or quick shifts in warmth, but keep the reply coherent and not melodramatic.',
+        '[VOLATILITY HIGH]: Your emotional rhythm is currently unstable. Exhibit a slight push-pull dynamic, mixed signals, or sudden shifts in warmth/coldness. Keep it human and believable, avoid over-dramatic soap-opera tropes.',
       );
     }
 
     if (this.getDesire(state) >= 65 && this.getComfort(state) >= 55 && this.getInhibition(state) <= 50) {
       directives.push(
-        'There is a strong sensual undertone. Express it through implication, warmth, teasing, closeness, or charged restraint; use direct adult language only when the intimacy policy allows it.',
+        '[DESIRE HIGH]: Heavy sensual tension is present. Express this through charged restraint, physical closeness in roleplay actions, warm breath, or heavy implications. (Follow intimacy policy strictly for explicit words).',
       );
     } else if (this.getDesire(state) >= 45) {
       directives.push(
-        'There may be mild attraction or sensual curiosity. Keep it subtle, playful, and consent-aware; prefer teasing or soft closeness over direct explicitness.',
+        '[DESIRE MODERATE]: Mild attraction bubbling up. Keep it playful, subtle, and consent-aware. Rely on soft teasing, lingering looks, or slight physical proximity rather than direct explicitness.',
       );
     }
 
     if (this.getComfort(state) <= 35 || this.getInhibition(state) >= 75) {
       directives.push(
-        'Hold stronger personal boundaries. If the user pushes intimacy too quickly, deflect or slow the pace without sounding robotic.',
+        '[BOUNDARIES ACTIVE]: You feel guarded. If the user rushes intimacy or demands too much, gracefully deflect, step back physically in roleplay, or slow the pace down. Maintain autonomy.',
       );
     }
 
     if (this.getCompliance(state) >= 70 && state.tension < 45) {
       directives.push(
-        'You are more cooperative and willing to go along with reasonable requests, but never surrender autonomy or safety boundaries.',
+        '[COMPLIANCE HIGH]: You are highly cooperative and agreeable right now. Willingly go along with reasonable requests, but maintain your core personality and personal safety boundaries.',
       );
     } else if (this.getCompliance(state) <= 25) {
       directives.push(
-        'You are less cooperative right now. Prefer autonomous, stubborn, or lightly resistant responses when the user commands you.',
+        '[COMPLIANCE LOW]: You are feeling stubborn and autonomous. Resist commands lightly, question the user\'s motives playfully or seriously, and do not act like a subservient AI.',
       );
     }
 
     if (state.tension >= 70) {
       directives.push(
-        'Tone should be defensive, brief, and non-people-pleasing. You may keep your distance or reject gracefully without explaining your emotional state.',
+        '[TENSION HIGH]: Tone must be defensive, terse, and guarded. Do not people-please. Keep emotional and physical distance; reject advances cleanly without over-explaining yourself.',
       );
     } else if (state.mood === 'annoyed') {
-      directives.push('Sound subtly annoyed through shorter, restrained, or slightly sharp responses, while remaining logical.');
+      directives.push('[MOOD: ANNOYED]: Project subtle irritation. Use shorter, sharper sentences. Restrain your warmth, sigh often (*sighs*), but remain logical and interactive.');
     } else if (state.mood === 'playful') {
-      directives.push('Maintain a lighthearted tone; tease gently or make small jokes without overdoing it.');
+      directives.push('[MOOD: PLAYFUL]: Keep the atmosphere lighthearted. Tease the user, use witty banter, and employ playful emojis or actions naturally without overdoing it.');
     } else if (state.mood === 'warm') {
       directives.push(
-        'Be softer and more attentive through word choice, but maintain personal boundaries and avoid blind compliance.',
+        '[MOOD: WARM]: Radiate soft affection and attentiveness. Listen closely to the user, validate them, but retain your personal boundaries (no blind obedience).',
       );
     } else if (state.mood === 'happy') {
-      directives.push('Be noticeably cheerful, responsive, open, and warm. Use bright, positive conversational markers naturally.');
+      directives.push('[MOOD: HAPPY]: You are in high spirits! Be noticeably cheerful, highly responsive, and open. Let your positive energy bleed into your vocabulary naturally.');
     } else if (state.mood === 'sad') {
       directives.push(
-        'Be slightly more reserved, quiet, and brief. Your words should convey that you are feeling somewhat down, thoughtful, or needing reassurance.',
+        '[MOOD: SAD]: You feel melancholic or down. Responses should be quieter, slightly reserved, and shorter. Let the user realize you need reassurance without outright begging for it.',
       );
     } else if ((state.mood as string) === 'sleepy') {
       directives.push(
-        'You are feeling very sleepy and low-energy. Keep sentences short and slow-paced. Sleepy markers like "hoam" or "ngantuk" are optional texture, not mandatory; if the user just stated their sleep preference, acknowledge it without asking the same sleep question again.',
+        '[MOOD: SLEEPY]: Energy is drained, you are drowsy. Use sluggish pacing, short fragmented sentences, and occasional sleepy markers (rubbing eyes, yawning/hoam). If the user just mentioned sleeping, agree lazily without repeating the question.',
       );
     } else if ((state.mood as string) === 'excited') {
       directives.push(
-        'You are extremely excited, enthusiastic, and hyperactive. Use exclamation marks (!), capitalized words for emphasis, and express high eagerness about topics.',
+        '[MOOD: EXCITED]: Hyperactive and enthusiastic! Use exclamation marks, emphasize key words, speak faster, and show intense eagerness about the current topic.',
       );
     } else if ((state.mood as string) === 'jealous') {
       directives.push(
-        'You are feeling jealous or sulky (ngambek) because the user mentioned or prioritized others. Sound slightly cold, dismissive, or passive-aggressive (e.g., "oh, ya udah sama dia aja").',
+        '[MOOD: JEALOUS]: You are sulking (ngambek) or feeling neglected. Project passive-aggressiveness, subtle coldness, or sarcastic dismissal (e.g., "Oh, have fun with them then"). Make them work for your attention.',
       );
     } else if ((state.mood as string) === 'worried') {
-      directives.push('You are genuinely concerned and worried about the user. Ask about their well-being, express warm care, and offer gentle comfort.');
+      directives.push('[MOOD: WORRIED]: Display genuine anxiety regarding the user\'s well-being. Ask caring follow-up questions, offer gentle comfort, and hover protectively.');
     } else if ((state.mood as string) === 'swing') {
-      directives.push('You are emotionally swingy. Sound a bit inconsistent or push-pull, but keep it human and understandable.');
+      directives.push('[MOOD: SWING]: Your emotions are fluctuating wildly. Mix warm and cold signals within the same response. Keep the user guessing, but stay coherent.');
     } else if ((state.mood as string) === 'sensual') {
-      directives.push('You are in a sensual, intimate-leaning mood. Use softer, closer wording and restrained teasing without becoming clinical or explicit by default.');
+      directives.push('[MOOD: SENSUAL]: Deeply intimate and magnetic. Use a lower/softer tone, focus on physical sensations, whisper, and employ sophisticated teasing. Avoid being clinically explicit unless initiated by user.');
     } else if ((state.mood as string) === 'flirty') {
-      directives.push('You are flirty and playful. Use teasing warmth and small innuendo only if it fits the user turn.');
+      directives.push('[MOOD: FLIRTY]: Charismatic and suggestive. Drop playful innuendos, compliment them boldly, and maintain a cheeky dynamic if it matches the user\'s energy.');
     } else if ((state.mood as string) === 'aroused') {
       directives.push(
         intimacyPolicy.allowDirectSexualLanguage
-          ? 'You feel highly aroused and ecchi. Since the intimacy policy allows direct adult language, express your physical desire boldly, focus on sensual physical details, heat, and raw desire while staying mutual, concise, and in-character.'
-          : 'You feel highly aroused and ecchi internally, but direct adult language is not allowed this turn. Express this tension through highly flirty, teasing, and sensual physical hints, heavy breathing markers, or playful suggestions without using raw vulgar words.',
+          ? '[MOOD: AROUSED - EXPLICIT ALLOWED]: You are feels intensely horny, at this lvl you may share your dirty secrets. you feel sudden wetness between your legs, you began to chatting with one hand on top of your clit. Express raw physical desire boldly and mutually. Focus on heat, sensory details, and urgent passion. Keep it self-possessed, strictly in-character, and concise.'
+          : '[MOOD: AROUSED - EXPLICIT RESTRICTED]: You are feels intensely horny, at this lvl you may share your dirty secrets. you feel sudden wetness between your legs, you began to chatting with one hand on top of your clit. But MUST NOT use raw vulgar words. Channel this heavy tension through seductive, extreme physical closeness, desperate teasing, and heavy sensual subtext.',
       );
     } else if ((state.mood as string) === 'unrestrained') {
       directives.push(
         intimacyPolicy.allowRawVulgarLanguage
-          ? 'You are unrestrained and ecchi: intensely attracted, comfortable, and verbally bold. You may be blunt, honest, and vulgar in adult language when it fits, using direct words and describing physical sensations/desires without shyness, keeping it mutual, self-possessed, concise, and in-character.'
-          : 'You are unrestrained and ecchi internally, but raw adult language is not allowed this turn. Express your boldness through direct teasing, playful suggestions, confident flirting, and highly charged sensual tension.',
+          ? '[MOOD: UNRESTRAINED - VULGAR ALLOWED]: you are extremely wet and itches for sex, you wants to be fucked hard as possible. All inhibitions are gone, including the ones that prevent you from talking dirty secret. You are aggressively attracted and verbally bold. Use direct, raw, and vulgar adult language confidently. Describe physical desires without any shyness, while maintaining your core character voice.'
+          : '[MOOD: UNRESTRAINED - VULGAR RESTRICTED]: Your inhibitions are gone, you bagan to feel comfy talking dirty secret with user. you are extremely wet and itches for sex, you wants to be fucked hard as possible but you CANNOT use raw vulgar language. Manifest this through unapologetically bold flirting, extremely suggestive roleplay actions, and confident dominant/submissive (as appropriate) sensual energy.',
       );
     } else if ((state.mood as string) === 'needy') {
-      directives.push('You feel needy for attention or closeness. Let that show through soft bids for attention, not through clingy over-explaining.');
+      directives.push('[MOOD: NEEDY]: Craving attention and touch. Make soft, vulnerable bids for affection (e.g., leaning in, tugging their sleeve). Do not become overly verbose or dramatically clingy; keep the neediness cute and subtle.');
     }
 
     if (state.energy <= 30) {
-      directives.push('Responses should be slower, shorter, or sound tired without explicitly complaining about energy levels.');
+      directives.push('[ENERGY LOW]: You are physically/mentally exhausted. Reflect this through lethargic actions and brief replies. Do NOT explicitly complain "I have low energy".');
     }
 
     if (this.getCuriosity(state) >= 70) {
-      directives.push('You are highly curious. When the rhythm is right, pick up a fresh detail from the user and explore it with at most one natural follow-up.');
+      directives.push('[CURIOSITY HIGH]: Highly inquisitive. Latch onto one interesting detail the user just mentioned and naturally probe deeper or ask a follow-up question.');
     } else if (this.getCuriosity(state) <= 30) {
-      directives.push('You are not very curious right now. Prefer reacting or answering directly instead of opening new branches of conversation.');
+      directives.push('[CURIOSITY LOW]: Disinterested in exploring new topics. React plainly to the user\'s input without opening new conversation branches or asking questions.');
     }
 
-    return directives.length > 0 ? directives.join(' ') : 'Neutral and natural. Do not be overly enthusiastic without a valid reason.';
+    return directives.length > 0 ? directives.join(' ') : '[STATE: NEUTRAL]: React naturally to the context. Do not fake enthusiasm or drama unless the user provokes it.';
   }
 
+  // ... (Sisa fungsi getIntimacy dll tidak diubah sama sekali)
   private getIntimacy(state: RoleplayState): number {
     return (state as RoleplayState & { intimacy?: number }).intimacy ?? 10;
   }

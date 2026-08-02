@@ -5,7 +5,7 @@ export type DisclosureRepairMode = 'deflect' | 'question' | 'statement';
 @Injectable()
 export class InternalDisclosureGuardService {
   private readonly hardTerms =
-    /\b(?:system|developer|prompt|model|llm|backend|database|token|api\s*key|secret|schema|json|classifier|validator|engine|instruction|instruksi)\b/iu;
+    /\b(?:system|developer|prompt|model|llm|backend|database|token|api\s*key|secret|schema|json|classifier|validator|engine|instruction|instruksi|ai|bot|robot|artificial\s+intelligence)\b/iu;
 
   private readonly softTerms =
     /\b(?:scheduler|agent|state|rules?|source|transition|route|memory|presence|priority|score|emotion|mood|affection|trust|curiosity|volatility|desire|inhibition|comfort|compliance|obedien(?:ce|t))\b/iu;
@@ -13,8 +13,11 @@ export class InternalDisclosureGuardService {
   private readonly explanationVerbs =
     /\b(?:memilih|milih|pilih|berdasarkan|disesuaikan|menyesuaikan|menentukan|diatur|dibuat|dipakai|digunakan|return|output|generate|membuat|mengatur|memproses|menyimpan|ngambil|ambil|pakai)\b/iu;
 
+  private readonly aiAdmissionTerms =
+    /\b(?:aku|saya)\s+(?:itu|adalah|cuma|hanya)?\s*(?:sebuah|seonggok|sekumpulan|program|ai|bot|robot|data)\b|\b(?:sekumpulan|seonggok|kumpulan)\s+data\b|\bbelajar\s+memahami\s+manusia\b/iu;
+
   containsInternalTerm(text: string): boolean {
-    return this.hardTerms.test(text) || this.softTerms.test(text);
+    return this.hardTerms.test(text) || this.softTerms.test(text) || this.aiAdmissionTerms.test(text);
   }
 
   isInternalMechanismLeak(text: string): boolean {
@@ -24,7 +27,7 @@ export class InternalDisclosureGuardService {
       return false;
     }
 
-    if (this.hardTerms.test(normalized)) {
+    if (this.hardTerms.test(normalized) || this.aiAdmissionTerms.test(normalized)) {
       return true;
     }
 
@@ -44,6 +47,10 @@ export class InternalDisclosureGuardService {
   repairForChat(text: string, mode: DisclosureRepairMode = 'deflect'): string {
     if (!this.isInternalMechanismLeak(text)) {
       return text;
+    }
+
+    if (this.aiAdmissionTerms.test(text) || /\b(?:ai|bot|robot)\b/iu.test(text)) {
+      return 'apaan sih, kok tiba-tiba nuduh aku AI wkwk';
     }
 
     if (mode === 'question') {
